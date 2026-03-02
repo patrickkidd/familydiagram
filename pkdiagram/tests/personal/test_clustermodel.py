@@ -208,3 +208,98 @@ def test_clusters_detected_signal(clusterModel, scene, session):
 
     # Signal not emitted during detection (only after response)
     signal_handler.assert_not_called()
+
+
+def test_detect_skips_when_cache_key_unchanged(clusterModel, scene, session):
+    """T7-12: detect() is idempotent — skips re-detection when events haven't changed."""
+    person = Person()
+    scene.addItem(person)
+    person.setName("Test Person")
+
+    dt = QDateTime(QDate(2024, 1, 15))
+    event = Event(kind=EventKind.Shift, person=person, dateTime=dt)
+    event.setDescription("Test event")
+    event.setSymptom(VariableShift.Up)
+    scene.addItem(event)
+
+    clusterModel.scene = scene
+    clusterModel.diagramId = 123
+
+    # First detect — should make network request
+    clusterModel.detect()
+    assert session.server().nonBlockingRequest.call_count == 1
+
+    # Simulate successful response by setting cacheKey
+    events_data = []
+    for e in sorted(scene.events(onlyDated=True), key=lambda e: e.dateTime().toMSecsSinceEpoch()):
+        event_dict = {
+            "id": e.id,
+            "dateTime": e.dateTime().toString("yyyy-MM-dd"),
+            "symptom": VariableShift.Up.value if e.symptom() else None,
+            "anxiety": None,
+            "relationship": None,
+            "functioning": None,
+        }
+        events_data.append(event_dict)
+    cache_key = ClusterModel._computeLocalCacheKey(events_data)
+
+    # Simulate detection completion
+    clusterModel._detecting = False
+    clusterModel._cacheKey = cache_key
+    clusterModel._clusters = [{"id": "c1", "title": "Test", "eventIds": [event.id]}]
+
+    # Second detect — should skip (cache key unchanged)
+    clusterModel.detect()
+    assert session.server().nonBlockingRequest.call_count == 1  # Still 1, not 2
+
+
+def test_show_clusters_property(clusterModel):
+    """T7-12: showClusters property toggles and persists."""
+    assert clusterModel.showClusters == True
+
+    signal_handler = MagicMock()
+    clusterModel.showClustersChanged.connect(signal_handler)
+
+    clusterModel.setShowClusters(False)
+    assert clusterModel.showClusters == False
+    signal_handler.assert_called_once()
+
+    signal_handler.reset_mock()
+    clusterModel.setShowClusters(True)
+    assert clusterModel.showClusters == True
+    signal_handler.assert_called_once()
+
+
+def test_show_clusters_no_signal_on_same_value(clusterModel):
+    """T7-12: No signal emitted when setting showClusters to same value."""
+    signal_handler = MagicMock()
+    clusterModel.showClustersChanged.connect(signal_handler)
+
+    clusterModel.setShowClusters(True)  # Already True
+    signal_handler.assert_not_called()
+
+
+def test_show_clusters_persisted_in_cache(clusterModel, tmp_path):
+    """T7-12: showClusters state persists across cache save/load."""
+    import json
+
+    clusterModel.setCacheDir(tmp_path)
+    clusterModel._diagramId = 123
+
+    # Set to False and save
+    clusterModel.setShowClusters(False)
+    clusterModel._clusters = [{"id": "c1", "title": "Test", "eventIds": [1]}]
+    clusterModel._saveCache()
+
+    # Verify file contents
+    cache_file = tmp_path / "clusters_123.json"
+    assert cache_file.exists()
+    data = json.loads(cache_file.read_text())
+    assert data["showClusters"] == False
+
+    # Create new model and load cache
+    new_model = ClusterModel(MagicMock())
+    new_model.setCacheDir(tmp_path)
+    new_model.diagramId = 123
+    assert new_model.showClusters == False
+    new_model.deinit()

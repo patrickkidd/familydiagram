@@ -227,7 +227,7 @@ Page {
             }
         }
 
-        // Extract button (Discuss tab, visible when chat has messages)
+        // Extract button (Discuss tab, always visible)
         Rectangle {
             id: extractButton
             objectName: "extractButton"
@@ -238,7 +238,7 @@ Page {
             height: 28
             radius: 14
             color: util.IS_UI_DARK_MODE ? "#4495F7" : "#007AFF"
-            visible: tabBar.currentIndex === 0 && discussView.chatModel.count > 0
+            visible: tabBar.currentIndex === 0
 
             Canvas {
                 anchors.centerIn: parent

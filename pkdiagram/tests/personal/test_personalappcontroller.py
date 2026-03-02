@@ -348,3 +348,162 @@ def test_acceptAllPDPItems_adds_to_scene(test_user, personalApp: PersonalAppCont
             assert "people" in args
             assert "events" in args
             assert "pair_bonds" in args
+
+
+def test_acceptPDPItem_triggers_cluster_detection(
+    test_user, personalApp: PersonalAppController
+):
+    """Auto-detect clusters after accepting a single PDP item (T7-12)."""
+    initial_diagram_data = DiagramData(pdp=PDP(people=[Person(id=-1, name="Test")]))
+    personalApp._diagram = Diagram(
+        id=1,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(initial_diagram_data)),
+    )
+
+    with (
+        patch.object(personalApp, "_doAcceptPDPItem", return_value=True),
+        patch.object(personalApp.clusterModel, "detect") as detect_mock,
+    ):
+        personalApp.acceptPDPItem(-1)
+        assert detect_mock.call_count == 1
+
+
+def test_acceptPDPItem_failure_skips_cluster_detection(
+    test_user, personalApp: PersonalAppController
+):
+    """No cluster detection when PDP accept fails (T7-12)."""
+    initial_diagram_data = DiagramData(pdp=PDP(people=[Person(id=-1, name="Test")]))
+    personalApp._diagram = Diagram(
+        id=1,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(initial_diagram_data)),
+    )
+
+    with (
+        patch.object(personalApp, "_doAcceptPDPItem", return_value=False),
+        patch.object(personalApp.clusterModel, "detect") as detect_mock,
+    ):
+        personalApp.acceptPDPItem(-1)
+        assert detect_mock.call_count == 0
+
+
+def test_acceptAllPDPItems_triggers_cluster_detection(
+    test_user, personalApp: PersonalAppController
+):
+    """Auto-detect clusters after accepting all PDP items (T7-12)."""
+    from btcopilot.schema import Event, EventKind
+
+    initial_diagram_data = DiagramData(
+        pdp=PDP(
+            people=[Person(id=-1, name="TestPerson")],
+            events=[Event(id=-2, kind=EventKind.Shift, person=-1, description="test")],
+        )
+    )
+    personalApp._diagram = Diagram(
+        id=1,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(initial_diagram_data)),
+    )
+
+    with (
+        patch.object(personalApp, "_addCommittedItemsToScene"),
+        patch.object(personalApp._diagram, "save", return_value=True),
+        patch.object(personalApp.clusterModel, "detect") as detect_mock,
+    ):
+        personalApp.acceptAllPDPItems()
+        assert detect_mock.call_count == 1
+
+
+def test_clearDiagramData_batch_removal(
+    test_user, personalApp: PersonalAppController
+):
+    """clearDiagramData uses batch removal to avoid stale cross-references.
+
+    Without batch mode, removing events one-by-one triggers _do_removeItem's
+    signal emission path which calls scene.find(id=event.person) — this can
+    resolve to an ItemDetails instead of a Person when IDs collide in the
+    itemRegistry, causing AttributeError: 'ItemDetails' has no 'onEventRemoved'.
+    """
+    from pkdiagram.scene import Person as ScenePerson, Event as SceneEvent
+    from btcopilot.schema import EventKind
+
+    scene = personalApp.scene
+    p1, p2 = scene.addItems(ScenePerson(name="p1"), ScenePerson(name="p2"))
+    scene.addItem(SceneEvent(EventKind.Shift, p1, dateTime=util.Date(2020, 1, 1)))
+    scene.addItem(SceneEvent(EventKind.Shift, p2, dateTime=util.Date(2021, 1, 1)))
+    assert len(scene.events()) == 2
+
+    initial_diagram_data = DiagramData(pdp=PDP())
+    personalApp._diagram = Diagram(
+        id=1,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(initial_diagram_data)),
+    )
+
+    batchCalls = []
+    origSetBatch = scene.setBatchAddingRemovingItems
+
+    def trackBatch(on):
+        batchCalls.append(on)
+        origSetBatch(on)
+
+    with (
+        patch.object(personalApp._diagram, "save", return_value=True),
+        patch.object(scene, "setBatchAddingRemovingItems", side_effect=trackBatch),
+    ):
+        personalApp.clearDiagramData(True)
+
+    assert len(scene.events()) == 0
+    assert batchCalls == [True, False], (
+        f"Expected batch mode on/off, got {batchCalls}"
+    )
+
+
+def test_importJournalNotes_triggers_cluster_detection(
+    test_user, personalApp: PersonalAppController
+):
+    """Auto-detect clusters after journal import completes (T7-12)."""
+    from btcopilot.schema import DiagramData, PDP, PDPDeltas, Event, EventKind
+    from unittest.mock import AsyncMock
+    from pkdiagram.pyqt import QMessageBox
+
+    initial_diagram_data = DiagramData(pdp=PDP())
+    personalApp._diagram = Diagram(
+        id=test_user.free_diagram_id,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(initial_diagram_data)),
+    )
+
+    mock_pdp = PDP(
+        people=[Person(id=-1, name="TestPerson")],
+        events=[Event(id=-2, kind=EventKind.Shift, description="called")],
+    )
+    mock_deltas = PDPDeltas(
+        people=[Person(id=-1, name="TestPerson")],
+        events=[Event(id=-2, kind=EventKind.Shift, description="called")],
+        pair_bonds=[],
+    )
+
+    with (
+        patch(
+            "btcopilot.pdp.import_text",
+            AsyncMock(return_value=(mock_pdp, mock_deltas)),
+        ),
+        patch.object(QMessageBox, "information"),
+        patch.object(personalApp.clusterModel, "detect") as detect_mock,
+    ):
+        completed = util.Condition(personalApp.journalImportCompleted)
+        personalApp.importJournalNotes("Some journal text")
+        assert completed.wait()
+        assert detect_mock.call_count == 1

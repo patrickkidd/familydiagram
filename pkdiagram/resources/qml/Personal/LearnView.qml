@@ -18,7 +18,8 @@ Page {
     property int pendingSelection: -1
     property var collapsedClusters: ({})  // clusterId -> true if collapsed
     property int focusedClusterIndex: -1  // Index of cluster being focused in graph
-    property bool showClusters: true  // Toggle between cluster view and raw data view
+    property bool showClusters: clusterModel ? clusterModel.showClusters : true
+    onShowClustersChanged: { timelineZoom = 1.0; timelineScrollX = 0 }
 
     // WCAG AA colors for SARF
     readonly property color symptomColor: "#e05555"
@@ -48,7 +49,7 @@ Page {
     property real graphAreaBottom: controlsY  // Hero must stay above this
 
     // Timeline zoom/pan properties (overview mode)
-    property real timelineZoom: 2.0 // default
+    property real timelineZoom: 1.0
     property real timelineScrollX: 0
     property real minZoom: 1.0
     property real maxZoom: 20.0
@@ -105,44 +106,34 @@ Page {
     }
     property real focusedYearSpan: Math.max(0.001, focusedMaxYearFrac - focusedMinYearFrac)
 
-    // Year range for all cluster events (excludes birth events and other outliers)
-    property var clusterEventYearFracs: {
-        if (!showClusters || !clusterModel || !clusterModel.hasClusters || !sarfGraphModel) return []
-        var events = sarfGraphModel.events
-        var fracs = []
-        for (var i = 0; i < clusterModel.clusters.length; i++) {
-            var cluster = clusterModel.clusters[i]
-            if (!cluster.eventIds) continue
-            for (var j = 0; j < cluster.eventIds.length; j++) {
-                var eventId = cluster.eventIds[j]
-                for (var k = 0; k < events.length; k++) {
-                    if (events[k].id === eventId) {
-                        fracs.push(events[k].yearFrac)
-                        break
-                    }
-                }
-            }
+    // Year range spanning all cluster boundaries with padding so edge clusters are visible
+    property real _clusterMinRaw: {
+        if (!clusterModel || !clusterModel.hasClusters) return sarfGraphModel ? sarfGraphModel.yearStart : 2020
+        var clusters = clusterModel.clusters
+        var minVal = Infinity
+        for (var i = 0; i < clusters.length; i++) {
+            var startFrac = dateToYearFrac(clusters[i].startDate)
+            var endFrac = dateToYearFrac(clusters[i].endDate)
+            if (startFrac !== null && startFrac < minVal) minVal = startFrac
+            if (endFrac !== null && endFrac < minVal) minVal = endFrac
         }
-        return fracs
+        return minVal === Infinity ? (sarfGraphModel ? sarfGraphModel.yearStart : 2020) : minVal
     }
-    property real clusterMinYearFrac: {
-        var fracs = clusterEventYearFracs
-        if (!fracs || fracs.length === 0) return sarfGraphModel ? sarfGraphModel.yearStart : 2020
-        var minVal = fracs[0]
-        for (var i = 1; i < fracs.length; i++) {
-            if (fracs[i] < minVal) minVal = fracs[i]
+    property real _clusterMaxRaw: {
+        if (!clusterModel || !clusterModel.hasClusters) return sarfGraphModel ? sarfGraphModel.yearEnd : 2025
+        var clusters = clusterModel.clusters
+        var maxVal = -Infinity
+        for (var i = 0; i < clusters.length; i++) {
+            var startFrac = dateToYearFrac(clusters[i].startDate)
+            var endFrac = dateToYearFrac(clusters[i].endDate)
+            if (startFrac !== null && startFrac > maxVal) maxVal = startFrac
+            if (endFrac !== null && endFrac > maxVal) maxVal = endFrac
         }
-        return minVal
+        return maxVal === -Infinity ? (sarfGraphModel ? sarfGraphModel.yearEnd : 2025) : maxVal
     }
-    property real clusterMaxYearFrac: {
-        var fracs = clusterEventYearFracs
-        if (!fracs || fracs.length === 0) return sarfGraphModel ? sarfGraphModel.yearEnd : 2025
-        var maxVal = fracs[0]
-        for (var i = 1; i < fracs.length; i++) {
-            if (fracs[i] > maxVal) maxVal = fracs[i]
-        }
-        return maxVal
-    }
+    property real _clusterPad: Math.max(0.25, (_clusterMaxRaw - _clusterMinRaw) * 0.05)
+    property real clusterMinYearFrac: _clusterMinRaw - _clusterPad
+    property real clusterMaxYearFrac: _clusterMaxRaw + _clusterPad
     property real clusterYearSpan: Math.max(1, clusterMaxYearFrac - clusterMinYearFrac)
 
     background: Rectangle {
@@ -185,10 +176,14 @@ Page {
     }
 
     function xPosZoomed(year) {
-        if (!showClusters) return xPos(year)
-        // Always use cluster year range for cluster bars, regardless of focus state
-        var yearStart = clusterMinYearFrac
-        var yearSpan = clusterYearSpan
+        var yearStart, yearSpan
+        if (showClusters && clusterModel && clusterModel.hasClusters) {
+            yearStart = clusterMinYearFrac
+            yearSpan = clusterYearSpan
+        } else {
+            yearStart = sarfGraphModel ? sarfGraphModel.yearStart : 2020
+            yearSpan = sarfGraphModel ? sarfGraphModel.yearSpan : 5
+        }
         if (yearSpan === 0) yearSpan = 1
         var baseX = ((year - yearStart) / yearSpan) * gWidth
         return gLeft + baseX * timelineZoom - timelineScrollX
@@ -197,39 +192,8 @@ Page {
     // Minimum bar width for tappable clusters
     readonly property real minBarWidth: 30
 
-    // Calculate optimal zoom so clusters are readable
-    function calculateOptimalZoom() {
-        if (!clusterModel || !clusterModel.clusters || clusterModel.clusters.length === 0) {
-            return 1.0
-        }
-        var clusters = clusterModel.clusters
-        var yearSpan = clusterYearSpan
-        if (yearSpan < 0.001) yearSpan = 1
-
-        // Find the narrowest cluster's time span
-        var minClusterSpan = yearSpan
-        for (var i = 0; i < clusters.length; i++) {
-            var c = clusters[i]
-            var startFrac = dateToYearFrac(c.startDate) || clusterMinYearFrac
-            var endFrac = dateToYearFrac(c.endDate) || clusterMaxYearFrac
-            var span = Math.max(0.01, endFrac - startFrac)  // At least ~4 days
-            if (span < minClusterSpan) minClusterSpan = span
-        }
-
-        // Calculate zoom needed for narrowest cluster to be minBarWidth pixels
-        // barWidth = (clusterSpan / yearSpan) * gWidth * zoom
-        // minBarWidth = (minClusterSpan / yearSpan) * gWidth * zoom
-        // zoom = minBarWidth / ((minClusterSpan / yearSpan) * gWidth)
-        var baseWidth = (minClusterSpan / yearSpan) * gWidth
-        if (baseWidth < 1) baseWidth = 1
-        var optimalZoom = minBarWidth / baseWidth
-
-        // Clamp to reasonable range
-        return Math.max(minZoom, Math.min(optimalZoom, maxZoom))
-    }
-
     function applyOptimalZoom() {
-        timelineZoom = calculateOptimalZoom()
+        timelineZoom = 1.0
         timelineScrollX = 0
     }
 
@@ -877,13 +841,10 @@ Page {
                 target: clusterModel
                 function onChanged() {
                     graphCanvas.requestPaint()
-                    // Check if clusters were re-detected (count changed)
                     var currentCount = clusterModel && clusterModel.clusters ? clusterModel.clusters.length : 0
                     if (currentCount !== lastClusterCount) {
                         lastClusterCount = currentCount
-                        // Reset to unfocused mode with all clusters collapsed
                         collapseAllClusters()
-                        // Auto-zoom only when clusters are re-detected
                         applyOptimalZoom()
                     }
                 }
@@ -892,6 +853,164 @@ Page {
             Connections {
                 target: root
                 function onFocusedClusterIndexChanged() { graphCanvas.requestPaint() }
+            }
+
+            // Time markers on x-axis (always visible, adaptive granularity)
+            Item {
+                id: timeMarkersContainer
+                x: gLeft
+                y: miniGraphY
+                width: gWidth
+                height: miniGraphH
+                clip: true
+                z: 100
+
+                // Year range adapts to cluster vs full SARF range
+                property real markerMinYear: showClusters && clusterModel && clusterModel.hasClusters ? clusterMinYearFrac : (sarfGraphModel ? sarfGraphModel.yearStart : 2020)
+                property real markerMaxYear: showClusters && clusterModel && clusterModel.hasClusters ? clusterMaxYearFrac : (sarfGraphModel ? sarfGraphModel.yearEnd : 2025)
+                property real markerYearSpan: Math.max(1, markerMaxYear - markerMinYear)
+
+                Repeater {
+                    id: timeMarkers
+
+                    property real visibleSpan: timeMarkersContainer.markerYearSpan / timelineZoom
+                    property string intervalType: {
+                        if (visibleSpan > 10) return "year5"
+                        if (visibleSpan > 4) return "year1"
+                        if (visibleSpan > 1.5) return "month6"
+                        if (visibleSpan > 0.6) return "month3"
+                        if (visibleSpan > 0.25) return "month1"
+                        if (visibleSpan > 0.08) return "week1"
+                        return "day1"
+                    }
+                    property real interval: {
+                        if (intervalType === "year5") return 5
+                        if (intervalType === "year1") return 1
+                        if (intervalType === "month6") return 0.5
+                        if (intervalType === "month3") return 0.25
+                        if (intervalType === "month1") return 1/12
+                        if (intervalType === "week1") return 1/52
+                        return 1/365
+                    }
+
+                    model: {
+                        var markers = []
+                        var start = Math.floor(timeMarkersContainer.markerMinYear / interval) * interval
+                        var end = timeMarkersContainer.markerMaxYear + interval * 0.1
+                        for (var t = start; t <= end; t += interval) {
+                            markers.push(t)
+                        }
+                        return markers
+                    }
+
+                    Item {
+                        property real markerX: xPosZoomed(modelData) - gLeft
+                        property bool isYear: Math.abs(modelData - Math.round(modelData)) < 0.001
+                        x: markerX
+                        y: 0
+                        width: 1
+                        height: parent.height
+                        visible: markerX > -20 && markerX < gWidth + 20
+
+                        Rectangle {
+                            x: 0
+                            y: 0
+                            width: 1
+                            height: parent.height - 18
+                            color: util.IS_UI_DARK_MODE
+                                ? (isYear ? "#404050" : "#282838")
+                                : (isYear ? "#c0c0c8" : "#e0e0e8")
+                        }
+
+                        Text {
+                            anchors.bottom: parent.bottom
+                            anchors.bottomMargin: 4
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: {
+                                if (isYear) return Math.round(modelData)
+                                var year = Math.floor(modelData)
+                                var dayOfYear = (modelData - year) * 365
+                                var md = dayOfYearToMonthDay(dayOfYear)
+                                var iType = timeMarkers.intervalType
+                                if (iType === "month6" || iType === "month3" || iType === "month1") return monthNames[md.month]
+                                if (iType === "week1") return monthNames[md.month] + " " + md.day
+                                return md.day
+                            }
+                            font.pixelSize: isYear ? 10 : 8
+                            font.bold: isYear
+                            color: util.IS_UI_DARK_MODE
+                                ? (isYear ? "#606070" : "#404050")
+                                : (isYear ? "#808088" : "#a0a0a8")
+                        }
+                    }
+                }
+
+                // Wheel scroll for panning (active when cluster container isn't handling it)
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.NoButton
+                    enabled: !showClusters
+                    onWheel: {
+                        var deltaX = wheel.angleDelta.x !== 0 ? wheel.angleDelta.x : wheel.angleDelta.y
+                        var maxScroll = Math.max(0, gWidth * timelineZoom - gWidth)
+                        timelineScrollX = Math.max(0, Math.min(timelineScrollX - deltaX * 0.5, maxScroll))
+                        wheel.accepted = true
+                    }
+                }
+
+                // Pinch to zoom with drag-to-pan (active when cluster container isn't handling it)
+                PinchArea {
+                    anchors.fill: parent
+                    enabled: !showClusters
+
+                    property real startZoom: 1.0
+                    property real startScrollX: 0
+                    property point startCenter: Qt.point(0, 0)
+                    property point lastCenter: Qt.point(0, 0)
+                    property real accumulatedPan: 0
+
+                    onPinchStarted: {
+                        startZoom = timelineZoom
+                        startScrollX = timelineScrollX
+                        startCenter = pinch.center
+                        lastCenter = pinch.center
+                        accumulatedPan = 0
+                    }
+
+                    onPinchUpdated: {
+                        var newZoom = Math.max(minZoom, Math.min(maxZoom, startZoom * pinch.scale))
+                        var baseWidth = gWidth
+                        var newContentWidth = baseWidth * newZoom
+                        var pinchXRatio = (startCenter.x + startScrollX) / (baseWidth * startZoom)
+                        var newScrollForZoom = pinchXRatio * newContentWidth - startCenter.x
+                        var panDelta = lastCenter.x - pinch.center.x
+                        lastCenter = pinch.center
+                        accumulatedPan += panDelta
+                        var newScrollX = newScrollForZoom + accumulatedPan
+                        var maxScroll = Math.max(0, newContentWidth - baseWidth)
+                        timelineScrollX = Math.max(0, Math.min(newScrollX, maxScroll))
+                        timelineZoom = newZoom
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        z: -1
+                        enabled: !showClusters
+                        property real dragStartX: 0
+                        property real dragStartScrollX: 0
+                        property bool isDragging: false
+
+                        onPressed: { dragStartX = mouse.x; dragStartScrollX = timelineScrollX; isDragging = false }
+                        onPositionChanged: {
+                            if (pressed && Math.abs(mouse.x - dragStartX) > 5) {
+                                isDragging = true
+                                var maxScroll = Math.max(0, gWidth * timelineZoom - gWidth)
+                                timelineScrollX = Math.max(0, Math.min(dragStartScrollX + dragStartX - mouse.x, maxScroll))
+                            }
+                        }
+                        onReleased: isDragging = false
+                    }
+                }
             }
 
             // Cluster bars in zoomed-out mode (show clusters on timeline by date range)
@@ -973,85 +1092,6 @@ Page {
                             }
                         }
                         onReleased: isDragging = false
-                    }
-                }
-
-                // Time markers on x-axis (adaptive granularity)
-                Repeater {
-                    id: timeMarkers
-
-                    // Calculate visible range and appropriate interval
-                    property real visibleSpan: clusterYearSpan / timelineZoom
-                    property string intervalType: {
-                        if (visibleSpan > 10) return "year5"
-                        if (visibleSpan > 4) return "year1"
-                        if (visibleSpan > 1.5) return "month6"
-                        if (visibleSpan > 0.6) return "month3"
-                        if (visibleSpan > 0.25) return "month1"
-                        if (visibleSpan > 0.08) return "week1"
-                        return "day1"
-                    }
-                    property real interval: {
-                        if (intervalType === "year5") return 5
-                        if (intervalType === "year1") return 1
-                        if (intervalType === "month6") return 0.5
-                        if (intervalType === "month3") return 0.25
-                        if (intervalType === "month1") return 1/12
-                        if (intervalType === "week1") return 1/52
-                        return 1/365
-                    }
-
-                    model: {
-                        var markers = []
-                        var start = Math.floor(clusterMinYearFrac / interval) * interval
-                        var end = clusterMaxYearFrac + interval * 0.1  // Minimal padding
-                        for (var t = start; t <= end; t += interval) {
-                            markers.push(t)
-                        }
-                        return markers
-                    }
-
-                    Item {
-                        property real markerX: xPosZoomed(modelData) - gLeft
-                        property bool isYear: Math.abs(modelData - Math.round(modelData)) < 0.001
-                        x: markerX
-                        y: 0
-                        width: 1
-                        height: parent.height
-                        visible: markerX > -20 && markerX < gWidth + 20
-
-                        // Vertical line - stops above text
-                        Rectangle {
-                            x: 0
-                            y: 0
-                            width: 1
-                            height: parent.height - 18
-                            color: util.IS_UI_DARK_MODE
-                                ? (isYear ? "#404050" : "#282838")
-                                : (isYear ? "#c0c0c8" : "#e0e0e8")
-                        }
-
-                        // Label at bottom
-                        Text {
-                            anchors.bottom: parent.bottom
-                            anchors.bottomMargin: 4
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: {
-                                if (isYear) return Math.round(modelData)
-                                var year = Math.floor(modelData)
-                                var dayOfYear = (modelData - year) * 365
-                                var md = dayOfYearToMonthDay(dayOfYear)
-                                var iType = timeMarkers.intervalType
-                                if (iType === "month6" || iType === "month3" || iType === "month1") return monthNames[md.month]
-                                if (iType === "week1") return monthNames[md.month] + " " + md.day
-                                return md.day
-                            }
-                            font.pixelSize: isYear ? 10 : 8
-                            font.bold: isYear
-                            color: util.IS_UI_DARK_MODE
-                                ? (isYear ? "#606070" : "#404050")
-                                : (isYear ? "#808088" : "#a0a0a8")
-                        }
                     }
                 }
 
@@ -1182,7 +1222,7 @@ Page {
 
             // Scroll indicator (shown when zoomed)
             Rectangle {
-                visible: showClusters && !isFocused && timelineZoom > 1.05
+                visible: !isFocused && timelineZoom > 1.05
                 x: 0; y: 0
                 width: parent.width; height: 3; radius: 0
                 color: util.IS_UI_DARK_MODE ? "#1a1a2a" : "#d0d0d8"
@@ -1201,7 +1241,7 @@ Page {
 
             // Reset zoom button
             Rectangle {
-                visible: showClusters && !isFocused && timelineZoom > 1.05
+                visible: !isFocused && timelineZoom > 1.05
                 anchors.right: parent.right
                 anchors.rightMargin: graphPadding + 8
                 y: miniGraphY
@@ -1227,7 +1267,7 @@ Page {
             Repeater {
                 model: sarfGraphModel && !showClusters ? sarfGraphModel.events : []
                 Item {
-                    x: xPos(modelData.yearFrac) - 20
+                    x: xPosZoomed(modelData.yearFrac) - 20
                     y: yPosMini(0) - 20
                     width: 40
                     height: 50
@@ -1914,47 +1954,63 @@ Page {
                     spacing: 12
                     height: 36
 
-                    // Cluster count
+                    // Detecting indicator
                     Text {
-                        visible: showClusters && clusterModel && clusterModel.hasClusters
-                        text: clusterModel ? clusterModel.count + " clusters" : ""
-                        font.pixelSize: 14
+                        visible: clusterModel && clusterModel.detecting
+                        text: "Detecting..."
+                        font.pixelSize: 13
+                        font.italic: true
                         color: textSecondary
                         anchors.verticalCenter: parent.verticalCenter
                     }
 
-                    // Detect Clusters button
-                    Rectangle {
-                        width: Math.max(detectRow.width + 24, 90)
-                        height: 32
-                        radius: 16
-                        color: clusterModel && clusterModel.detecting ? textSecondary : util.QML_HIGHLIGHT_COLOR
-                        opacity: clusterModel && clusterModel.detecting ? 0.6 : 0.9
+                    // Show clusters toggle (iOS style)
+                    Row {
+                        visible: clusterModel && clusterModel.hasClusters
                         anchors.verticalCenter: parent.verticalCenter
+                        spacing: 8
 
-                        Row {
-                            id: detectRow
-                            anchors.centerIn: parent
-                            spacing: 6
+                        Rectangle {
+                            id: showClustersToggle
+                            objectName: "showClustersCheckbox"
+                            width: 44
+                            height: 26
+                            radius: 13
+                            color: showClusters ? util.QML_HIGHLIGHT_COLOR : (util.IS_UI_DARK_MODE ? "#3a3a4a" : "#c8c8d0")
+                            anchors.verticalCenter: parent.verticalCenter
 
-                            Text {
-                                text: clusterModel && clusterModel.detecting ? "..." : (clusterModel && clusterModel.hasClusters ? "Re-detect" : "Find Clusters")
-                                font.pixelSize: 13
-                                font.bold: true
+                            Behavior on color { ColorAnimation { duration: 200 } }
+
+                            Rectangle {
+                                id: toggleKnob
+                                width: 22
+                                height: 22
+                                radius: 11
                                 color: "white"
-                                anchors.verticalCenter: parent.verticalCenter
+                                y: 2
+                                x: showClusters ? parent.width - width - 2 : 2
+
+                                Behavior on x { NumberAnimation { duration: 200; easing.type: Easing.InOutQuad } }
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                anchors.margins: -6
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: if (clusterModel) clusterModel.setShowClusters(!showClusters)
                             }
                         }
 
-                        MouseArea {
-                            anchors.fill: parent
-                            anchors.margins: -6  // Extend tap area to 44pt
-                            enabled: clusterModel && !clusterModel.detecting
-                            cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                            onClicked: {
-                                if (clusterModel) {
-                                    clusterModel.detect()
-                                }
+                        Text {
+                            text: clusterModel ? clusterModel.count + " Clusters" : "Clusters"
+                            font.pixelSize: 13
+                            color: textPrimary
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: if (clusterModel) clusterModel.setShowClusters(!showClusters)
                             }
                         }
                     }
