@@ -98,6 +98,29 @@ def test_no_duplicate_events_from_file(simpleScene):
         assert events.count(event) == 1
 
 
+def test_read_orphan_pair_bonds(scene):
+    """Corrupt files with pair bonds referencing non-existent people should
+    load successfully by pruning the orphan pair bonds."""
+    p1 = scene.addItem(Person(name="A"))
+    p2 = scene.addItem(Person(name="B"))
+    scene.addItem(Marriage(p1, p2))
+    data = {}
+    scene.write(data)
+    assert len(data["pair_bonds"]) == 1
+
+    # Inject an orphan pair_bond referencing a non-existent person
+    orphan = {"id": 9999, "person_a": 99999, "person_b": p2.id}
+    data["pair_bonds"].append(orphan)
+    assert len(data["pair_bonds"]) == 2
+
+    scene2 = Scene()
+    scene2.read(data)
+    assert len(scene2.marriages()) == 1
+    assert scene2.marriages()[0].personA() is not None
+    assert scene2.marriages()[0].personB() is not None
+    scene2.deinit()
+
+
 def test_read_duplicate_pair_bonds(scene):
     """Corrupt files with duplicate marriages for the same two people should
     load successfully by skipping the duplicate."""
