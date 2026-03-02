@@ -1028,6 +1028,18 @@ class Scene(QGraphicsScene, Item):
                 continue
             stale_target = chunk.get("event") and chunk.get("event") not in by_ids
 
+        for chunk in list(data.get("pair_bonds", [])):
+            if (
+                chunk.get("person_a") not in by_ids
+                or chunk.get("person_b") not in by_ids
+            ):
+                log.warning(
+                    f"Removing pair_bond id={chunk['id']} with stale person reference "
+                    f"(person_a={chunk.get('person_a')}, person_b={chunk.get('person_b')})"
+                )
+                data["pair_bonds"].remove(chunk)
+                pruned.append(chunk)
+
         for chunk in list(data.get("multipleBirths", [])):
             stale_children = [
                 childId

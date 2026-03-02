@@ -67,7 +67,7 @@ Page {
             chatModel.append({ "text": text, "speakerType": 'subject' })
             statementsList.delayedScrollToBottom()
         }
-        function onResponseReceived(text, added) {
+        function onResponseReceived(text) {
             chatModel.append({
                 "text": text,
                 "speakerType": 'expert'
@@ -581,6 +581,9 @@ Page {
         onItemRejected: function(id) {
             personalApp.rejectPDPItem(id)
             pdpSheet.removeItemById(id)
+        }
+        onRefreshClicked: {
+            personalApp.extractFull()
         }
         onAcceptAllClicked: {
             personalApp.acceptAllPDPItems()

@@ -203,6 +203,7 @@ Page {
 
         // PDP Badge (Discuss tab, left of extract button)
         Rectangle {
+            id: pdpBadge
             objectName: "pdpBadge"
             anchors.right: extractButton.left
             anchors.rightMargin: 8
@@ -249,6 +250,7 @@ Page {
                     ctx.strokeStyle = "white"
                     ctx.lineWidth = 1.5
                     ctx.lineCap = "round"
+                    // Arrow down
                     ctx.beginPath()
                     ctx.moveTo(7, 1)
                     ctx.lineTo(7, 9)
@@ -258,6 +260,7 @@ Page {
                     ctx.lineTo(7, 10)
                     ctx.lineTo(10.5, 6)
                     ctx.stroke()
+                    // Tray
                     ctx.beginPath()
                     ctx.moveTo(1, 10)
                     ctx.lineTo(1, 13)

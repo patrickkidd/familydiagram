@@ -51,7 +51,7 @@ _log = logging.getLogger(__name__)
 
 class PersonalAppController(QObject):
     requestSent = pyqtSignal(str)
-    responseReceived = pyqtSignal(str, dict, arguments=["statement", "pdp"])
+    responseReceived = pyqtSignal(str, arguments=["statement"])
     serverError = pyqtSignal(str)
     serverDown = pyqtSignal()
 
@@ -104,7 +104,6 @@ class PersonalAppController(QObject):
         self.diagramChanged.connect(self._onDiagramChanged)
         self.clusterModel.clustersDetected.connect(self._onClustersDetected)
         self.eventForm = None  # EventForm (from PersonalContainer drawer)
-        self._pendingScene: Scene | None = None
         self.shakeDetector = ShakeDetector(self)
         self.shakeDetector.shakeDetected.connect(self.undo)
         self._saving = False
@@ -203,10 +202,7 @@ class PersonalAppController(QObject):
         self._engine = None
 
     def onQmlObjectCreated(self, rootObject: QQuickItem, url: QUrl):
-        if self._pendingScene:
-            self.setScene(self._pendingScene)
-            self._pendingScene = None
-        elif self.eventForm and self.scene:
+        if self.eventForm and self.scene:
             self.eventForm.setScene(self.scene)
 
     def onEventFormSaved(self):
@@ -452,13 +448,13 @@ class PersonalAppController(QObject):
                 f"Loaded personal diagram: {self._diagram.id}, version: {self._diagram.version}"
             )
             assert self.scene is None
-            sceneData = pickle.loads(rawData)
             scene = Scene()
-            scene.read(sceneData)
-            if self.eventForm:
-                self.setScene(scene)
+            try:
+                scene.read(pickle.loads(rawData))
+            except (pickle.UnpicklingError, KeyError, ValueError, TypeError, AttributeError):
+                _log.exception(f"Failed to load scene for diagram {self._diagram.id}")
             else:
-                self._pendingScene = scene
+                self.setScene(scene)
 
         reply = self.session.server().nonBlockingRequest(
             "GET",
@@ -612,13 +608,7 @@ class PersonalAppController(QObject):
                 return
 
             def onSuccess(data):
-                # Update local diagram with PDP from response
-                if data.get("pdp") and self._diagram:
-                    diagramData = self._diagram.getDiagramData()
-                    diagramData.pdp = from_dict(PDP, data["pdp"])
-                    self._diagram.setDiagramData(diagramData)
-                self.responseReceived.emit(data["statement"], data["pdp"])
-                self.pdpChanged.emit()
+                self.responseReceived.emit(data["statement"])
 
             args = {
                 "statement": statement,
