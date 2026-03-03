@@ -2006,6 +2006,53 @@ Page {
             model: sarfGraphModel ? sarfGraphModel.events : []
             header: Item { height: 12 }  // Top margin for first cluster card
 
+            // Pattern Insights section at the bottom of the story list
+            footer: Item {
+                width: storyList.width
+                height: insightsColumn.height + 24  // 12px top + 12px bottom margin
+                visible: personalApp && personalApp.insights && personalApp.insights.length > 0
+
+                ColumnLayout {
+                    id: insightsColumn
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: 12
+                    spacing: 8
+
+                    // Section header
+                    Text {
+                        text: "Pattern Insights"
+                        font.pixelSize: 16
+                        font.weight: Font.DemiBold
+                        color: textPrimary
+                        Layout.fillWidth: true
+                    }
+
+                    // Insight cards
+                    Repeater {
+                        model: personalApp ? personalApp.insights : []
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            height: insightText.implicitHeight + 24
+                            radius: 8
+                            color: cardColor
+
+                            Text {
+                                id: insightText
+                                anchors.fill: parent
+                                anchors.margins: 12
+                                text: modelData
+                                font.pixelSize: 14
+                                color: textPrimary
+                                wrapMode: Text.WordWrap
+                            }
+                        }
+                    }
+                }
+            }
+
             NumberAnimation {
                 id: scrollAnimation
                 target: storyList

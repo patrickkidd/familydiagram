@@ -70,6 +70,8 @@ class PersonalAppController(QObject):
     ttsFinished = pyqtSignal()
     ttsVoiceChanged = pyqtSignal()
 
+    insightsChanged = pyqtSignal()
+
     def __init__(self, undoStack=None, parent=None):
         super().__init__(parent)
 
@@ -79,6 +81,7 @@ class PersonalAppController(QObject):
         self._discussions = []
         self._currentDiscussion: Discussion | None = None
         self._pdp: dict | None = None
+        self._insights: list[str] = []
         self._rootObject = None
         self._engine: QQmlEngine | None = None
         self.scene = None
@@ -822,6 +825,43 @@ class PersonalAppController(QObject):
                 result["committedPeople"] = committedPeople
                 return result
         return {}
+
+    # Pattern insights from extraction
+
+    @pyqtProperty("QVariantList", notify=insightsChanged)
+    def insights(self):
+        return self._insights
+
+    @pyqtSlot()
+    def runExtract(self):
+        """Call the extract endpoint and store insights from the response."""
+        if not self._currentDiscussion:
+            _log.warning("runExtract called without a current discussion")
+            return
+
+        def onSuccess(data):
+            if data.get("pdp") and self._diagram:
+                diagramData = self._diagram.getDiagramData()
+                diagramData.pdp = from_dict(PDP, data["pdp"])
+                self._diagram.setDiagramData(diagramData)
+            self.pdpChanged.emit()
+
+            # Store pattern insights
+            self._insights = data.get("insights", [])
+            self.insightsChanged.emit()
+
+        reply = self.session.server().nonBlockingRequest(
+            "POST",
+            f"/personal/discussions/{self._currentDiscussion.id}/extract",
+            data={},
+            error=lambda: self.onError(reply),
+            success=onSuccess,
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            from_root=True,
+        )
 
     # PDP helper slots - model lookups and enum mappings
 
