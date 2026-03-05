@@ -55,6 +55,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 5. **One app at a time**: Never attempt to run Pro and Personal apps simultaneously during MCP testing. The bridge server port conflict will cause failures.
 
+### QML Overlay Quirks
+- QML overlay items (Drawer, Popup) are parented to `Overlay.overlay` — not in standard `contentItem` tree
+- Drawer is a QQuickPopup (QObject), not QQuickItem — use `property("visible")` not `isVisible()`
+- Key objectNames: `pdpSheet`, `pdpBadge`, `discussView`
+
 ### Common Mistakes to Avoid
 
 - **Launching without closing**: Starting a new app while another is running causes bridge connection to wrong process
