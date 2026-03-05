@@ -317,57 +317,91 @@ elif [[ $TARGET = ios* ]]; then
             -target "Qt Preprocess" \
             -configuration Release \
             -UseModernBuildSystem=YES \
-            -xcconfig build/ios/Family-Diagram-Release.xcconfig 
+            -xcconfig build/ios/Family-Diagram-Release.xcconfig
 
     	open build/ios/Family\ Diagram.xcodeproj
 
+    elif [[ $TARGET == "ios-sim" ]]; then
 
-        # # Patrick Stinson’s iPhone (18.4.1) (00008120-001C409911A3601E)
-        # xcodebuild \
-        #     -project "build/ios/Family Diagram.xcodeproj" \
-        #     -scheme "Family Diagram" \
-        #     -destination 'id=00008120-001C409911A3601E' \
-        #     -configuration Release \
-        #     CODE_SIGN_IDENTITY="Apple Development: Patrick Stinson (J5VYQMUDH6)" \
-        #     PROVISIONING_PROFILE_SPECIFIER=0927c054-b2a0-4d94-9784-268c2e0d2b27 \
-        #     DEVELOPMENT_TEAM=8KJB799CU7 \
-        #     install
+        # Build for iPhone simulator (no code signing needed)
+        SIM_DEVICE="${FD_IOS_SIM_DEVICE:-iPhone 14}"
+        echo "PKS Building for iOS Simulator: $SIM_DEVICE"
 
-        # lldb -o "platform connect connect://00008120-001C409911A3601E" -o "process launch -X true com.vedanamedia.familydiagram"
+        xcodebuild \
+            -project build/ios/Family\ Diagram.xcodeproj \
+            -target "Qt Preprocess" \
+            -configuration Debug \
+            -UseModernBuildSystem=YES
 
-        # # iPhone 14 Pro Simulator (18.4) (83554F3A-A6D6-4197-929F-1C1E202FEA81)
-        # xcodebuild \
-        #     -project "build/ios/Family Diagram.xcodeproj" \
-        #     -scheme "Family Diagram" \
-        #     -destination 'id=83554F3A-A6D6-4197-929F-1C1E202FEA81' \
-        #     -configuration Release \
-        #     CODE_SIGN_IDENTITY="Apple Development: Patrick Stinson (J5VYQMUDH6)" \
-        #     PROVISIONING_PROFILE_SPECIFIER=0927c054-b2a0-4d94-9784-268c2e0d2b27 \
-        #     DEVELOPMENT_TEAM=8KJB799CU7 \
-        #     install
+        xcodebuild \
+            -project "build/ios/Family Diagram.xcodeproj" \
+            -scheme "Family Diagram" \
+            -destination "platform=iOS Simulator,name=$SIM_DEVICE" \
+            -configuration Debug \
+            CODE_SIGN_IDENTITY=- \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -UseModernBuildSystem=YES \
+            build
 
-        # # iPhone 14 Pro Simulator (18.4) (83554F3A-A6D6-4197-929F-1C1E202FEA81)
-        # xcrun simctl install 83554F3A-A6D6-4197-929F-1C1E202FEA81 "build/ios/Release-iphoneos/Family Diagram.app" && \
-        # xcrun simctl launch 83554F3A-A6D6-4197-929F-1C1E202FEA81 "com.vedanamedia.familydiagram"
+        echo "PKS Simulator build complete. Run ‘bin/run_ios_sim.sh’ to launch."
 
-        # xcodebuild \
-        #     -project build/ios/Family\ Diagram.xcodeproj \
-        #     -scheme "Family Diagram" \
-        #     -configuration Release \
-        #     -xcconfig build/ios/Family-Diagram-Release.xcconfig \
-        #     -UseModernBuildSystem=YES \
-        #     build
+    elif [[ $TARGET == "ios-release" ]]; then
 
+        # Archive for App Store / TestFlight distribution
+        echo "PKS Building iOS release archive..."
 
-    elif [[ $TARGET == "osx-build" ]]; then
+        . ./bin/setup_provisioning_profile.sh
 
-    	# xcrun xcodebuild -scheme "Family Diagram" -configuration Release -project build/ios/Family\ Diagram.xcodeproj -destination 'platform=iOS Simulator,name=iPhone Xʀ,OS=12.2' build
-    	xcrun xcodebuild -scheme "Family Diagram" -configuration Release -project build/ios/Family\ Diagram.xcodeproj -destination 'platform=iOS Simulator,name=iPhone Xʀ,OS=12.2' build
+        xcodebuild \
+            -project build/ios/Family\ Diagram.xcodeproj \
+            -target "Qt Preprocess" \
+            -configuration Release \
+            -UseModernBuildSystem=YES \
+            -xcconfig build/ios/Family-Diagram-Release.xcconfig
 
-    elif [[ $TARGET == "osx-deploy" ]]; then
+        FD_IOS_BUILD_DIR="${FD_IOS_BUILD_DIR:-build/ios/Release}"
+        mkdir -p "$FD_IOS_BUILD_DIR"
 
-    	# xcrun xcodebuild -scheme "Family Diagram" -configuration Release -project build/ios/Family\ Diagram.xcodeproj -destination 'platform=iOS Simulator,name=iPhone Xʀ,OS=12.2' build
-    	xcrun xcodebuild -scheme "Family Diagram" -configuration Release -project build/ios/Family\ Diagram.xcodeproj -destination "platform=iPadOS,name=Patrick Stinson's iPad" build
+        xcodebuild \
+            -project "build/ios/Family Diagram.xcodeproj" \
+            -scheme "Family Diagram" \
+            -configuration Release \
+            -archivePath "$FD_IOS_BUILD_DIR/Family Diagram.xcarchive" \
+            -xcconfig build/ios/Family-Diagram-Release.xcconfig \
+            CODE_SIGN_IDENTITY="Apple Distribution: Patrick Stinson (8KJB799CU7)" \
+            DEVELOPMENT_TEAM=8KJB799CU7 \
+            -UseModernBuildSystem=YES \
+            archive
+
+        echo "PKS Archive complete at $FD_IOS_BUILD_DIR/Family Diagram.xcarchive"
+        echo "PKS Run ‘bin/build_ios_testflight.sh’ to export and upload to TestFlight."
+
+        . ./bin/teardown_provisioning_profile.sh
+
+    elif [[ $TARGET == "ios-device" ]]; then
+
+        # Build and install to connected iOS device
+        DEVICE_ID="${FD_IOS_DEVICE_ID:-00008120-001C409911A3601E}"
+        echo "PKS Building for iOS device: $DEVICE_ID"
+
+        xcodebuild \
+            -project build/ios/Family\ Diagram.xcodeproj \
+            -target "Qt Preprocess" \
+            -configuration Release \
+            -UseModernBuildSystem=YES \
+            -xcconfig build/ios/Family-Diagram-Release.xcconfig
+
+        xcodebuild \
+            -project "build/ios/Family Diagram.xcodeproj" \
+            -scheme "Family Diagram" \
+            -destination "id=$DEVICE_ID" \
+            -configuration Release \
+            CODE_SIGN_IDENTITY="Apple Development: Patrick Stinson (J5VYQMUDH6)" \
+            PROVISIONING_PROFILE_SPECIFIER=0927c054-b2a0-4d94-9784-268c2e0d2b27 \
+            DEVELOPMENT_TEAM=8KJB799CU7 \
+            -UseModernBuildSystem=YES \
+            install
 
     fi
 
