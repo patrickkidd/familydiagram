@@ -172,17 +172,28 @@ Page {
                 height: 15
             }
 
+            property bool scrollToBottomPending: false
+
             function delayedScrollToBottom() {
-                delayedScrollToEndTimer.running = true
+                scrollToBottomPending = true
+                positionViewAtEnd()
+                scrollToBottomSettleTimer.restart()
             }
 
-            // contentY was being reset on first scroll to bottom
+            onContentHeightChanged: {
+                if (scrollToBottomPending) {
+                    positionViewAtEnd()
+                }
+            }
+
             Timer {
-                id: delayedScrollToEndTimer
+                id: scrollToBottomSettleTimer
                 repeat: false
-                running: false
-                interval: 100
-                onTriggered: statementsList.positionViewAtEnd()
+                interval: 500
+                onTriggered: {
+                    statementsList.positionViewAtEnd()
+                    statementsList.scrollToBottomPending = false
+                }
             }
         }
 
