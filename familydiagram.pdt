@@ -224,31 +224,7 @@ is_directory = false
 name = "mcpserver"
 included = false
 is_directory = true
-[[Application.Package.Content.Content]]
-name = "__init__.py"
-included = false
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "app_controller.py"
-included = false
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "element_finder.py"
-included = false
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "input_simulator.py"
-included = false
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "snapshot.py"
-included = false
-is_directory = false
-
+Content = []
 
 [[Application.Package.Content]]
 name = "models"
@@ -980,6 +956,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
+name = "pencil-button-white.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
 name = "pencil-button.png"
 included = true
 is_directory = false
@@ -1113,6 +1094,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
+name = "LoadingOverlay.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
 name = "PDPEventCard.qml"
 included = true
 is_directory = false
@@ -1148,13 +1134,12 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
-name = "VoiceSettingsPage.qml"
+name = "VignetteCard.qml"
 included = true
 is_directory = false
 
-
 [[Application.Package.Content.Content.Content.Content]]
-name = "VignetteCard.qml"
+name = "VoiceSettingsPage.qml"
 included = true
 is_directory = false
 
@@ -1844,16 +1829,7 @@ is_directory = false
 name = "mcpserver"
 included = false
 is_directory = true
-[[Application.Package.Content.Content.Content]]
-name = "__init__.py"
-included = false
-is_directory = false
-
-[[Application.Package.Content.Content.Content]]
-name = "test_mcpserver_example.py"
-included = false
-is_directory = false
-
+Content = []
 
 [[Application.Package.Content.Content]]
 name = "models"
@@ -2006,6 +1982,16 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content]]
 name = "test_sarfgraphmodel.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_settings.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_tts.py"
 included = false
 is_directory = false
 

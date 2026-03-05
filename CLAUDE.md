@@ -130,6 +130,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Build System Notes
 
+- `familydiagram.pdt` controls which resource files are included in builds. When adding new resource files (images, etc.), set `included = true` in the corresponding `[[Application.Package.Content.Content]]` entry or the file will be missing at runtime in built apps.
 - Custom qmake config goes in `build/ios-config/` or `build/osx-config/` (.pri files)
 - `build/ios/` is the build output directory (generated files get copied there)
 - Qt iOS SDK: `/Users/patrick/dev/lib/Qt/5.15.2/ios/`
