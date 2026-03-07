@@ -1,6 +1,9 @@
 import base64
+import json
 import logging
+import os
 import pickle
+import tempfile
 from typing import Callable
 
 from btcopilot.schema import (
@@ -14,6 +17,7 @@ from btcopilot.schema import (
     DateCertainty,
 )
 from PyQt5.QtTextToSpeech import QTextToSpeech, QVoice
+from PyQt5.QtMultimedia import QAudioRecorder, QAudioEncoderSettings
 from pkdiagram.personal.commands import HandlePDPItem, PDPAction
 from pkdiagram.personal.settings import Settings
 from _pkdiagram import CUtil
@@ -28,6 +32,7 @@ from pkdiagram.pyqt import (
     pyqtSlot,
     QNetworkReply,
     QNetworkRequest,
+    QNetworkAccessManager,
     QQuickItem,
     QUrl,
     QMessageBox,
@@ -35,7 +40,7 @@ from pkdiagram.pyqt import (
     QUndoStack,
     QVariant,
 )
-from PyQt5.QtCore import QLocale
+from PyQt5.QtCore import QLocale, QByteArray
 from pkdiagram.app import Session, Analytics
 from pkdiagram.personal.models import Discussion
 from pkdiagram.server_types import Diagram
@@ -73,6 +78,10 @@ class PersonalAppController(QObject):
     ttsPlayingIndexChanged = pyqtSignal()
     ttsFinished = pyqtSignal()
     ttsVoiceChanged = pyqtSignal()
+
+    transcriptionReady = pyqtSignal(str, arguments=["text"])
+    transcriptionFailed = pyqtSignal(str, arguments=["error"])
+    recordingFailed = pyqtSignal(str, arguments=["error"])
 
     def __init__(self, undoStack=None, parent=None):
         super().__init__(parent)
@@ -113,6 +122,11 @@ class PersonalAppController(QObject):
         self._ttsPlayingIndex = -1
         self._tts.stateChanged.connect(self._onTtsStateChanged)
         self._initTtsVoice()
+
+        # Voice recording
+        self._audioRecorder = QAudioRecorder(self)
+        self._recordingFilePath = ""
+        self._networkManager = QNetworkAccessManager(self)
 
     def _initTtsVoice(self):
         saved = self._settings.value("ttsVoiceName")
@@ -399,6 +413,214 @@ class PersonalAppController(QObject):
                     "x-apple.systempreferences:com.apple.preference.universalaccess?SpokenContent",
                 ]
             )
+
+    # Voice Recording & Transcription
+
+    @pyqtSlot()
+    def startRecording(self):
+        """Start recording audio via QAudioRecorder."""
+        try:
+            tmpFile = tempfile.NamedTemporaryFile(
+                suffix=".wav", delete=False, prefix="fd_voice_"
+            )
+            self._recordingFilePath = tmpFile.name
+            tmpFile.close()
+
+            audioSettings = QAudioEncoderSettings()
+            audioSettings.setCodec("audio/pcm")
+            audioSettings.setSampleRate(16000)
+            audioSettings.setChannelCount(1)
+
+            self._audioRecorder.setEncodingSettings(audioSettings)
+            self._audioRecorder.setOutputLocation(
+                QUrl.fromLocalFile(self._recordingFilePath)
+            )
+            self._audioRecorder.record()
+            _log.info(f"Started recording to {self._recordingFilePath}")
+        except Exception as e:
+            _log.error(f"Failed to start recording: {e}")
+            self.recordingFailed.emit(str(e))
+
+    @pyqtSlot()
+    def stopRecording(self):
+        """Stop recording and begin transcription."""
+        self._audioRecorder.stop()
+        _log.info(f"Stopped recording: {self._recordingFilePath}")
+
+        if not self._recordingFilePath or not os.path.exists(self._recordingFilePath):
+            self.transcriptionFailed.emit("Recording file not found")
+            return
+
+        self._transcribeAudio(self._recordingFilePath)
+
+    def _getAssemblyAIKey(self) -> str:
+        """Get AssemblyAI API key from environment or server config."""
+        key = os.environ.get("ASSEMBLYAI_API_KEY", "")
+        if not key:
+            key = self._settings.value("assemblyaiApiKey", "")
+        return key
+
+    def _transcribeAudio(self, filePath: str):
+        """Upload audio to AssemblyAI and poll for transcription result."""
+        apiKey = self._getAssemblyAIKey()
+        if not apiKey:
+            self.transcriptionFailed.emit(
+                "AssemblyAI API key not configured. Set ASSEMBLYAI_API_KEY environment variable."
+            )
+            self._cleanupRecording(filePath)
+            return
+
+        # Step 1: Upload the audio file
+        try:
+            with open(filePath, "rb") as f:
+                audioData = f.read()
+        except Exception as e:
+            _log.error(f"Failed to read recording file: {e}")
+            self.transcriptionFailed.emit(f"Failed to read recording: {e}")
+            self._cleanupRecording(filePath)
+            return
+
+        uploadRequest = QNetworkRequest(QUrl("https://api.assemblyai.com/v2/upload"))
+        uploadRequest.setRawHeader(
+            QByteArray(b"authorization"), QByteArray(apiKey.encode())
+        )
+        uploadRequest.setRawHeader(
+            QByteArray(b"content-type"), QByteArray(b"application/octet-stream")
+        )
+
+        uploadReply = self._networkManager.post(uploadRequest, QByteArray(audioData))
+        uploadReply.finished.connect(
+            lambda: self._onUploadFinished(uploadReply, apiKey, filePath)
+        )
+
+    def _onUploadFinished(self, reply: QNetworkReply, apiKey: str, filePath: str):
+        """Handle upload response, then submit for transcription."""
+        error = reply.error()
+        if error != QNetworkReply.NoError:
+            errorMsg = reply.errorString()
+            _log.error(f"Audio upload failed: {errorMsg}")
+            self.transcriptionFailed.emit(f"Upload failed: {errorMsg}")
+            reply.deleteLater()
+            self._cleanupRecording(filePath)
+            return
+
+        responseData = json.loads(bytes(reply.readAll()))
+        reply.deleteLater()
+        uploadUrl = responseData.get("upload_url", "")
+
+        if not uploadUrl:
+            self.transcriptionFailed.emit("Upload succeeded but no URL returned")
+            self._cleanupRecording(filePath)
+            return
+
+        _log.info(f"Audio uploaded: {uploadUrl}")
+
+        # Step 2: Submit transcription request
+        transcriptRequest = QNetworkRequest(
+            QUrl("https://api.assemblyai.com/v2/transcript")
+        )
+        transcriptRequest.setRawHeader(
+            QByteArray(b"authorization"), QByteArray(apiKey.encode())
+        )
+        transcriptRequest.setRawHeader(
+            QByteArray(b"content-type"), QByteArray(b"application/json")
+        )
+
+        requestBody = json.dumps({"audio_url": uploadUrl}).encode()
+        transcriptReply = self._networkManager.post(
+            transcriptRequest, QByteArray(requestBody)
+        )
+        transcriptReply.finished.connect(
+            lambda: self._onTranscriptSubmitted(transcriptReply, apiKey, filePath)
+        )
+
+    def _onTranscriptSubmitted(
+        self, reply: QNetworkReply, apiKey: str, filePath: str
+    ):
+        """Handle transcription submission, then start polling."""
+        error = reply.error()
+        if error != QNetworkReply.NoError:
+            errorMsg = reply.errorString()
+            _log.error(f"Transcription request failed: {errorMsg}")
+            self.transcriptionFailed.emit(f"Transcription request failed: {errorMsg}")
+            reply.deleteLater()
+            self._cleanupRecording(filePath)
+            return
+
+        responseData = json.loads(bytes(reply.readAll()))
+        reply.deleteLater()
+        transcriptId = responseData.get("id", "")
+
+        if not transcriptId:
+            self.transcriptionFailed.emit("No transcript ID returned")
+            self._cleanupRecording(filePath)
+            return
+
+        _log.info(f"Transcription submitted: {transcriptId}")
+        self._pollTranscription(transcriptId, apiKey, filePath)
+
+    def _pollTranscription(self, transcriptId: str, apiKey: str, filePath: str):
+        """Poll AssemblyAI for transcription completion."""
+        from PyQt5.QtCore import QTimer
+
+        pollUrl = QUrl(f"https://api.assemblyai.com/v2/transcript/{transcriptId}")
+        pollRequest = QNetworkRequest(pollUrl)
+        pollRequest.setRawHeader(
+            QByteArray(b"authorization"), QByteArray(apiKey.encode())
+        )
+
+        pollReply = self._networkManager.get(pollRequest)
+        pollReply.finished.connect(
+            lambda: self._onPollFinished(pollReply, transcriptId, apiKey, filePath)
+        )
+
+    def _onPollFinished(
+        self,
+        reply: QNetworkReply,
+        transcriptId: str,
+        apiKey: str,
+        filePath: str,
+    ):
+        """Handle poll response; re-poll if still processing."""
+        from PyQt5.QtCore import QTimer
+
+        error = reply.error()
+        if error != QNetworkReply.NoError:
+            errorMsg = reply.errorString()
+            _log.error(f"Transcription poll failed: {errorMsg}")
+            self.transcriptionFailed.emit(f"Poll failed: {errorMsg}")
+            reply.deleteLater()
+            self._cleanupRecording(filePath)
+            return
+
+        responseData = json.loads(bytes(reply.readAll()))
+        reply.deleteLater()
+        status = responseData.get("status", "")
+
+        if status == "completed":
+            text = responseData.get("text", "")
+            _log.info(f"Transcription completed: {text[:80]}...")
+            self.transcriptionReady.emit(text)
+            self._cleanupRecording(filePath)
+        elif status == "error":
+            errorMsg = responseData.get("error", "Unknown transcription error")
+            _log.error(f"Transcription error: {errorMsg}")
+            self.transcriptionFailed.emit(errorMsg)
+            self._cleanupRecording(filePath)
+        else:
+            # Still processing — poll again after 1 second
+            QTimer.singleShot(
+                1000, lambda: self._pollTranscription(transcriptId, apiKey, filePath)
+            )
+
+    def _cleanupRecording(self, filePath: str):
+        """Remove temporary recording file."""
+        try:
+            if filePath and os.path.exists(filePath):
+                os.unlink(filePath)
+                _log.debug(f"Cleaned up recording file: {filePath}")
+        except Exception as e:
+            _log.warning(f"Failed to clean up recording file: {e}")
 
     # Diagram
 

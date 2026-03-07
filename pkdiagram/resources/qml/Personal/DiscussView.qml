@@ -23,6 +23,7 @@ Page {
     property var chatModel: chatModel
     property var textEdit: textEdit
     property var submitButton: sendButton
+    property var micButton: micButton
     property var noChatLabel: noChatLabel
     property var statementsList: statementsList
     property var pdpSheet: pdpSheet
@@ -43,8 +44,26 @@ Page {
 
     property bool initSelectedDiscussion: false
 
+    // Voice recording states: "idle", "recording", "transcribing"
+    property string voiceState: "idle"
+
     Connections {
         target: personalApp
+        function onTranscriptionReady(text) {
+            root.voiceState = "idle"
+            if (text.length > 0) {
+                textEdit.text = text
+                textEdit.forceActiveFocus()
+            }
+        }
+        function onTranscriptionFailed(error) {
+            root.voiceState = "idle"
+            util.criticalBox("Transcription Failed", error)
+        }
+        function onRecordingFailed(error) {
+            root.voiceState = "idle"
+            util.criticalBox("Recording Failed", error)
+        }
         function onDiscussionsChanged() {
             if (!initSelectedDiscussion) {
                 initSelectedDiscussion = true
@@ -451,11 +470,11 @@ Page {
                     id: inputFlickable
                     anchors {
                         left: parent.left
-                        right: sendButton.visible ? sendButton.left : parent.right
+                        right: sendButton.visible ? sendButton.left : micButton.left
                         top: parent.top
                         bottom: parent.bottom
                         leftMargin: 12
-                        rightMargin: sendButton.visible ? 4 : 12
+                        rightMargin: 4
                         topMargin: 4
                         bottomMargin: 4
                     }
@@ -573,6 +592,141 @@ Page {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         onClicked: inputField.submit()
+                    }
+                }
+
+                // Microphone button for voice input
+                Rectangle {
+                    id: micButton
+                    objectName: "micButton"
+                    visible: !sendButton.visible
+                    anchors {
+                        right: parent.right
+                        verticalCenter: parent.verticalCenter
+                        rightMargin: 4
+                    }
+                    width: 28
+                    height: 28
+                    radius: 14
+                    color: root.voiceState === "recording" ? "#FF3B30" : "transparent"
+
+                    // Pulsing animation when recording
+                    SequentialAnimation on opacity {
+                        id: pulseAnim
+                        running: root.voiceState === "recording"
+                        loops: Animation.Infinite
+                        NumberAnimation { to: 0.5; duration: 600; easing.type: Easing.InOutQuad }
+                        NumberAnimation { to: 1.0; duration: 600; easing.type: Easing.InOutQuad }
+                        onRunningChanged: {
+                            if (!running) micButton.opacity = 1.0
+                        }
+                    }
+
+                    // Microphone icon (idle + recording)
+                    Canvas {
+                        id: micIcon
+                        anchors.centerIn: parent
+                        width: 16
+                        height: 16
+                        visible: root.voiceState !== "transcribing"
+                        onPaint: {
+                            var ctx = getContext("2d")
+                            ctx.clearRect(0, 0, width, height)
+                            var color = root.voiceState === "recording" ? "white" : root.chatPlaceholder
+                            ctx.fillStyle = color
+                            ctx.strokeStyle = color
+                            ctx.lineWidth = 1.2
+
+                            // Mic body (rounded rect)
+                            var mw = 5, mh = 8, mx = (width - mw) / 2, my = 1
+                            ctx.beginPath()
+                            ctx.moveTo(mx + 1.5, my)
+                            ctx.lineTo(mx + mw - 1.5, my)
+                            ctx.quadraticCurveTo(mx + mw, my, mx + mw, my + 1.5)
+                            ctx.lineTo(mx + mw, my + mh - 1.5)
+                            ctx.quadraticCurveTo(mx + mw, my + mh, mx + mw - 1.5, my + mh)
+                            ctx.lineTo(mx + 1.5, my + mh)
+                            ctx.quadraticCurveTo(mx, my + mh, mx, my + mh - 1.5)
+                            ctx.lineTo(mx, my + 1.5)
+                            ctx.quadraticCurveTo(mx, my, mx + 1.5, my)
+                            ctx.closePath()
+                            ctx.fill()
+
+                            // Arc around mic
+                            ctx.beginPath()
+                            ctx.arc(width / 2, 6, 5.5, 0, Math.PI, false)
+                            ctx.stroke()
+
+                            // Stem
+                            ctx.beginPath()
+                            ctx.moveTo(width / 2, 11.5)
+                            ctx.lineTo(width / 2, 14)
+                            ctx.stroke()
+
+                            // Base
+                            ctx.beginPath()
+                            ctx.moveTo(width / 2 - 2.5, 14)
+                            ctx.lineTo(width / 2 + 2.5, 14)
+                            ctx.stroke()
+                        }
+                        // Repaint when voice state changes
+                        Connections {
+                            target: root
+                            function onVoiceStateChanged() { micIcon.requestPaint() }
+                        }
+                    }
+
+                    // Spinner when transcribing
+                    Rectangle {
+                        id: spinner
+                        anchors.centerIn: parent
+                        width: 14
+                        height: 14
+                        radius: 7
+                        color: "transparent"
+                        border.width: 2
+                        border.color: root.chatPlaceholder
+                        visible: root.voiceState === "transcribing"
+
+                        // Spinning arc overlay
+                        Canvas {
+                            anchors.fill: parent
+                            visible: root.voiceState === "transcribing"
+                            property real angle: 0
+                            onPaint: {
+                                var ctx = getContext("2d")
+                                ctx.clearRect(0, 0, width, height)
+                                ctx.strokeStyle = root.chatButton
+                                ctx.lineWidth = 2
+                                ctx.lineCap = "round"
+                                ctx.beginPath()
+                                ctx.arc(width / 2, height / 2, 5, angle, angle + Math.PI * 0.75)
+                                ctx.stroke()
+                            }
+                            NumberAnimation on angle {
+                                from: 0
+                                to: Math.PI * 2
+                                duration: 1000
+                                loops: Animation.Infinite
+                                running: root.voiceState === "transcribing"
+                            }
+                            onAngleChanged: requestPaint()
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (root.voiceState === "idle") {
+                                root.voiceState = "recording"
+                                personalApp.startRecording()
+                            } else if (root.voiceState === "recording") {
+                                root.voiceState = "transcribing"
+                                personalApp.stopRecording()
+                            }
+                            // Do nothing if transcribing - wait for result
+                        }
                     }
                 }
             }
