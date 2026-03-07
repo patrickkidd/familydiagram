@@ -42,17 +42,17 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
-WORKSPACE_DIR="$(dirname "$REPO_DIR")"
-VENV_DIR="$WORKSPACE_DIR/.venv"
+VENV_DIR="$REPO_DIR/.venv"
 QT_DIR="$HOME/.openclaw/qt/5.15.2/gcc_64"
 PYTHON_HEADERS="$HOME/.openclaw/python-headers"
 GL_LIB_DIR="$HOME/.openclaw/lib"
 
 echo "=== Building _pkdiagram C++ SIP extension ==="
 echo "Repo:           $REPO_DIR"
-echo "Qt:             $QT_DIR"
-echo "Python headers: $PYTHON_HEADERS"
-echo "GL libs:        $GL_LIB_DIR"
+echo "Venv:            $VENV_DIR"
+echo "Qt:              $QT_DIR"
+echo "Python headers:  $PYTHON_HEADERS"
+echo "GL libs:         $GL_LIB_DIR"
 echo ""
 
 # Verify prerequisites
@@ -74,19 +74,22 @@ if [ ! -f "$GL_LIB_DIR/libGL.so" ]; then
     exit 1
 fi
 
+if [ ! -f "$VENV_DIR/bin/sip-build" ]; then
+    echo "ERROR: sip-build not found at $VENV_DIR/bin/sip-build"
+    echo "Ensure the virtual environment exists at $VENV_DIR"
+    exit 1
+fi
+
 # Clean previous build
 rm -rf "$REPO_DIR/_pkdiagram/build"
 
-# Build
+# Build and install
 cd "$REPO_DIR/_pkdiagram"
 "$VENV_DIR/bin/sip-build" \
     --qmake "$QT_DIR/bin/qmake" \
     --qmake-setting "INCLUDEPATH += $PYTHON_HEADERS" \
-    --qmake-setting "LIBS += -L$GL_LIB_DIR"
-
-# Install to site-packages
-cp "$REPO_DIR/_pkdiagram/build/_pkdiagram/_pkdiagram.cpython-312-x86_64-linux-gnu.so" \
-   "$VENV_DIR/lib/python3.12/site-packages/"
+    --qmake-setting "LIBS += -L$GL_LIB_DIR" \
+    --install
 
 echo ""
 echo "=== Build complete ==="
