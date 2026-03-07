@@ -6,7 +6,9 @@
 
 set -euo pipefail
 
+# Project ID can be found in the project URL or by running `gh project list`.
 PROJECT_ID="PVT_kwHOABjmWc4BP0PU"
+# Field IDs can be found by inspecting the project settings UI or via the GraphQL API.
 STATUS_FIELD_ID="PVTSSF_lAHOABjmWc4BP0PUzg-HbRs"
 OWNER_FIELD_ID="PVTSSF_lAHOABjmWc4BP0PUzg-HbS8"
 
@@ -84,21 +86,31 @@ declare -A MILESTONE_STATUS_MAP=(
     ["Goal 3: Pro App Viewing"]="$GOAL3_ID"
 )
 
-declare -A MILESTONE_LABEL_MAP=(
-    ["Goal 1: Single-Prompt Extraction E2E"]="Goal 1"
-    ["Goal 2: Human Beta"]="Goal 2"
-    ["Goal 3: Pro App Viewing"]="Goal 3"
-)
 
-# --- 4. Query all project items ---
+# --- 4. Query all project items (paginated) ---
 
 echo ""
 echo "=== Querying project items ==="
-ITEMS_JSON=$(gh api graphql -f query='
+ALL_ITEMS="[]"
+HAS_NEXT="true"
+END_CURSOR=""
+
+while [[ "$HAS_NEXT" == "true" ]]; do
+    if [[ -z "$END_CURSOR" ]]; then
+        AFTER_ARG=""
+    else
+        AFTER_ARG=", after: \"$END_CURSOR\""
+    fi
+
+    PAGE_JSON=$(gh api graphql -f query='
 {
   node(id: "'"$PROJECT_ID"'") {
     ... on ProjectV2 {
-      items(first: 100) {
+      items(first: 100'"$AFTER_ARG"') {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
         nodes {
           id
           fieldValues(first: 20) {
@@ -128,6 +140,33 @@ ITEMS_JSON=$(gh api graphql -f query='
   }
 }')
 
+    # Extract pagination info and merge nodes
+    read -r HAS_NEXT END_CURSOR <<< "$(echo "$PAGE_JSON" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+pi = data['data']['node']['items']['pageInfo']
+print(str(pi['hasNextPage']).lower(), pi.get('endCursor', ''))
+")"
+
+    ALL_ITEMS=$(echo "$PAGE_JSON" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+existing = json.loads('$( echo "$ALL_ITEMS" | python3 -c "import sys,json; print(json.dumps(json.loads(sys.stdin.read())))" )')
+new_nodes = data['data']['node']['items']['nodes']
+print(json.dumps(existing + new_nodes))
+")
+
+    PAGE_COUNT=$(echo "$PAGE_JSON" | python3 -c "import sys,json; print(len(json.load(sys.stdin)['data']['node']['items']['nodes']))")
+    echo "  Fetched $PAGE_COUNT items (hasNextPage=$HAS_NEXT)"
+done
+
+# Wrap into expected JSON structure for processing
+ITEMS_JSON=$(echo "$ALL_ITEMS" | python3 -c "
+import sys, json
+nodes = json.load(sys.stdin)
+print(json.dumps({'data': {'node': {'items': {'nodes': nodes}}}}))
+")
+
 # --- 5. Process each item ---
 
 echo ""
@@ -145,8 +184,10 @@ content = item.get('content', {})
 number = content.get('number', '')
 title = content.get('title', '')
 milestone = (content.get('milestone') or {}).get('title', '')
+# Find first assignee that matches a known owner
 assignees = [a['login'] for a in (content.get('assignees', {}).get('nodes', []))]
-assignee = assignees[0] if assignees else ''
+owner_map = {'patrickkidd', 'patrickkidd-hurin', 'patrickkidd-beren', 'patrickkidd-tuor'}
+assignee = next((a for a in assignees if a in owner_map), assignees[0] if assignees else '')
 
 # Get current field values
 current_status = ''
@@ -173,7 +214,7 @@ print(f'{item[\"id\"]}|{number}|{title}|{milestone}|{assignee}|{current_status}|
     # Determine desired status
     if [[ -n "$MILESTONE" && -n "${MILESTONE_STATUS_MAP[$MILESTONE]:-}" ]]; then
         DESIRED_STATUS_ID="${MILESTONE_STATUS_MAP[$MILESTONE]}"
-        DESIRED_STATUS_LABEL="${MILESTONE_LABEL_MAP[$MILESTONE]}"
+        DESIRED_STATUS_LABEL="${MILESTONE%%:*}"
     else
         DESIRED_STATUS_ID="$NO_MILESTONE_ID"
         DESIRED_STATUS_LABEL="No Milestone"
