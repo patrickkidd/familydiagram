@@ -2044,6 +2044,7 @@ Page {
                                 anchors.fill: parent
                                 anchors.margins: 12
                                 text: modelData
+                                textFormat: Text.PlainText
                                 font.pixelSize: 14
                                 color: textPrimary
                                 wrapMode: Text.WordWrap
