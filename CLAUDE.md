@@ -33,7 +33,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Build System
 - **CMake-based build**: Uses CMakeLists.txt for C++ extensions and Qt UI compilation
-- **Build C++ extension and Qt UI Forms**: `cd familydiagram && uv run --env-file ../.env make` (builds the native _pkdiagram module using SIP, compiles .ui files to _form.py files)
+- **Build C++ extension and Qt UI Forms (macOS)**: `cd familydiagram && uv run --env-file ../.env make` (builds the native _pkdiagram module using SIP, compiles .ui files to _form.py files)
+- **Build C++ extension (Linux)**: `bash scripts/build-pkdiagram-linux.sh` — uses aqtinstall Qt 5.15.2 at `~/.openclaw/qt/`, Python headers at `~/.openclaw/python-headers/`, GL libs at `~/.openclaw/lib/`. See script header for one-time setup.
 - **Run application**: `python -m pkdiagram`
 
 ### Linting and Type Checking
@@ -101,6 +102,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **_pkdiagram Module**: C++ extension built with SIP providing platform utilities (CUtil, AppFilter, etc.)
 - **Platform Detection**: `pkdiagram/pyqt.py` detects iOS, macOS, Windows for platform-specific behavior
 - **Build System**: CMake handles SIP compilation and Qt UI form generation
+- **Linux build**: Uses `sip-build` directly with aqtinstall Qt 5.15.2 (no system Qt needed). The `_pkdiagram_win32.cpp` file is shared between Linux and Windows builds (platform-specific code uses `#ifdef Q_OS_WINDOWS`). Run `scripts/build-pkdiagram-linux.sh` to build. Requires `LD_LIBRARY_PATH` to include `~/.openclaw/qt/5.15.2/gcc_64/lib` and `~/.openclaw/lib` at runtime.
 
 ### Testing Framework
 - **QML Testing**: `tests/widgets/qmlwidgets.py` - QML component testing utilities with ListView synchronization

@@ -645,7 +645,11 @@ float CUtil::devicePixelRatio() {
 
 
 CUtil::OperatingSystem CUtil::operatingSystem() {
+#ifdef Q_OS_WINDOWS
     return OS_Windows;
+#else
+    return OS_Unknown;
+#endif
 }
 
 
@@ -677,7 +681,11 @@ bool CUtil::dev_amIBeingDebugged() {
 
 
 void CUtil::openNativeUrl(const QString &url) {
+#ifdef Q_OS_WINDOWS
     ShellExecuteW(NULL, L"open", (LPCWSTR)url.utf16(), NULL, NULL, SW_SHOWNORMAL);
+#else
+    QProcess::startDetached("xdg-open", QStringList() << url);
+#endif
 }
 
 void CUtil::dev_showDebugConsole() {
