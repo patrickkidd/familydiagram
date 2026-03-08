@@ -19,7 +19,6 @@ Page {
     property var tabBar: tabBar
     property var discussView: discussView
     property var learnView: learnView
-    property var planView: planView
     property var accountDialog: accountDialogLoader.item
     property var drawer: drawer
     property var eventFormDrawer: eventFormDrawer
@@ -191,16 +190,6 @@ Page {
             }
         }
 
-        // Static title for Plan tab
-        Text {
-            anchors.centerIn: parent
-            text: "Plan"
-            font.pixelSize: 17
-            font.bold: true
-            color: textColor
-            visible: tabBar.currentIndex === 2
-        }
-
         // PDP Badge (Discuss tab, left of extract button)
         Rectangle {
             id: pdpBadge
@@ -324,11 +313,6 @@ Page {
             Layout.fillWidth: true
         }
 
-        Personal.PlanView {
-            id: planView
-            Layout.fillHeight: true
-            Layout.fillWidth: true
-        }
     }
 
     // Tab Bar
@@ -355,10 +339,10 @@ Page {
         Row {
             anchors.fill: parent
             Repeater {
-                model: ["Discuss", "Learn", "Plan"]
+                model: ["Discuss", "Learn"]
                 Rectangle {
                     objectName: modelData.toLowerCase() + "Tab"
-                    width: root.width / 3
+                    width: root.width / 2
                     height: parent.height
                     color: "transparent"
 
