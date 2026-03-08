@@ -234,40 +234,19 @@ Page {
             anchors.right: parent.right
             anchors.rightMargin: 12
             anchors.verticalCenter: parent.verticalCenter
-            width: 28
-            height: 28
-            radius: 14
+            width: extractLabel.implicitWidth + 20
+            height: 32
+            radius: 16
             color: util.IS_UI_DARK_MODE ? "#4495F7" : "#007AFF"
             visible: tabBar.currentIndex === 0
 
-            Canvas {
+            Text {
+                id: extractLabel
                 anchors.centerIn: parent
-                width: 14
-                height: 14
-                onPaint: {
-                    var ctx = getContext("2d")
-                    ctx.clearRect(0, 0, width, height)
-                    ctx.strokeStyle = "white"
-                    ctx.lineWidth = 1.5
-                    ctx.lineCap = "round"
-                    // Arrow down
-                    ctx.beginPath()
-                    ctx.moveTo(7, 1)
-                    ctx.lineTo(7, 9)
-                    ctx.stroke()
-                    ctx.beginPath()
-                    ctx.moveTo(3.5, 6)
-                    ctx.lineTo(7, 10)
-                    ctx.lineTo(10.5, 6)
-                    ctx.stroke()
-                    // Tray
-                    ctx.beginPath()
-                    ctx.moveTo(1, 10)
-                    ctx.lineTo(1, 13)
-                    ctx.lineTo(13, 13)
-                    ctx.lineTo(13, 10)
-                    ctx.stroke()
-                }
+                text: "Build Diagram"
+                color: "white"
+                font.pixelSize: 13
+                font.weight: Font.Medium
             }
             MouseArea {
                 anchors.fill: parent
