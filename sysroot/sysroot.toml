@@ -72,7 +72,6 @@ skip = [
     "qttranslations",
     "qtx11extras",
     "qtxmlpatterns",
-    "qtmultimedia",
     "qtpurchasing",
     "qtimageformats",
     "qtquick3d"
@@ -117,7 +116,8 @@ installed_modules = [ ]
 [PyQt.macos]
 installed_modules = [
     "QtCore", "QtGui", "QtNetwork", "QtPrintSupport", "QtWidgets",
-    "QtMacExtras", "QtQml", "QtQuick", "QtQuickWidgets", "QtTextToSpeech"
+    "QtMacExtras", "QtQml", "QtQuick", "QtQuickWidgets", "QtTextToSpeech",
+    "QtMultimedia"
 ]
 
 [PyQt.ios]
@@ -131,14 +131,15 @@ disabled_features = [
 installed_modules = [
     "QtCore", "QtGui", "QtNetwork", "QtWidgets",
     "QtMacExtras", "QtQml", "QtQuick", "QtQuickWidgets", "QtSensors",
-    "QtTextToSpeech"
+    "QtTextToSpeech", "QtMultimedia"
 ]
 
 [PyQt.win]
 disabled_features = [ "PyQt_Desktop_OpenGL" ]
 installed_modules = [
     "QtCore", "QtGui", "QtNetwork", "QtPrintSupport", "QtWidgets",
-    "QtQml", "QtQuick", "QtQuickWidgets", "QtWinExtras", "QtTextToSpeech"
+    "QtQml", "QtQuick", "QtQuickWidgets", "QtWinExtras", "QtTextToSpeech",
+    "QtMultimedia"
 ]
 
 

@@ -453,24 +453,40 @@ class PersonalAppController(QObject):
 
         self._transcribeAudio(self._recordingFilePath)
 
-    def _getAssemblyAIKey(self) -> str:
-        """Get AssemblyAI API key from environment or server config."""
-        key = os.environ.get("ASSEMBLYAI_API_KEY", "")
-        if not key:
-            key = self._settings.value("assemblyaiApiKey", "")
-        return key
-
     def _transcribeAudio(self, filePath: str):
-        """Upload audio to AssemblyAI and poll for transcription result."""
-        apiKey = self._getAssemblyAIKey()
-        if not apiKey:
-            self.transcriptionFailed.emit(
-                "AssemblyAI API key not configured. Set ASSEMBLYAI_API_KEY environment variable."
-            )
-            self._cleanupRecording(filePath)
+        """Fetch AssemblyAI key from server, then upload audio for transcription."""
+        # Fast path: env var for desktop development
+        envKey = os.environ.get("ASSEMBLYAI_API_KEY", "")
+        if envKey:
+            self._uploadAudio(filePath, envKey)
             return
 
-        # Step 1: Upload the audio file
+        def onSuccess(data):
+            apiKey = data.get("api_key", "")
+            if not apiKey:
+                self.transcriptionFailed.emit("Server returned empty AssemblyAI key")
+                self._cleanupRecording(filePath)
+                return
+            self._uploadAudio(filePath, apiKey)
+
+        def onError():
+            errorMsg = reply.errorString()
+            _log.error(f"Failed to fetch AssemblyAI key: {errorMsg}")
+            self.transcriptionFailed.emit(f"Failed to fetch transcription key: {errorMsg}")
+            self._cleanupRecording(filePath)
+
+        reply = self.session.server().nonBlockingRequest(
+            "GET",
+            "/personal/assemblyai-key",
+            data={},
+            error=onError,
+            success=onSuccess,
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            from_root=True,
+        )
+
+    def _uploadAudio(self, filePath: str, apiKey: str):
+        """Upload audio file to AssemblyAI."""
         try:
             with open(filePath, "rb") as f:
                 audioData = f.read()
