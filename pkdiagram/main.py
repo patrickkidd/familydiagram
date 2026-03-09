@@ -259,23 +259,27 @@ def main():
         _main_impl()
     except Exception as e:
 
+        from . import version
+
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        errorMsg = (
+            f"\n=== {timestamp} ===\n"
+            f"Family Diagram: {version.VERSION}\n"
+            f"Platform: {sys.platform}\n"
+            f"Executable: {sys.executable}\n"
+            f"Critical startup error: {str(e)}\n"
+            f"Traceback:\n{traceback.format_exc()}\n"
+        )
+
         error_log_path = os.path.join(
             os.path.expanduser("~"), "familydiagram_startup_errors.txt"
         )
-
-        from . import version
-
-        with open(error_log_path, "a", encoding="utf-8") as f:
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            f.write(f"\n=== {timestamp} ===\n")
-            f.write(f"Family Diagram: {version.VERSION}\n")
-            f.write(f"Platform: {sys.platform}\n")
-            f.write(f"Executable: {sys.executable}\n")
-            f.write(f"Critical startup error: {str(e)}\n")
-            f.write("Traceback:\n")
-            f.write(traceback.format_exc())
-            f.write("\n")
-            f.flush()
+        try:
+            with open(error_log_path, "a", encoding="utf-8") as f:
+                f.write(errorMsg)
+                f.flush()
+        except OSError:
+            print(errorMsg, file=sys.stderr)
 
         if sys.platform == "win32":
             try:

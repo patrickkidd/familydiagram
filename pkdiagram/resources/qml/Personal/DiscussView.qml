@@ -474,7 +474,7 @@ Page {
                     id: inputFlickable
                     anchors {
                         left: parent.left
-                        right: sendButton.visible ? sendButton.left : micButton.left
+                        right: sendButton.visible ? sendButton.left : parent.right
                         top: parent.top
                         bottom: parent.bottom
                         leftMargin: 12
@@ -603,7 +603,7 @@ Page {
                 Rectangle {
                     id: micButton
                     objectName: "micButton"
-                    visible: !sendButton.visible
+                    visible: false // TODO: re-enable when voice input is polished
                     anchors {
                         right: parent.right
                         verticalCenter: parent.verticalCenter
