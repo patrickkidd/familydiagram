@@ -46,6 +46,10 @@ Page {
 
     // Voice recording states: "idle", "recording", "transcribing"
     property string voiceState: "idle"
+    // Timestamp when recording started (for minimum duration check)
+    property real recordingStartTime: 0
+    // Minimum hold duration in ms before recording is accepted
+    readonly property int minRecordingDurationMs: 300
 
     Connections {
         target: personalApp
@@ -717,15 +721,33 @@ Page {
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: {
+                        onPressed: {
                             if (root.voiceState === "idle") {
+                                root.recordingStartTime = Date.now()
                                 root.voiceState = "recording"
                                 personalApp.startRecording()
-                            } else if (root.voiceState === "recording") {
-                                root.voiceState = "transcribing"
-                                personalApp.stopRecording()
                             }
                             // Do nothing if transcribing - wait for result
+                        }
+                        onReleased: {
+                            if (root.voiceState === "recording") {
+                                var elapsed = Date.now() - root.recordingStartTime
+                                if (elapsed < root.minRecordingDurationMs) {
+                                    // Too short - discard without transcribing
+                                    root.voiceState = "idle"
+                                    personalApp.cancelRecording()
+                                } else {
+                                    root.voiceState = "transcribing"
+                                    personalApp.stopRecording()
+                                }
+                            }
+                        }
+                        onCanceled: {
+                            // Finger dragged off the button - discard
+                            if (root.voiceState === "recording") {
+                                root.voiceState = "idle"
+                                personalApp.cancelRecording()
+                            }
                         }
                     }
                 }

@@ -442,6 +442,14 @@ class PersonalAppController(QObject):
             self.recordingFailed.emit(str(e))
 
     @pyqtSlot()
+    def cancelRecording(self):
+        """Stop recording WITHOUT transcribing (e.g. short tap or drag-off)."""
+        self._audioRecorder.stop()
+        _log.info(f"Cancelled recording: {self._recordingFilePath}")
+        self._cleanupRecording(self._recordingFilePath)
+        self._recordingFilePath = ""
+
+    @pyqtSlot()
     def stopRecording(self):
         """Stop recording and begin transcription."""
         self._audioRecorder.stop()
