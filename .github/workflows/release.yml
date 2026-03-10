@@ -135,7 +135,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ./sysroot/sysroot-macos-64
-        key: sysroot-macos-64-15-intel-64-5.15.16--3.11.6
+        key: sysroot-macos-64-15-intel-64-5.15.16--3.11.6-v2
         # key: sysroot-${{ runner.os }}-${{ hashFiles('./sysroot/sysroot.toml') }}
 
 
@@ -159,7 +159,7 @@ jobs:
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
       with:
         path: ./sysroot/sysroot-macos-64
-        key: sysroot-macos-64-15-intel-64-5.15.16--3.11.6
+        key: sysroot-macos-64-15-intel-64-5.15.16--3.11.6-v2
 
     - name: pyqtdeploy-build
       run: |
@@ -362,7 +362,7 @@ jobs:
         run: |
           call .venv\Scripts\activate.bat
           pip install aqtinstall
-          aqt install-qt windows desktop 5.15.2 win64_msvc2019_64 --outputdir C:\Qt --archives qtbase qtdeclarative qtgraphicaleffects qtimageformats qtquickcontrols qtquickcontrols2 qttools qtwinextras
+          aqt install-qt windows desktop 5.15.2 win64_msvc2019_64 --outputdir C:\Qt --archives qtbase qtdeclarative qtgraphicaleffects qtimageformats qtquickcontrols qtquickcontrols2 qttools qtwinextras qtmultimedia
         shell: cmd
         
       - name: Setup MSVC (x64)
@@ -519,7 +519,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: sysroot/sysroot-win-64
-          key: sysroot-win-64-5.15.16--3.11.6
+          key: sysroot-win-64-5.15.16--3.11.6-v2
           # key: sysroot-${{ runner.os }}-${{ hashFiles('./sysroot/sysroot.toml') }}
   
       # The moc files are required by the sysroot plugin as well as the build plugin
@@ -552,7 +552,7 @@ jobs:
         if: steps.cache-sysroot.outputs.cache-hit != 'true'
         with:
           path: sysroot/sysroot-win-64
-          key: sysroot-win-64-5.15.16--3.11.6
+          key: sysroot-win-64-5.15.16--3.11.6-v2
   
       - name: Write build config
         run: |
