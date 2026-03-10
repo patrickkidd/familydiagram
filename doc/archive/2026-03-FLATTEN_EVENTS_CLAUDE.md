@@ -1,3 +1,5 @@
+> **Archived 2026-03-10.** Intermediate prompt artifact from Event flattening. Superseded by [FLATTEN_EVENTS_DONE.md](2026-03-FLATTEN_EVENTS_DONE.md). Kept for historical reference.
+
 I am in the middle of a major refactor of the fundamental data model and object
   hierarchy of this app. So this is an architecture-level change. I am
   flattening the relationship of Person/Marriage/Emotion and Event, making

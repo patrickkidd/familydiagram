@@ -1,3 +1,5 @@
+> **Archived 2026-03-10.** Feature requirements superseded by [asbuilts/LEARN_VIEW.md](../asbuilts/LEARN_VIEW.md). Kept for historical reference.
+
 I want to add an evaluative visual aid in the `Learn` tab in the personal app
 that gives the user an aesthetic sense of how the four main SARF variables
 change over time in events on the timeline. That is the main goal of the app,

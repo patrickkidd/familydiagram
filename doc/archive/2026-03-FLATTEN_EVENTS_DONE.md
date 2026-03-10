@@ -1,3 +1,5 @@
+> **Archived 2026-03-10.** Completed Event flattening refactor phases. Frozen record of what changed. Kept for historical reference.
+
 # Event Flattening Refactor - Completed Phases
 
 **Archive of all completed work. All phases of the event flattening refactor are now complete.**

@@ -1,3 +1,5 @@
+> **Archived 2026-03-10.** Feature vision superseded by [asbuilts/TRIANGLE_VIEW.md](../asbuilts/TRIANGLE_VIEW.md). Kept for historical reference.
+
 # Triangle View Vision
 
 ## Overview

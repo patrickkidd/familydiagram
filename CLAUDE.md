@@ -2,6 +2,19 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Documentation Index
+
+| Domain | Doc |
+|--------|-----|
+| UI constants, colors, spacing | [doc/UI_STYLE_SPEC.md](doc/UI_STYLE_SPEC.md) |
+| Test migration guide (post-Event-flattening) | [doc/TESTS_TODO.md](doc/TESTS_TODO.md) |
+| Bugs and feature requests | [doc/TODO.md](doc/TODO.md) |
+| Timeline vignettes (future feature) | [doc/TIMELINE_VIGNETTES_VISION.md](doc/TIMELINE_VIGNETTES_VISION.md) |
+| Infrastructure (deployment, servers) | [doc/INFRASTRUCTURE.md](doc/INFRASTRUCTURE.md) |
+| Build decisions (macOS) | [doc/build-decisions-macos.md](doc/build-decisions-macos.md) |
+| Build decisions (Windows) | [doc/build-decisions-windows.md](doc/build-decisions-windows.md) |
+| Release process | [doc/RELEASE_PROCESS.md](doc/RELEASE_PROCESS.md) |
+
 ## Code / design rules
 
 - keep as much app logic in python as possible. qml javascript is hard to debug
@@ -174,6 +187,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 |---------|-----|-----------|
 | Triangle View | [TRIANGLE_VIEW.md](doc/asbuilts/TRIANGLE_VIEW.md) | `scene/triangle.py`, `models/trianglemodel.py`, `TriangleView.qml` |
 | Learn View | [LEARN_VIEW.md](doc/asbuilts/LEARN_VIEW.md) | `resources/qml/Personal/LearnView.qml`, `personal/sarfgraphmodel.py`, `personal/clustermodel.py` |
+| Timeline Click | [TIMELINE_CLICK_IMPLEMENTED.md](doc/asbuilts/TIMELINE_CLICK_IMPLEMENTED.md) | Timeline event selection |
 | Data Sync | [DATA_SYNC_FLOW.md](doc/specs/DATA_SYNC_FLOW.md) | `server_types.py` (`mutate`, `pushToServer`, `save`), `personal/personalappcontroller.py` (`saveDiagram`, `_doAcceptPDPItem`, `_addCommittedItemsToScene`) |
 
 As-built docs contain:

@@ -1,3 +1,5 @@
+> **Archived 2026-03-10.** Old cleanup wish list. Most items completed or invalidated by Event flattening. Kept for historical reference.
+
 CLEANUP
 =================================================
 - Remove eventProperties, etc from Drawer?

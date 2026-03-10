@@ -1,3 +1,5 @@
+> **Archived 2026-03-10.** Feature plan superseded by [asbuilts/LEARN_VIEW.md](../asbuilts/LEARN_VIEW.md). Kept for historical reference.
+
 # SARF Graph Visualization Feature Plan
 
 ## 1. Executive Summary

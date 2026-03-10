@@ -1,3 +1,5 @@
+> **Archived 2026-03-10.** ChildOf/MultipleBirth CRUD refactor task plan. Status unclear; preserved for reference. Kept for historical reference.
+
 # TODO: Align ChildOf and MultipleBirth CRUD with Other Item Subclasses
 
 This revised TODO incorporates your feedback: 

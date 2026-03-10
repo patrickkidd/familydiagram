@@ -1,3 +1,5 @@
+> **Archived 2026-03-10.** Pre-refactor event flow notes. Superseded by Event flattening refactor. Kept for historical reference.
+
 Data-dependent displays
 -------------------------
 - No items on diagram

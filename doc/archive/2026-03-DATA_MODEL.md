@@ -1,3 +1,5 @@
+> **Archived 2026-03-10.** Triangle data model theory. Implementation documented in [asbuilts/TRIANGLE_VIEW.md](../asbuilts/TRIANGLE_VIEW.md). Kept for historical reference.
+
 In a time series data model, would a triangle be better tracked a series of actions, each action by one person in relation to 1-to-N multiple people, or 1-to-N multiple people in relation to 1-to-N other people?
 
 -----------------------------------------------
