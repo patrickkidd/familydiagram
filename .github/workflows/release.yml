@@ -128,14 +128,14 @@ jobs:
 
     - name: Download zlib source
       run: |
-        wget -L "https://www.zlib.net/fossils/zlib-1.2.11.tar.gz" -P ./sysroot/
+        wget -L "https://www.zlib.net/fossils/zlib-1.3.1.tar.gz" -P ./sysroot/
 
     - name: Setup sysroot caching
       id: cache-sysroot
       uses: actions/cache@v4
       with:
         path: ./sysroot/sysroot-macos-64
-        key: sysroot-macos-64-15-intel-64-5.15.16--3.11.6-v2
+        key: sysroot-macos-64-15-intel-64-5.15.16--3.11.6-v3
         # key: sysroot-${{ runner.os }}-${{ hashFiles('./sysroot/sysroot.toml') }}
 
 
@@ -159,7 +159,7 @@ jobs:
       if: steps.cache-sysroot.outputs.cache-hit != 'true'
       with:
         path: ./sysroot/sysroot-macos-64
-        key: sysroot-macos-64-15-intel-64-5.15.16--3.11.6-v2
+        key: sysroot-macos-64-15-intel-64-5.15.16--3.11.6-v3
 
     - name: pyqtdeploy-build
       run: |
@@ -519,7 +519,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: sysroot/sysroot-win-64
-          key: sysroot-win-64-5.15.16--3.11.6-v2
+          key: sysroot-win-64-5.15.16--3.11.6-v3
           # key: sysroot-${{ runner.os }}-${{ hashFiles('./sysroot/sysroot.toml') }}
   
       # The moc files are required by the sysroot plugin as well as the build plugin
@@ -529,6 +529,9 @@ jobs:
           call .venv\Scripts\activate.bat
           set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
           cl.exe /? || echo "MSVC compiler not found"
+          echo "Downloading zlib-1.3.1.tar.gz"
+          curl -L "https://www.zlib.net/fossils/zlib-1.3.1.tar.gz" -o "sysroot/zlib-1.3.1.tar.gz"
+
           echo "Downloading https://download.qt.io/archive/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz"
           curl -L "https://download.qt.io/archive/qt/5.15/5.15.16/single/qt-everywhere-opensource-src-5.15.16.tar.xz" -o "sysroot/qt-everywhere-src-5.15.16.tar.xz"
 
@@ -552,7 +555,7 @@ jobs:
         if: steps.cache-sysroot.outputs.cache-hit != 'true'
         with:
           path: sysroot/sysroot-win-64
-          key: sysroot-win-64-5.15.16--3.11.6-v2
+          key: sysroot-win-64-5.15.16--3.11.6-v3
   
       - name: Write build config
         run: |
