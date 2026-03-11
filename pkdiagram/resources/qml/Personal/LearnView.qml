@@ -815,16 +815,7 @@ Page {
                 color: util.IS_UI_DARK_MODE ? "#151520" : "#f5f5fa"
             }
 
-            // Baseline zero-line (shown in baseline view when SARF data exists)
-            Rectangle {
-                visible: showBaselineView && !isFocused && sarfGraphModel && sarfGraphModel.hasData
-                x: gLeft; y: yPosMini(0)
-                width: gWidth; height: 1
-                color: dividerColor
-                opacity: 0.5
-            }
-
-            // Graph lines
+            // Graph lines (baseline zero-line is drawn inside the canvas onPaint handler)
             Canvas {
                 id: graphCanvas
                 anchors.fill: parent
