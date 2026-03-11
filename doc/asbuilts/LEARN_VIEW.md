@@ -189,6 +189,18 @@ This means: if an event is expanded, the ring follows it; otherwise the ring fol
 
 ## Recent Changes
 
+### 2026-03-11: Baseline View for New Diagrams (Issue #84)
+- **Issue**: In newly created diagrams, the LearnView graph area was blank because `showClusters` defaults to `true` but no clusters have been detected yet. Event dots were hidden (only shown when `!showClusters`), cluster bars container was visible but empty, and `graphCanvas` drew nothing.
+- **Root cause**: No fallback rendering when clusters are enabled but none exist. The code assumed clusters would always be available when `showClusters` was true.
+- **Fix**: Added `showBaselineView` property (`true` when `!hasClusters`). When active:
+  1. Draws cumulative SARF lines (symptom/anxiety/functioning) on the overview graph canvas
+  2. Shows event dot markers on the graph (same as raw data mode)
+  3. Draws a baseline zero-reference line
+  4. Hides the empty cluster bars container
+  5. Enables zoom/pan interactions that were previously only active in raw data mode
+- **Behavior**: Automatically transitions to cluster view once clusters are detected (AI async). No user action needed.
+- **Impact**: New diagrams immediately show SARF data visualization instead of a blank graph
+
 ### 2026-01-31: Relationship Line Click Detection
 - **Issue**: Clicking on the vertical blue relationship event lines in the graph didn't select those events
 - **Fix**: Added relationship line click detection in hero graph click handler - checks X distance to relationship lines (threshold: 20px)
