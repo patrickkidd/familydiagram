@@ -1,4 +1,6 @@
 import contextlib
+import json
+import os
 import pickle
 from datetime import datetime
 from unittest.mock import patch, MagicMock
@@ -14,10 +16,11 @@ from pkdiagram.personal.models import (
 )
 from pkdiagram import util
 from pkdiagram.server_types import Diagram
+from pkdiagram.pyqt import QNetworkReply
+from PyQt5.QtCore import QByteArray
 
 from btcopilot.extensions import db
 from btcopilot.schema import DiagramData, PDP, Person, asdict
-
 
 pytestmark = [
     pytest.mark.component("Personal"),
@@ -421,9 +424,7 @@ def test_acceptAllPDPItems_triggers_cluster_detection(
         assert detect_mock.call_count == 1
 
 
-def test_clearDiagramData_batch_removal(
-    test_user, personalApp: PersonalAppController
-):
+def test_clearDiagramData_batch_removal(test_user, personalApp: PersonalAppController):
     """clearDiagramData uses batch removal to avoid stale cross-references.
 
     Without batch mode, removing events one-by-one triggers _do_removeItem's
@@ -463,9 +464,458 @@ def test_clearDiagramData_batch_removal(
         personalApp.clearDiagramData(True)
 
     assert len(scene.events()) == 0
-    assert batchCalls == [True, False], (
-        f"Expected batch mode on/off, got {batchCalls}"
+    assert batchCalls == [True, False], f"Expected batch mode on/off, got {batchCalls}"
+
+
+# ── Voice Recording & Transcription Tests ──
+
+
+def test_startRecording_creates_temp_file_and_records(
+    personalApp: PersonalAppController,
+):
+    """startRecording creates a temp WAV file and calls recorder.record()."""
+    with (
+        patch.object(personalApp._audioRecorder, "setEncodingSettings"),
+        patch.object(personalApp._audioRecorder, "setOutputLocation"),
+        patch.object(personalApp._audioRecorder, "record") as mock_record,
+    ):
+        personalApp.startRecording()
+
+    assert mock_record.call_count == 1
+    assert personalApp._recordingFilePath.endswith(".wav")
+    assert "fd_voice_" in personalApp._recordingFilePath
+    # Cleanup the temp file created
+    if os.path.exists(personalApp._recordingFilePath):
+        os.unlink(personalApp._recordingFilePath)
+
+
+def test_startRecording_emits_recordingFailed_on_error(
+    personalApp: PersonalAppController,
+):
+    """startRecording emits recordingFailed if an exception occurs."""
+    failed = util.Condition(personalApp.recordingFailed)
+
+    with patch("tempfile.NamedTemporaryFile", side_effect=OSError("disk full")):
+        personalApp.startRecording()
+
+    assert failed.callCount == 1
+    assert "disk full" in failed.callArgs[0][0]
+
+
+def test_stopRecording_stops_recorder_and_transcribes(
+    personalApp: PersonalAppController,
+):
+    """stopRecording stops the recorder and begins transcription."""
+    # Create a real temp file so the path exists check passes
+    import tempfile as _tempfile
+
+    tmpFile = _tempfile.NamedTemporaryFile(
+        suffix=".wav", delete=False, prefix="fd_voice_"
     )
+    tmpFile.close()
+    personalApp._recordingFilePath = tmpFile.name
+
+    with (
+        patch.object(personalApp._audioRecorder, "stop") as mock_stop,
+        patch.object(personalApp, "_transcribeAudio") as mock_transcribe,
+    ):
+        personalApp.stopRecording()
+
+    assert mock_stop.call_count == 1
+    assert mock_transcribe.call_count == 1
+    assert mock_transcribe.call_args[0][0] == tmpFile.name
+
+    # Cleanup
+    if os.path.exists(tmpFile.name):
+        os.unlink(tmpFile.name)
+
+
+def test_stopRecording_emits_failed_when_no_file(
+    personalApp: PersonalAppController,
+):
+    """stopRecording emits transcriptionFailed if recording file is missing."""
+    failed = util.Condition(personalApp.transcriptionFailed)
+    personalApp._recordingFilePath = "/nonexistent/path.wav"
+
+    with patch.object(personalApp._audioRecorder, "stop"):
+        personalApp.stopRecording()
+
+    assert failed.callCount == 1
+    assert "not found" in failed.callArgs[0][0]
+
+
+def test_stopRecording_emits_failed_when_empty_path(
+    personalApp: PersonalAppController,
+):
+    """stopRecording emits transcriptionFailed if _recordingFilePath is empty."""
+    failed = util.Condition(personalApp.transcriptionFailed)
+    personalApp._recordingFilePath = ""
+
+    with patch.object(personalApp._audioRecorder, "stop"):
+        personalApp.stopRecording()
+
+    assert failed.callCount == 1
+
+
+def test_cancelRecording_stops_and_cleans_up(
+    personalApp: PersonalAppController,
+):
+    """cancelRecording stops the recorder, cleans up temp file, resets path."""
+    import tempfile as _tempfile
+
+    tmpFile = _tempfile.NamedTemporaryFile(
+        suffix=".wav", delete=False, prefix="fd_voice_"
+    )
+    tmpFile.close()
+    personalApp._recordingFilePath = tmpFile.name
+
+    with patch.object(personalApp._audioRecorder, "stop") as mock_stop:
+        personalApp.cancelRecording()
+
+    assert mock_stop.call_count == 1
+    assert personalApp._recordingFilePath == ""
+    assert not os.path.exists(tmpFile.name), "Temp file should be deleted on cancel"
+
+
+def test_cancelRecording_does_not_transcribe(
+    personalApp: PersonalAppController,
+):
+    """cancelRecording should NOT trigger transcription."""
+    import tempfile as _tempfile
+
+    tmpFile = _tempfile.NamedTemporaryFile(
+        suffix=".wav", delete=False, prefix="fd_voice_"
+    )
+    tmpFile.close()
+    personalApp._recordingFilePath = tmpFile.name
+
+    with (
+        patch.object(personalApp._audioRecorder, "stop"),
+        patch.object(personalApp, "_transcribeAudio") as mock_transcribe,
+    ):
+        personalApp.cancelRecording()
+
+    assert mock_transcribe.call_count == 0
+
+    # Cleanup if still present
+    if os.path.exists(tmpFile.name):
+        os.unlink(tmpFile.name)
+
+
+def test_voice_state_idle_to_recording_to_transcribing_to_idle(
+    personalApp: PersonalAppController,
+):
+    """Full voice state machine: idle → startRecording → stopRecording → transcriptionReady → idle."""
+    import tempfile as _tempfile
+
+    # Start in idle state
+    assert personalApp._recordingFilePath == ""
+
+    # Transition to recording
+    tmpFile = _tempfile.NamedTemporaryFile(
+        suffix=".wav", delete=False, prefix="fd_voice_"
+    )
+    tmpFile.close()
+
+    with (
+        patch.object(personalApp._audioRecorder, "setEncodingSettings"),
+        patch.object(personalApp._audioRecorder, "setOutputLocation"),
+        patch.object(personalApp._audioRecorder, "record"),
+    ):
+        personalApp.startRecording()
+
+    assert personalApp._recordingFilePath != ""  # Now recording
+
+    # Transition to transcribing → idle (mock the transcription pipeline)
+    with (
+        patch.object(personalApp._audioRecorder, "stop"),
+        patch.object(personalApp, "_transcribeAudio") as mock_transcribe,
+    ):
+        personalApp.stopRecording()
+        assert mock_transcribe.call_count == 1
+
+    # Cleanup
+    if os.path.exists(personalApp._recordingFilePath):
+        os.unlink(personalApp._recordingFilePath)
+
+
+def test_short_tap_cancel_does_not_transcribe(
+    personalApp: PersonalAppController,
+):
+    """Simulates short tap behavior: startRecording then immediate cancelRecording (no transcription)."""
+    import tempfile as _tempfile
+
+    with (
+        patch.object(personalApp._audioRecorder, "setEncodingSettings"),
+        patch.object(personalApp._audioRecorder, "setOutputLocation"),
+        patch.object(personalApp._audioRecorder, "record"),
+    ):
+        personalApp.startRecording()
+
+    filePath = personalApp._recordingFilePath
+    assert filePath != ""
+
+    with (
+        patch.object(personalApp._audioRecorder, "stop"),
+        patch.object(personalApp, "_transcribeAudio") as mock_transcribe,
+    ):
+        personalApp.cancelRecording()
+
+    assert mock_transcribe.call_count == 0
+    assert personalApp._recordingFilePath == ""
+    # Temp file should be cleaned up
+    assert not os.path.exists(filePath)
+
+
+def test_transcribeAudio_emits_failed_without_api_key(
+    personalApp: PersonalAppController,
+):
+    """_transcribeAudio emits transcriptionFailed if no API key is configured."""
+    import tempfile as _tempfile
+
+    tmpFile = _tempfile.NamedTemporaryFile(
+        suffix=".wav", delete=False, prefix="fd_voice_"
+    )
+    tmpFile.write(b"fake audio data")
+    tmpFile.close()
+
+    failed = util.Condition(personalApp.transcriptionFailed)
+
+    with patch.object(personalApp, "_getAssemblyAIKey", return_value=""):
+        personalApp._transcribeAudio(tmpFile.name)
+
+    assert failed.callCount == 1
+    assert "API key" in failed.callArgs[0][0]
+    assert not os.path.exists(tmpFile.name), "Should cleanup on failure"
+
+
+def test_transcribeAudio_emits_failed_on_file_read_error(
+    personalApp: PersonalAppController,
+):
+    """_transcribeAudio emits transcriptionFailed if audio file can't be read."""
+    failed = util.Condition(personalApp.transcriptionFailed)
+
+    with patch.object(personalApp, "_getAssemblyAIKey", return_value="test-key"):
+        personalApp._transcribeAudio("/nonexistent/audio.wav")
+
+    assert failed.callCount == 1
+    assert "Failed to read recording" in failed.callArgs[0][0]
+
+
+def test_onUploadFinished_emits_failed_on_network_error(
+    personalApp: PersonalAppController,
+):
+    """_onUploadFinished emits transcriptionFailed on network error."""
+    import tempfile as _tempfile
+
+    tmpFile = _tempfile.NamedTemporaryFile(
+        suffix=".wav", delete=False, prefix="fd_voice_"
+    )
+    tmpFile.close()
+
+    failed = util.Condition(personalApp.transcriptionFailed)
+
+    mockReply = MagicMock()
+    mockReply.error.return_value = QNetworkReply.ConnectionRefusedError
+    mockReply.errorString.return_value = "Connection refused"
+    mockReply.deleteLater = MagicMock()
+
+    personalApp._onUploadFinished(mockReply, "test-key", tmpFile.name)
+
+    assert failed.callCount == 1
+    assert "Upload failed" in failed.callArgs[0][0]
+    assert not os.path.exists(tmpFile.name)
+
+
+def test_onUploadFinished_emits_failed_when_no_upload_url(
+    personalApp: PersonalAppController,
+):
+    """_onUploadFinished emits transcriptionFailed if upload_url is missing from response."""
+    import tempfile as _tempfile
+
+    tmpFile = _tempfile.NamedTemporaryFile(
+        suffix=".wav", delete=False, prefix="fd_voice_"
+    )
+    tmpFile.close()
+
+    failed = util.Condition(personalApp.transcriptionFailed)
+
+    mockReply = MagicMock()
+    mockReply.error.return_value = QNetworkReply.NoError
+    mockReply.readAll.return_value = QByteArray(json.dumps({}).encode())
+    mockReply.deleteLater = MagicMock()
+
+    personalApp._onUploadFinished(mockReply, "test-key", tmpFile.name)
+
+    assert failed.callCount == 1
+    assert "no URL" in failed.callArgs[0][0]
+    assert not os.path.exists(tmpFile.name)
+
+
+def test_onPollFinished_emits_transcriptionReady_on_completed(
+    personalApp: PersonalAppController,
+):
+    """_onPollFinished emits transcriptionReady when status is 'completed'."""
+    import tempfile as _tempfile
+
+    tmpFile = _tempfile.NamedTemporaryFile(
+        suffix=".wav", delete=False, prefix="fd_voice_"
+    )
+    tmpFile.close()
+
+    ready = util.Condition(personalApp.transcriptionReady)
+
+    mockReply = MagicMock()
+    mockReply.error.return_value = QNetworkReply.NoError
+    mockReply.readAll.return_value = QByteArray(
+        json.dumps({"status": "completed", "text": "Hello world"}).encode()
+    )
+    mockReply.deleteLater = MagicMock()
+
+    personalApp._onPollFinished(mockReply, "txn-123", "test-key", tmpFile.name)
+
+    assert ready.callCount == 1
+    assert ready.callArgs[0][0] == "Hello world"
+    assert not os.path.exists(tmpFile.name)
+
+
+def test_onPollFinished_emits_failed_on_error_status(
+    personalApp: PersonalAppController,
+):
+    """_onPollFinished emits transcriptionFailed when status is 'error'."""
+    import tempfile as _tempfile
+
+    tmpFile = _tempfile.NamedTemporaryFile(
+        suffix=".wav", delete=False, prefix="fd_voice_"
+    )
+    tmpFile.close()
+
+    failed = util.Condition(personalApp.transcriptionFailed)
+
+    mockReply = MagicMock()
+    mockReply.error.return_value = QNetworkReply.NoError
+    mockReply.readAll.return_value = QByteArray(
+        json.dumps({"status": "error", "error": "Audio too short"}).encode()
+    )
+    mockReply.deleteLater = MagicMock()
+
+    personalApp._onPollFinished(mockReply, "txn-123", "test-key", tmpFile.name)
+
+    assert failed.callCount == 1
+    assert "Audio too short" in failed.callArgs[0][0]
+    assert not os.path.exists(tmpFile.name)
+
+
+def test_onPollFinished_repolls_on_processing_status(
+    personalApp: PersonalAppController,
+):
+    """_onPollFinished schedules a re-poll when status is 'processing'."""
+    mockReply = MagicMock()
+    mockReply.error.return_value = QNetworkReply.NoError
+    mockReply.readAll.return_value = QByteArray(
+        json.dumps({"status": "processing"}).encode()
+    )
+    mockReply.deleteLater = MagicMock()
+
+    with patch("PyQt5.QtCore.QTimer.singleShot") as mock_timer:
+        personalApp._onPollFinished(mockReply, "txn-123", "test-key", "/tmp/test.wav")
+
+    assert mock_timer.call_count == 1
+    assert mock_timer.call_args[0][0] == 1000  # 1 second delay
+
+
+def test_onTranscriptSubmitted_emits_failed_on_network_error(
+    personalApp: PersonalAppController,
+):
+    """_onTranscriptSubmitted emits transcriptionFailed on network error."""
+    import tempfile as _tempfile
+
+    tmpFile = _tempfile.NamedTemporaryFile(
+        suffix=".wav", delete=False, prefix="fd_voice_"
+    )
+    tmpFile.close()
+
+    failed = util.Condition(personalApp.transcriptionFailed)
+
+    mockReply = MagicMock()
+    mockReply.error.return_value = QNetworkReply.ConnectionRefusedError
+    mockReply.errorString.return_value = "Connection refused"
+    mockReply.deleteLater = MagicMock()
+
+    personalApp._onTranscriptSubmitted(mockReply, "test-key", tmpFile.name)
+
+    assert failed.callCount == 1
+    assert "failed" in failed.callArgs[0][0].lower()
+    assert not os.path.exists(tmpFile.name)
+
+
+def test_onTranscriptSubmitted_emits_failed_when_no_id(
+    personalApp: PersonalAppController,
+):
+    """_onTranscriptSubmitted emits transcriptionFailed if no transcript ID returned."""
+    import tempfile as _tempfile
+
+    tmpFile = _tempfile.NamedTemporaryFile(
+        suffix=".wav", delete=False, prefix="fd_voice_"
+    )
+    tmpFile.close()
+
+    failed = util.Condition(personalApp.transcriptionFailed)
+
+    mockReply = MagicMock()
+    mockReply.error.return_value = QNetworkReply.NoError
+    mockReply.readAll.return_value = QByteArray(json.dumps({}).encode())
+    mockReply.deleteLater = MagicMock()
+
+    personalApp._onTranscriptSubmitted(mockReply, "test-key", tmpFile.name)
+
+    assert failed.callCount == 1
+    assert "No transcript ID" in failed.callArgs[0][0]
+    assert not os.path.exists(tmpFile.name)
+
+
+def test_cleanupRecording_removes_file(personalApp: PersonalAppController):
+    """_cleanupRecording deletes the temp file."""
+    import tempfile as _tempfile
+
+    tmpFile = _tempfile.NamedTemporaryFile(
+        suffix=".wav", delete=False, prefix="fd_voice_"
+    )
+    tmpFile.close()
+    assert os.path.exists(tmpFile.name)
+
+    personalApp._cleanupRecording(tmpFile.name)
+    assert not os.path.exists(tmpFile.name)
+
+
+def test_cleanupRecording_handles_missing_file(personalApp: PersonalAppController):
+    """_cleanupRecording handles gracefully when file doesn't exist."""
+    # Should not raise
+    personalApp._cleanupRecording("/nonexistent/file.wav")
+    personalApp._cleanupRecording("")
+
+
+def test_getAssemblyAIKey_from_env(personalApp: PersonalAppController):
+    """_getAssemblyAIKey returns key from environment variable."""
+    with patch.dict(os.environ, {"ASSEMBLYAI_API_KEY": "env-key-123"}):
+        assert personalApp._getAssemblyAIKey() == "env-key-123"
+
+
+def test_getAssemblyAIKey_from_settings(personalApp: PersonalAppController):
+    """_getAssemblyAIKey falls back to settings when env var is not set."""
+    with (
+        patch.dict(os.environ, {}, clear=False),
+        patch.object(
+            personalApp._settings,
+            "value",
+            side_effect=lambda key, default="": (
+                "settings-key-456" if key == "assemblyaiApiKey" else default
+            ),
+        ),
+    ):
+        # Remove env var if present
+        os.environ.pop("ASSEMBLYAI_API_KEY", None)
+        assert personalApp._getAssemblyAIKey() == "settings-key-456"
 
 
 def test_importJournalNotes_triggers_cluster_detection(
