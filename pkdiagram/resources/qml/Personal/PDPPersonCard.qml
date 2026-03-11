@@ -11,8 +11,9 @@ Rectangle {
     property var personData
     property var pdp
 
-    readonly property real confidenceOpacity: Math.max(0.4, personData && personData.confidence !== null && personData.confidence !== undefined ? personData.confidence : 0.7)
-    readonly property bool lowConfidence: personData && personData.confidence !== null && personData.confidence !== undefined && personData.confidence < 0.5
+    readonly property real _effectiveConfidence: personData && personData.confidence !== null && personData.confidence !== undefined ? personData.confidence : 0.7
+    readonly property real confidenceOpacity: Math.max(0.4, _effectiveConfidence)
+    readonly property bool lowConfidence: _effectiveConfidence < 0.5
 
     signal accepted(int id)
     signal rejected(int id)
