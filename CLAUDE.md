@@ -50,6 +50,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Build C++ extension (Linux)**: `bash scripts/build-pkdiagram-linux.sh` — uses aqtinstall Qt 5.15.2 at `~/.openclaw/qt/`, Python headers at `~/.openclaw/python-headers/`, GL libs at `~/.openclaw/lib/`. See script header for one-time setup.
 - **Run application**: `python -m pkdiagram`
 
+## Precious Data — READ ONLY
+
+`~/Library/Mobile Documents/iCloud~com~vedanamedia~familydiagram/Documents/Clinic Cases/` contains irreplaceable `.fd` file bundles — real-world family diagrams manually arranged by Patrick. These are the primary ground truth source for the auto-arrange feature.
+
+**Rules**: Never write, modify, or delete anything in that folder. When a task needs these files, copy them to `/tmp/` first and work from there.
+
+### Utility Scripts for .fd Files
+
+Write utility scripts to `/tmp/` and run with `uv run python /tmp/script.py` from the project root (`/Users/patrick/theapp`).
+
+To unpickle `.fd/diagram.pickle` files:
+```python
+import PyQt5.sip  # Required for unpickling QtCore objects (QPointF, QDate, etc.)
+import pickle
+with open('/tmp/copy.fd/diagram.pickle', 'rb') as f:
+    data = pickle.load(f)
+```
+
+Position fields: `itemPos` (current format) or `nonLayerPos` (older format) — both are `QPointF`.
+
 ### Linting and Type Checking
 - **Configurations**: pyrightconfig.json configures Pyright/Pylance
 - **Always run linting**: Check for type errors and imports before committing code
