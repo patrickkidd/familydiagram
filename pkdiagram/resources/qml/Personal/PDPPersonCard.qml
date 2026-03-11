@@ -11,6 +11,10 @@ Rectangle {
     property var personData
     property var pdp
 
+    readonly property real _effectiveConfidence: personData && personData.confidence !== null && personData.confidence !== undefined ? personData.confidence : 0.7
+    readonly property real confidenceOpacity: Math.max(0.4, _effectiveConfidence)
+    readonly property bool lowConfidence: _effectiveConfidence < 0.5
+
     signal accepted(int id)
     signal rejected(int id)
     signal editRequested(var personData)
@@ -21,6 +25,19 @@ Rectangle {
     border.color: util.QML_ITEM_BORDER_COLOR
     border.width: 1
 
+    // Low-confidence indicator
+    Text {
+        visible: root.lowConfidence
+        text: "?"
+        font.pixelSize: 10
+        color: util.IS_UI_DARK_MODE ? '#888' : '#999'
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.topMargin: 6
+        anchors.rightMargin: 8
+        z: 1
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 12
@@ -29,6 +46,7 @@ Rectangle {
         RowLayout {
             Layout.fillWidth: true
             spacing: 8
+            opacity: root.confidenceOpacity
 
             Rectangle {
                 Layout.preferredWidth: 28
@@ -81,11 +99,13 @@ Rectangle {
             Layout.fillWidth: true
             height: 1
             color: util.QML_ITEM_BORDER_COLOR
+            opacity: root.confidenceOpacity
         }
 
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            opacity: root.confidenceOpacity
 
             MouseArea {
                 anchors.fill: parent
@@ -192,12 +212,14 @@ Rectangle {
             Layout.fillWidth: true
             height: 1
             color: util.QML_ITEM_BORDER_COLOR
+            opacity: root.confidenceOpacity
         }
 
         RowLayout {
             Layout.fillWidth: true
             Layout.preferredHeight: 36
             spacing: 8
+            // Buttons stay at full opacity for tappability
 
             PK.Button {
                 id: rejectButton
