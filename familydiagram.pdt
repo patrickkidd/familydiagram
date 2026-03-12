@@ -1637,6 +1637,26 @@ included = true
 is_directory = false
 
 [[Application.Package.Content]]
+name = "mcpbridge"
+included = true
+is_directory = true
+[[Application.Package.Content.Content]]
+name = "__init__.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "inspector.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "server.py"
+included = true
+is_directory = false
+
+
+[[Application.Package.Content]]
 name = "tests"
 included = false
 is_directory = true
@@ -1807,21 +1827,21 @@ is_directory = false
 
 [[Application.Package.Content.Content]]
 name = "mcpbridge"
-included = false
+included = true
 is_directory = true
 [[Application.Package.Content.Content.Content]]
 name = "__init__.py"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
 name = "inspector.py"
-included = false
+included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content]]
 name = "server.py"
-included = false
+included = true
 is_directory = false
 
 

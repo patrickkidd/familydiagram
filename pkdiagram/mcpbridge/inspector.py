@@ -47,7 +47,6 @@ from pkdiagram.pyqt import (
     QPointF,
     QRect,
     QRectF,
-    QTest,
     QMetaObject,
     Q_ARG,
     QPixmap,
@@ -57,7 +56,13 @@ from pkdiagram.pyqt import (
     QTimer,
     QMessageBox,
     QDialog,
+    QMouseEvent,
 )
+
+try:
+    from pkdiagram.pyqt import QTest
+except ImportError:
+    QTest = None
 
 log = logging.getLogger(__name__)
 
@@ -768,6 +773,13 @@ class QtInspector:
 
         return {"success": False, "error": f"Element not found: {objectName}"}
 
+    def _postMouseEvent(self, target, eventType, button, pos: QPoint) -> None:
+        posF = QPointF(pos)
+        buttons = button if eventType == QMouseEvent.MouseButtonPress else Qt.NoButton
+        event = QMouseEvent(eventType, posF, posF, button, buttons, Qt.NoModifier)
+        QApplication.postEvent(target, event)
+        self._app.processEvents()
+
     def _clickWidget(
         self, widget: QWidget, button: int, pos: Optional[tuple]
     ) -> Dict[str, Any]:
@@ -777,7 +789,11 @@ class QtInspector:
         else:
             clickPos = QPoint(pos[0], pos[1])
 
-        QTest.mouseClick(widget, button, Qt.NoModifier, clickPos)
+        if QTest is not None:
+            QTest.mouseClick(widget, button, Qt.NoModifier, clickPos)
+        else:
+            self._postMouseEvent(widget, QMouseEvent.MouseButtonPress, button, clickPos)
+            self._postMouseEvent(widget, QMouseEvent.MouseButtonRelease, button, clickPos)
         self._app.processEvents()
         return {"success": True}
 
@@ -804,13 +820,11 @@ class QtInspector:
             f"_clickQmlItem: {item.objectName()} at local={localPos.x()},{localPos.y()} scene={clickPos.x()},{clickPos.y()} visible={item.isVisible()} enabled={item.isEnabled()}"
         )
 
-        # QQuickWindow needs QTest.mouseClick on the window directly
-        # QQuickWidget can be clicked as a QWidget
-        if isinstance(target, QQuickWidget):
+        if QTest is not None:
             QTest.mouseClick(target, button, Qt.NoModifier, clickPos)
         else:
-            # For QQuickWindow, use QTest with the window
-            QTest.mouseClick(target, button, Qt.NoModifier, clickPos)
+            self._postMouseEvent(target, QMouseEvent.MouseButtonPress, button, clickPos)
+            self._postMouseEvent(target, QMouseEvent.MouseButtonRelease, button, clickPos)
 
         self._app.processEvents()
         return {"success": True, "clickPos": {"x": clickPos.x(), "y": clickPos.y()}}
@@ -1408,6 +1422,18 @@ class QtInspector:
         else:
             return {"success": False, "error": f"Unknown component: {component}"}
 
+    def devLogin(self, username: Optional[str] = None) -> Dict[str, Any]:
+        controller = self._findPersonalAppController()
+        if controller is None:
+            return {"success": False, "error": "PersonalAppController not found"}
+        if controller.session.isLoggedIn():
+            return {"success": True, "message": "Already logged in"}
+        controller.session.login(username=username)
+        if controller.session.isLoggedIn():
+            user = controller.session.user
+            return {"success": True, "username": user.username if user else None}
+        return {"success": False, "error": "Login failed - check FLASK_AUTO_AUTH on server"}
+
     def _findPersonalAppController(self):
         """Find the PersonalAppController instance."""
         # Try app.personalController attribute (set in main.py)
@@ -1659,7 +1685,10 @@ class QtInspector:
         widget = self._findWidget(objectName)
         if widget is not None:
             p = QPoint(*pos) if pos else widget.rect().center()
-            QTest.mouseMove(widget, p)
+            if QTest is not None:
+                QTest.mouseMove(widget, p)
+            else:
+                self._postMouseEvent(widget, QMouseEvent.MouseMove, Qt.NoButton, p)
             self._app.processEvents()
             return {"success": True}
 
@@ -1670,7 +1699,10 @@ class QtInspector:
                 return {"success": False, "error": "No window for element"}
             localPos = QPointF(*pos) if pos else QPointF(item.width() / 2, item.height() / 2)
             scenePos = item.mapToScene(localPos).toPoint()
-            QTest.mouseMove(target, scenePos)
+            if QTest is not None:
+                QTest.mouseMove(target, scenePos)
+            else:
+                self._postMouseEvent(target, QMouseEvent.MouseMove, Qt.NoButton, scenePos)
             self._app.processEvents()
             return {"success": True}
 
@@ -1708,13 +1740,20 @@ class QtInspector:
     def longPress(
         self, objectName: str, durationMs: int = 500, pos: Optional[tuple] = None
     ) -> Dict[str, Any]:
+        import time as _time
+
         widget = self._findWidget(objectName)
         if widget is not None:
             p = QPoint(*pos) if pos else widget.rect().center()
-            QTest.mousePress(widget, Qt.LeftButton, Qt.NoModifier, p)
-            self._app.processEvents()
-            QTest.qWait(durationMs)
-            QTest.mouseRelease(widget, Qt.LeftButton, Qt.NoModifier, p)
+            if QTest is not None:
+                QTest.mousePress(widget, Qt.LeftButton, Qt.NoModifier, p)
+                self._app.processEvents()
+                QTest.qWait(durationMs)
+                QTest.mouseRelease(widget, Qt.LeftButton, Qt.NoModifier, p)
+            else:
+                self._postMouseEvent(widget, QMouseEvent.MouseButtonPress, Qt.LeftButton, p)
+                _time.sleep(durationMs / 1000)
+                self._postMouseEvent(widget, QMouseEvent.MouseButtonRelease, Qt.LeftButton, p)
             self._app.processEvents()
             return {"success": True}
 
@@ -1725,10 +1764,15 @@ class QtInspector:
                 return {"success": False, "error": "No window for element"}
             localPos = QPointF(*pos) if pos else QPointF(item.width() / 2, item.height() / 2)
             scenePos = item.mapToScene(localPos).toPoint()
-            QTest.mousePress(target, Qt.LeftButton, Qt.NoModifier, scenePos)
-            self._app.processEvents()
-            QTest.qWait(durationMs)
-            QTest.mouseRelease(target, Qt.LeftButton, Qt.NoModifier, scenePos)
+            if QTest is not None:
+                QTest.mousePress(target, Qt.LeftButton, Qt.NoModifier, scenePos)
+                self._app.processEvents()
+                QTest.qWait(durationMs)
+                QTest.mouseRelease(target, Qt.LeftButton, Qt.NoModifier, scenePos)
+            else:
+                self._postMouseEvent(target, QMouseEvent.MouseButtonPress, Qt.LeftButton, scenePos)
+                _time.sleep(durationMs / 1000)
+                self._postMouseEvent(target, QMouseEvent.MouseButtonRelease, Qt.LeftButton, scenePos)
             self._app.processEvents()
             return {"success": True}
 

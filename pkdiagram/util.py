@@ -128,7 +128,9 @@ ENABLE_ITEM_COPY_PASTE = False
 ENABLE_DATE_BUDDIES = False
 
 
-if IS_BUNDLE:
+if IS_IPHONE_SIMULATOR:
+    SERVER_URL_ROOT = "http://localhost:8888"
+elif IS_BUNDLE:
     SERVER_URL_ROOT = "https://database.familydiagram.com"
 else:
     SERVER_URL_ROOT = os.getenv(

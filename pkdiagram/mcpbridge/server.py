@@ -94,6 +94,7 @@ class TestBridgeServer(QObject):
             # Screenshots
             "take_screenshot": self._handleTakeScreenshot,
             # Personal app state
+            "dev_login": self._handleDevLogin,
             "get_personal_state": self._handleGetPersonalState,
             "inject_pdp_data": self._handleInjectPdpData,
             "open_pdp_sheet": self._handleOpenPdpSheet,
@@ -503,6 +504,10 @@ class TestBridgeServer(QObject):
         """Handle take_screenshot command."""
         objectName = command.get("objectName")
         return self._inspector.takeScreenshot(objectName)
+
+    def _handleDevLogin(self, command: Dict) -> Dict:
+        username = command.get("username")
+        return self._inspector.devLogin(username)
 
     def _handleGetPersonalState(self, command: Dict) -> Dict:
         """Handle get_personal_state command."""

@@ -77,6 +77,8 @@ Position fields: `itemPos` (current format) or `nonLayerPos` (older format) — 
 
 ## MCP Testing with familydiagram-testing Server
 
+**MANDATORY**: Before writing any Claude-driven manual test plan for the Personal app (using MCP bridge/simulator tools to exercise the UI — distinct from human manual testing and from pytest unit/integration tests), read [adrs/0002-ai-manual-testing-strategy-personal-app.md](adrs/0002-ai-manual-testing-strategy-personal-app.md) for the approved tool layers and their constraints.
+
 ### Critical Rules
 
 1. **Close previous app instances first**: Before launching a new app, ALWAYS call `close_app(force=True)` first. Multiple app instances cause port conflicts (bridge server on 9876) and the MCP bridge will connect to the wrong app.

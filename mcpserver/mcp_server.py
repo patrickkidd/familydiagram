@@ -888,6 +888,96 @@ def input(
 
 
 @mcp.tool()
+def hover(name: str, x: Optional[int] = None, y: Optional[int] = None) -> Dict[str, Any]:
+    """Hover over element (triggers tooltips, hover states). Maps to iOS long-press entry."""
+    session = TestSession.get_instance()
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+    pos = [x, y] if x is not None and y is not None else None
+    return session.bridge.send_command({"command": "hover", "objectName": name, "pos": pos})
+
+
+@mcp.tool()
+def scroll(
+    name: str,
+    direction: str = "up",
+    amount: int = 100,
+) -> Dict[str, Any]:
+    """Scroll element by simulating a swipe drag. direction: up/down/left/right. amount: pixels.
+    iOS semantics: scroll 'up' moves content upward (finger drags up)."""
+    session = TestSession.get_instance()
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+    return session.bridge.send_command(
+        {"command": "scroll", "objectName": name, "direction": direction, "amount": amount}
+    )
+
+
+@mcp.tool()
+def long_press(name: str, duration_ms: int = 500) -> Dict[str, Any]:
+    """Long-press element (iOS context menu / haptic trigger equivalent)."""
+    session = TestSession.get_instance()
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+    return session.bridge.send_command(
+        {"command": "long_press", "objectName": name, "durationMs": duration_ms}
+    )
+
+
+@mcp.tool()
+def get_text(name: str) -> Dict[str, Any]:
+    """Read visible text from element without knowing property name."""
+    session = TestSession.get_instance()
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+    return session.bridge.send_command({"command": "get_text", "objectName": name})
+
+
+@mcp.tool()
+def get_bounds(name: str) -> Dict[str, Any]:
+    """Get element bounding box {x, y, width, height} in global screen coordinates."""
+    session = TestSession.get_instance()
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+    return session.bridge.send_command({"command": "get_bounds", "objectName": name})
+
+
+# iPhone viewport presets (logical points, not pixels)
+_IPHONE_PRESETS = {
+    "iphone_se": (375, 667),
+    "iphone_14": (390, 844),
+    "iphone_14_pro_max": (430, 932),
+    "iphone_16_pro": (393, 852),
+}
+
+
+@mcp.tool()
+def resize_window(
+    width: Optional[int] = None,
+    height: Optional[int] = None,
+    preset: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Resize app window to simulate iPhone viewport. preset: iphone_se / iphone_14 / iphone_14_pro_max / iphone_16_pro."""
+    session = TestSession.get_instance()
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+
+    if preset:
+        if preset not in _IPHONE_PRESETS:
+            return {
+                "success": False,
+                "error": f"Unknown preset '{preset}'. Options: {list(_IPHONE_PRESETS)}",
+            }
+        width, height = _IPHONE_PRESETS[preset]
+    elif width is None or height is None:
+        return {"success": False, "error": "Provide width+height or preset"}
+
+    return session.bridge.send_command(
+        {"command": "resize_window", "width": width, "height": height}
+    )
+
+
+@mcp.tool()
 def scene(
     action: str = "list", name: str = None, type: str = None, button: str = "left"
 ) -> Dict[str, Any]:
@@ -1153,8 +1243,196 @@ def open_pdp_sheet() -> Dict[str, Any]:
 
 
 # =============================================================================
-# Main Entry Point
+# MCP Tools - iOS Simulator
 # =============================================================================
+
+
+def _simctl(*args, timeout: int = 30) -> Tuple[bool, str]:
+    """Run xcrun simctl command. Returns (success, output)."""
+    cmd = ["xcrun", "simctl"] + list(args)
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=timeout
+        )
+        if result.returncode == 0:
+            return True, result.stdout.strip()
+        return False, result.stderr.strip() or result.stdout.strip()
+    except subprocess.TimeoutExpired:
+        return False, f"Command timed out after {timeout}s"
+    except FileNotFoundError:
+        return False, "xcrun not found — Xcode command line tools required"
+
+
+def _booted_udid() -> Optional[str]:
+    """Return UDID of first booted simulator, or None."""
+    ok, out = _simctl("list", "devices", "booted", "--json")
+    if not ok:
+        return None
+    try:
+        data = json.loads(out)
+        for runtime_devices in data.get("devices", {}).values():
+            for device in runtime_devices:
+                if device.get("state") == "Booted":
+                    return device["udid"]
+    except (json.JSONDecodeError, KeyError):
+        pass
+    return None
+
+
+@mcp.tool()
+def sim_list() -> Dict[str, Any]:
+    """List available iOS simulators with their UDIDs and boot state."""
+    ok, out = _simctl("list", "devices", "available", "--json")
+    if not ok:
+        return {"success": False, "error": out}
+    try:
+        data = json.loads(out)
+        devices = []
+        for runtime, runtime_devices in data.get("devices", {}).items():
+            for d in runtime_devices:
+                devices.append(
+                    {
+                        "name": d["name"],
+                        "udid": d["udid"],
+                        "state": d["state"],
+                        "runtime": runtime.replace("com.apple.CoreSimulator.SimRuntime.", ""),
+                    }
+                )
+        booted = [d for d in devices if d["state"] == "Booted"]
+        return {"success": True, "devices": devices, "booted": booted}
+    except (json.JSONDecodeError, KeyError) as e:
+        return {"success": False, "error": str(e)}
+
+
+@mcp.tool()
+def sim_boot(udid: Optional[str] = None) -> Dict[str, Any]:
+    """Boot a simulator. Omit udid to boot first available device. Opens Simulator.app."""
+    if udid is None:
+        ok, out = _simctl("list", "devices", "available", "--json")
+        if not ok:
+            return {"success": False, "error": out}
+        try:
+            data = json.loads(out)
+            for runtime_devices in data.get("devices", {}).values():
+                for d in runtime_devices:
+                    udid = d["udid"]
+                    break
+                if udid:
+                    break
+        except (json.JSONDecodeError, KeyError):
+            pass
+        if not udid:
+            return {"success": False, "error": "No available simulator found"}
+
+    ok, out = _simctl("boot", udid, timeout=60)
+    if not ok and "already booted" not in out.lower():
+        return {"success": False, "error": out}
+
+    # Open Simulator.app so the window is visible
+    subprocess.Popen(["open", "-a", "Simulator"])
+
+    return {"success": True, "udid": udid, "message": "Booted. Simulator.app opened."}
+
+
+@mcp.tool()
+def sim_screenshot(udid: Optional[str] = None) -> Dict[str, Any]:
+    """Take screenshot of booted simulator. Returns base64 PNG + saves to screenshots/."""
+    target = udid or _booted_udid() or "booted"
+
+    screenshot_dir = Path(__file__).parent.parent / "screenshots"
+    screenshot_dir.mkdir(exist_ok=True)
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    output_path = screenshot_dir / f"sim_{timestamp}.png"
+
+    ok, out = _simctl("io", target, "screenshot", str(output_path), timeout=15)
+    if not ok:
+        return {"success": False, "error": out}
+
+    try:
+        from PIL import Image
+        import io as _io
+
+        img = Image.open(str(output_path))
+        max_dim = 1920
+        if img.width > max_dim or img.height > max_dim:
+            ratio = min(max_dim / img.width, max_dim / img.height)
+            img = img.resize(
+                (int(img.width * ratio), int(img.height * ratio)),
+                Image.Resampling.LANCZOS,
+            )
+            img.save(str(output_path), "PNG")
+
+        buf = _io.BytesIO()
+        img.save(buf, "PNG")
+        image_data = base64.b64encode(buf.getvalue()).decode("utf-8")
+        return {
+            "success": True,
+            "path": str(output_path),
+            "width": img.width,
+            "height": img.height,
+            "data": image_data,
+        }
+    except ImportError:
+        with open(output_path, "rb") as f:
+            image_data = base64.b64encode(f.read()).decode("utf-8")
+        return {"success": True, "path": str(output_path), "data": image_data}
+
+
+@mcp.tool()
+def sim_install(app_path: str, udid: Optional[str] = None) -> Dict[str, Any]:
+    """Install .app bundle to simulator. app_path must be path to .app directory."""
+    target = udid or _booted_udid() or "booted"
+    ok, out = _simctl("install", target, app_path, timeout=60)
+    return {"success": ok, "message": out}
+
+
+@mcp.tool()
+def sim_launch(
+    bundle_id: str,
+    udid: Optional[str] = None,
+    wait_for_debugger: bool = False,
+) -> Dict[str, Any]:
+    """Launch app in simulator by bundle ID. Returns pid."""
+    target = udid or _booted_udid() or "booted"
+    args = ["launch", target, bundle_id]
+    if wait_for_debugger:
+        args.append("--wait-for-debugger")
+    ok, out = _simctl(*args, timeout=30)
+    return {"success": ok, "message": out}
+
+
+@mcp.tool()
+def sim_terminate(bundle_id: str, udid: Optional[str] = None) -> Dict[str, Any]:
+    """Terminate running app in simulator."""
+    target = udid or _booted_udid() or "booted"
+    ok, out = _simctl("terminate", target, bundle_id)
+    return {"success": ok, "message": out}
+
+
+@mcp.tool()
+def sim_log(
+    bundle_id: Optional[str] = None,
+    last_n: int = 50,
+    udid: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Get recent simulator log entries. Optionally filter by bundle_id process name."""
+    target = udid or _booted_udid() or "booted"
+
+    # Use log stream with a short timeout to capture recent entries
+    cmd = ["xcrun", "simctl", "spawn", target, "log", "show", "--last", "30s", "--style", "compact"]
+    if bundle_id:
+        # Extract process name from bundle ID (last component)
+        process = bundle_id.split(".")[-1]
+        cmd += ["--predicate", f'process == "{process}"']
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+        lines = (result.stdout or result.stderr or "").strip().splitlines()
+        return {"success": True, "lines": lines[-last_n:], "count": len(lines)}
+    except subprocess.TimeoutExpired:
+        return {"success": False, "error": "Log command timed out"}
+    except FileNotFoundError:
+        return {"success": False, "error": "xcrun not found"}
 
 
 if __name__ == "__main__":

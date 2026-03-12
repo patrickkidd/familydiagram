@@ -187,14 +187,15 @@ def _main_impl():
             devMenu.menuBar.setNativeMenuBar(True)
             devMenu.menuBar.show()
 
-        # Start test bridge server if requested
+        # Start test bridge server if requested or running in iOS Simulator
         testBridgeServer = None
-        if util.IS_DEV and options.test_server:
-            from pkdiagram.tests.mcpbridge.server import TestBridgeServer
+        _bridgePort = getattr(options, "test_server_port", 9876)
+        if util.IS_IPHONE_SIMULATOR or (util.IS_DEV and options.test_server):
+            from pkdiagram.mcpbridge.server import TestBridgeServer
 
-            testBridgeServer = TestBridgeServer(port=options.test_server_port)
+            testBridgeServer = TestBridgeServer(port=_bridgePort)
             testBridgeServer.start()
-            _log.info(f"Test bridge server started on port {options.test_server_port}")
+            _log.info(f"Test bridge server started on port {_bridgePort}")
 
         ret = app.exec_()
 
@@ -221,14 +222,15 @@ def _main_impl():
 
         extensions.setActiveSession(session=controller.session)
 
-        # Start test bridge server if requested
+        # Start test bridge server if requested or running in iOS Simulator
         testBridgeServer = None
-        if util.IS_DEV and options.test_server:
-            from pkdiagram.tests.mcpbridge.server import TestBridgeServer
+        _bridgePort = getattr(options, "test_server_port", 9876)
+        if util.IS_IPHONE_SIMULATOR or (util.IS_DEV and options.test_server):
+            from pkdiagram.mcpbridge.server import TestBridgeServer
 
-            testBridgeServer = TestBridgeServer(port=options.test_server_port)
+            testBridgeServer = TestBridgeServer(port=_bridgePort)
             testBridgeServer.start()
-            _log.info(f"Test bridge server started on port {options.test_server_port}")
+            _log.info(f"Test bridge server started on port {_bridgePort}")
 
         # Open file at startup if specified (scheduled after event loop starts)
         if util.IS_DEV and options.open_file:
