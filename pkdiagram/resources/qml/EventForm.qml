@@ -265,6 +265,7 @@ Page {
         safeAreaTop: root.safeAreaTop
         PK.ToolButton {
             id: cancelButton
+            objectName: "cancelButton"
             text: 'Cancel'
             anchors.left: parent.left
             anchors.leftMargin: margin

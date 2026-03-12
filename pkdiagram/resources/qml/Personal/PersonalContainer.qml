@@ -101,6 +101,7 @@ Page {
 
         // Hamburger menu button
         Rectangle {
+            objectName: "hamburgerButton"
             anchors.left: parent.left
             anchors.leftMargin: 12
             anchors.verticalCenter: parent.verticalCenter
@@ -326,6 +327,7 @@ Page {
 
         Personal.PlanView {
             id: planView
+            objectName: "planView"
             Layout.fillHeight: true
             Layout.fillWidth: true
         }

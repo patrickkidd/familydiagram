@@ -135,8 +135,7 @@ Rectangle {
                         }
                         Text {
                             text: personData ? (personData.name || "") : ""
-                            font.pixelSize: util.QML_TITLE_FONT_SIZE
-                            font.family: util.FONT_FAMILY_TITLE
+                            font.pixelSize: util.TEXT_FONT_SIZE
                             color: util.QML_TEXT_COLOR
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
@@ -201,6 +200,7 @@ Rectangle {
 
             PK.Button {
                 id: rejectButton
+                objectName: "pdpRejectButton"
                 source: '../../clear-button.png'
                 Layout.preferredWidth: 36
                 Layout.preferredHeight: 36
@@ -215,6 +215,7 @@ Rectangle {
 
             PK.Button {
                 id: acceptButton
+                objectName: "pdpAcceptButton"
                 source: '../../plus-button.png'
                 Layout.preferredWidth: 36
                 Layout.preferredHeight: 36

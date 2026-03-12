@@ -30,7 +30,6 @@ Drawer {
     signal itemAccepted(int id)
     signal itemRejected(int id)
     signal acceptAllClicked()
-    signal refreshClicked()
     signal fieldChanged(int id, string field, var value)
 
     function updateField(field, value) {
@@ -300,13 +299,6 @@ Drawer {
                 font.family: util.FONT_FAMILY_TITLE
                 color: util.QML_TEXT_COLOR
                 Layout.fillWidth: true
-            }
-
-            PK.Button {
-                objectName: "refreshButton"
-                text: "Refresh"
-                pill: true
-                onClicked: root.refreshClicked()
             }
 
             PK.Button {

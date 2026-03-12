@@ -14,6 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Build decisions (macOS) | [doc/build-decisions-macos.md](doc/build-decisions-macos.md) |
 | Build decisions (Windows) | [doc/build-decisions-windows.md](doc/build-decisions-windows.md) |
 | Release process | [doc/RELEASE_PROCESS.md](doc/RELEASE_PROCESS.md) |
+| AI-driven test logs (Personal app) | [doc/test-logs/INDEX.md](doc/test-logs/INDEX.md) |
 
 ## Code / design rules
 
@@ -25,9 +26,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   `doc/UI_STYLE_SPEC.md`. Values come from `pkdiagram/util.py` and are exposed
   to QML via `QmlUtil.CONSTANTS` in `pkdiagram/app/qmlutil.py`.
 - **MANDATORY**: When creating new QML components or interactive UI elements
-  requiring design decisions, follow the prototyping process in
-  `doc/agents/ui-planner.md` before writing production code. Skip for bug fixes
-  and single-property tweaks.
+  requiring design decisions, invoke the `/ui-planner` skill before writing
+  production code. Skip for bug fixes and single-property tweaks.
 - For undoable app verbs, keep with the pattern of a verb method with
   `undo=False` and then a `def _do_<VERB>` method that does the actual work.
 

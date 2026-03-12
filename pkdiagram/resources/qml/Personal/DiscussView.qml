@@ -769,9 +769,6 @@ Page {
             personalApp.rejectPDPItem(id)
             pdpSheet.removeItemById(id)
         }
-        onRefreshClicked: {
-            personalApp.extractFull()
-        }
         onAcceptAllClicked: {
             personalApp.acceptAllPDPItems()
             pdpSheet.close()
