@@ -1176,6 +1176,57 @@ class QtInspector:
 
         return {"success": True, "items": items}
 
+    def getLayoutBounds(self) -> Dict[str, Any]:
+        """
+        Return scene bounding rects for all persons, their name labels, and R symbols.
+        Used to detect label/R-symbol collisions and calibrate the layout algorithm.
+        """
+        from pkdiagram.scene.person import Person
+        from pkdiagram.scene.emotions import Emotion
+        from pkdiagram.scene.itemdetails import ItemDetails
+
+        persons = []
+        labels = []
+        emotions = []
+
+        def _rect(item):
+            r = item.sceneBoundingRect()
+            return {"x": r.x(), "y": r.y(), "w": r.width(), "h": r.height()}
+
+        for view in self._getGraphicsViews():
+            scene = view.scene()
+            if scene is None:
+                continue
+            for item in scene.items():
+                if isinstance(item, Person):
+                    persons.append({
+                        "id": item.id,
+                        "name": item.name() if callable(getattr(item, "name", None)) else None,
+                        "gender": item.gender() if callable(getattr(item, "gender", None)) else None,
+                        "rect": _rect(item),
+                    })
+                elif isinstance(item, ItemDetails):
+                    parent = item.parentItem()
+                    text = item.mainTextItem.text() if hasattr(item, "mainTextItem") else None
+                    labels.append({
+                        "parent_id": parent.id if parent and hasattr(parent, "id") else None,
+                        "text": text,
+                        "rect": _rect(item),
+                    })
+                elif isinstance(item, Emotion):
+                    kind = item.kind()
+                    person_id = item.prop("person") if hasattr(item, "prop") else None
+                    target_id = item.prop("target") if hasattr(item, "prop") else None
+                    emotions.append({
+                        "id": item.id,
+                        "kind": kind.value if kind else None,
+                        "person_id": person_id,
+                        "target_id": target_id,
+                        "rect": _rect(item),
+                    })
+
+        return {"success": True, "persons": persons, "labels": labels, "emotions": emotions}
+
     # -------------------------------------------------------------------------
     # Window Operations
     # -------------------------------------------------------------------------

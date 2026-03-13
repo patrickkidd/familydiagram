@@ -86,6 +86,7 @@ class TestBridgeServer(QObject):
             # Scene items
             "click_scene_item": self._handleClickSceneItem,
             "get_scene_items": self._handleGetSceneItems,
+            "get_layout_bounds": self._handleGetLayoutBounds,
             # Windows
             "get_windows": self._handleGetWindows,
             "activate_window": self._handleActivateWindow,
@@ -479,6 +480,10 @@ class TestBridgeServer(QObject):
         """Handle get_scene_items command."""
         itemType = command.get("type")
         return self._inspector.getSceneItems(itemType)
+
+    def _handleGetLayoutBounds(self, command: Dict) -> Dict:
+        """Handle get_layout_bounds command."""
+        return self._inspector.getLayoutBounds()
 
     def _handleGetWindows(self, command: Dict) -> Dict:
         """Handle get_windows command."""

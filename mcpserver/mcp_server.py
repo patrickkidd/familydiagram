@@ -978,6 +978,20 @@ def resize_window(
 
 
 @mcp.tool()
+def layout_bounds() -> Dict[str, Any]:
+    """
+    Get scene bounding rects for all persons, their name labels (ItemDetails), and R symbols (Emotions).
+    Returns {persons: [{id, name, gender, rect}], labels: [{parent_id, text, rect}], emotions: [{id, kind, person_id, target_id, rect}]}.
+    rect fields: x, y, w, h (scene coordinates).
+    Use to detect label/R-symbol collisions and calibrate the layout algorithm.
+    """
+    session = TestSession.get_instance()
+    if not session.bridge or not session.bridge.is_connected:
+        return {"success": False, "error": "Bridge not connected"}
+    return session.bridge.send_command({"command": "get_layout_bounds"})
+
+
+@mcp.tool()
 def scene(
     action: str = "list", name: str = None, type: str = None, button: str = "left"
 ) -> Dict[str, Any]:
