@@ -245,7 +245,7 @@ Flickable {
                 width: parent.width
 
                 Repeater {
-                    model: ["Voice", "Privacy", "Help & Support"]
+                    model: ["Model", "Voice", "Privacy", "Help & Support"]
 
                     Rectangle {
                         width: parent.width
@@ -277,7 +277,7 @@ Flickable {
                             anchors.right: parent.right
                             height: 1
                             color: borderColor
-                            visible: index < 2
+                            visible: index < 3
                         }
 
                         MouseArea {

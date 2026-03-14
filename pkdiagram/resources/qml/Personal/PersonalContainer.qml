@@ -800,7 +800,9 @@ Page {
                 personalApp.createDiagram()
             }
             onSettingsClicked: function(setting) {
-                if (setting === "Voice") {
+                if (setting === "Model") {
+                    modelPopup.open()
+                } else if (setting === "Voice") {
                     voicePopup.open()
                 } else if (setting === "Privacy") {
                     privacyPopup.open()
@@ -906,6 +908,31 @@ Page {
             anchors.fill: parent
             pageTitle: "Help & Support"
             onBackClicked: helpPopup.close()
+        }
+    }
+
+    // Model settings popup
+    Popup {
+        id: modelPopup
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: root.width
+        height: root.height
+        modal: true
+        closePolicy: Popup.NoAutoClose
+        padding: 0
+        background: Rectangle { color: "transparent" }
+
+        enter: Transition {
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 150 }
+        }
+        exit: Transition {
+            NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 150 }
+        }
+
+        Personal.ModelSettingsPage {
+            anchors.fill: parent
+            onBackClicked: modelPopup.close()
         }
     }
 

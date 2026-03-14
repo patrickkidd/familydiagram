@@ -78,6 +78,7 @@ class PersonalAppController(QObject):
     ttsPlayingIndexChanged = pyqtSignal()
     ttsFinished = pyqtSignal()
     ttsVoiceChanged = pyqtSignal()
+    responseModelChanged = pyqtSignal()
 
     transcriptionReady = pyqtSignal(str, arguments=["text"])
     transcriptionFailed = pyqtSignal(str, arguments=["error"])
@@ -360,6 +361,32 @@ class PersonalAppController(QObject):
     def settings(self):
         return self._settings
 
+    # Model selection
+
+    AVAILABLE_MODELS = [
+        {"id": "opus-4.6", "name": "Opus 4.6"},
+        {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash"},
+    ]
+    DEFAULT_MODEL = "opus-4.6"
+
+    @pyqtProperty("QVariantList", constant=True)
+    def availableModels(self):
+        return self.AVAILABLE_MODELS
+
+    @pyqtProperty(str, notify=responseModelChanged)
+    def responseModel(self):
+        return (
+            self._settings.value("responseModel", self.DEFAULT_MODEL)
+            or self.DEFAULT_MODEL
+        )
+
+    @pyqtSlot(str)
+    def setResponseModel(self, modelId: str):
+        if modelId == self.responseModel:
+            return
+        self._settings.setValue("responseModel", modelId)
+        self.responseModelChanged.emit()
+
     # TTS
 
     @pyqtProperty(int, notify=ttsPlayingIndexChanged)
@@ -480,7 +507,9 @@ class PersonalAppController(QObject):
         def onError():
             errorMsg = reply.errorString()
             _log.error(f"Failed to fetch AssemblyAI key: {errorMsg}")
-            self.transcriptionFailed.emit(f"Failed to fetch transcription key: {errorMsg}")
+            self.transcriptionFailed.emit(
+                f"Failed to fetch transcription key: {errorMsg}"
+            )
             self._cleanupRecording(filePath)
 
         reply = self.session.server().nonBlockingRequest(
@@ -558,9 +587,7 @@ class PersonalAppController(QObject):
             lambda: self._onTranscriptSubmitted(transcriptReply, apiKey, filePath)
         )
 
-    def _onTranscriptSubmitted(
-        self, reply: QNetworkReply, apiKey: str, filePath: str
-    ):
+    def _onTranscriptSubmitted(self, reply: QNetworkReply, apiKey: str, filePath: str):
         """Handle transcription submission, then start polling."""
         error = reply.error()
         if error != QNetworkReply.NoError:
@@ -677,15 +704,26 @@ class PersonalAppController(QObject):
             return self._diagram.__dict__
         return {}
 
+    def _saveLastDiagramId(self, diagramId: int):
+        self.appConfig.set("lastDiagramId", diagramId)
+        if self.appConfig.filePath:
+            self.appConfig.write()
+
     def _refreshDiagram(self):
         if not self.session.user:
             return
+
+        lastDiagramId = self.appConfig.get("lastDiagramId")
+        diagramId = (
+            lastDiagramId if lastDiagramId else self.session.user.free_diagram_id
+        )
 
         def onSuccess(data):
             rawData = base64.b64decode(data["data"])
             data["data"] = rawData
             self._diagram = Diagram(**data)
             self._discussions = [Discussion.create(x) for x in data["discussions"]]
+            self._saveLastDiagramId(self._diagram.id)
             self.discussionsChanged.emit()
             self.statementsChanged.emit()
             self.pdpChanged.emit()
@@ -697,16 +735,34 @@ class PersonalAppController(QObject):
             scene = Scene()
             try:
                 scene.read(pickle.loads(rawData))
-            except (pickle.UnpicklingError, KeyError, ValueError, TypeError, AttributeError):
+            except (
+                pickle.UnpicklingError,
+                KeyError,
+                ValueError,
+                TypeError,
+                AttributeError,
+            ):
                 _log.exception(f"Failed to load scene for diagram {self._diagram.id}")
             else:
                 self.setScene(scene)
 
+        def onError():
+            if lastDiagramId and lastDiagramId != self.session.user.free_diagram_id:
+                _log.warning(
+                    f"Last diagram {lastDiagramId} not found, falling back to free diagram"
+                )
+                self.appConfig.delete("lastDiagramId")
+                if self.appConfig.filePath:
+                    self.appConfig.write()
+                self._refreshDiagram()
+            else:
+                self.onError(reply)
+
         reply = self.session.server().nonBlockingRequest(
             "GET",
-            f"/personal/diagrams/{self.session.user.free_diagram_id}",
+            f"/personal/diagrams/{diagramId}",
             data={},
-            error=lambda: self.onError(reply),
+            error=onError,
             success=onSuccess,
             headers={"Content-Type": "application/json", "Accept": "application/json"},
             from_root=True,
@@ -723,6 +779,7 @@ class PersonalAppController(QObject):
             self._diagram = Diagram(**data)
             self._discussions = [Discussion.create(x) for x in data["discussions"]]
             self._currentDiscussion = None
+            self._saveLastDiagramId(self._diagram.id)
             self.discussionsChanged.emit()
             self.statementsChanged.emit()
             self.pdpChanged.emit()
@@ -858,6 +915,7 @@ class PersonalAppController(QObject):
 
             args = {
                 "statement": statement,
+                "model": self.responseModel,
             }
             reply = self.session.server().nonBlockingRequest(
                 "POST",
@@ -932,7 +990,9 @@ class PersonalAppController(QObject):
         def applyChange(diagramData: DiagramData):
             _log.info(f"Applying accept PDP item change for id: {id}")
             # Scene's lastItemId includes internal layers; server's may not
-            diagramData.lastItemId = max(diagramData.lastItemId, self.scene.lastItemId())
+            diagramData.lastItemId = max(
+                diagramData.lastItemId, self.scene.lastItemId()
+            )
             # Capture IDs before commit to identify what was added
             prevPeopleIds = {p["id"] for p in diagramData.people}
             prevEventIds = {e["id"] for e in diagramData.events}
@@ -1198,7 +1258,9 @@ class PersonalAppController(QObject):
 
             def applyChange(diagramData: DiagramData):
                 # Scene's lastItemId includes internal layers; server's may not
-                diagramData.lastItemId = max(diagramData.lastItemId, self.scene.lastItemId())
+                diagramData.lastItemId = max(
+                    diagramData.lastItemId, self.scene.lastItemId()
+                )
                 prevPeopleIds = {p["id"] for p in diagramData.people}
                 prevEventIds = {e["id"] for e in diagramData.events}
                 prevPairBondIds = {pb["id"] for pb in diagramData.pair_bonds}
@@ -1368,11 +1430,13 @@ class PersonalAppController(QObject):
             diagramData.pdp = from_dict(PDP, data["pdp"])
             self._diagram.setDiagramData(diagramData)
             self.pdpChanged.emit()
-            self.extractCompleted.emit({
-                "people": data.get("people_count", 0),
-                "events": data.get("events_count", 0),
-                "pairBonds": data.get("pair_bonds_count", 0),
-            })
+            self.extractCompleted.emit(
+                {
+                    "people": data.get("people_count", 0),
+                    "events": data.get("events_count", 0),
+                    "pairBonds": data.get("pair_bonds_count", 0),
+                }
+            )
 
         def onError():
             self.extractFailed.emit(reply.errorString())
