@@ -19,7 +19,7 @@ DEFAULT_SIZE = 125
 GEN_GAP_FACTOR = 1.75
 PARTNER_FACTOR = 1.6       # center-to-center spacing as multiple of avg size
 SIBLING_GAP_FACTOR = 0.5   # minimum edge-to-edge gap between siblings (label-aware override may be larger)
-SUBTREE_GAP_FACTOR = 1.0   # gap between independent subtrees
+SUBTREE_GAP_FACTOR = 0.3   # gap between independent subtrees
 PAIR_BOND_BEYOND = 0.75    # how far parents extend past outermost child (as multiple of avg parent size)
 LABEL_CHAR_WIDTH = 0.6     # char width as fraction of font height
 LABEL_BUFFER = 20          # extra buffer after label end
@@ -112,7 +112,7 @@ def _subtree_width(by_id, pid, placed, depth=0, r_pairs=None):
         couple_width = sz / 2 + spacing + psz / 2
         children = _sort_children(by_id, _children_of(by_id, pid, primary_partner))
     else:
-        couple_width = sz + max(0, _label_px(p) - LABEL_BUFFER)
+        couple_width = sz
         children = []
 
     if not children:
@@ -282,6 +282,21 @@ def layout(people, r_pairs=None):
             positions[new_id] = (new_x, new_y)
 
         if pa_id in placed and pb_id in placed:
+            xa, xb = positions[pa_id][0], positions[pb_id][0]
+            # label_min: left person's label must clear right person's symbol.
+            lp, rp = (by_id.get(left_id), by_id.get(right_id)) if xa < xb else (by_id.get(right_id), by_id.get(left_id))
+            min_sp = max(spacing, _px(lp) / 2 + _label_px(lp) + _px(rp) / 2) if lp and rp else spacing
+            if abs(xa - xb) < min_sp:
+                # Enforce minimum label-aware couple spacing; nudge the right person outward.
+                mid = (xa + xb) / 2
+                lx = mid - min_sp / 2
+                rx = mid + min_sp / 2
+                if xa < xb:
+                    positions[pa_id] = (lx, positions[pa_id][1])
+                    positions[pb_id] = (rx, positions[pb_id][1])
+                else:
+                    positions[pa_id] = (rx, positions[pa_id][1])
+                    positions[pb_id] = (lx, positions[pb_id][1])
             actual_cx = (positions[pa_id][0] + positions[pb_id][0]) / 2
             actual_y = max(positions[pa_id][1], positions[pb_id][1])
         elif pa_id in placed:
@@ -672,6 +687,8 @@ def layout(people, r_pairs=None):
             current_x += _px(p) * 2
 
     _sweep(by_id, positions)
+    _compact(by_id, positions)
+    _sweep(by_id, positions)
     return positions
 
 
@@ -684,13 +701,18 @@ def _sweep(by_id, positions):
                 children_of[par].append(p["id"])
 
     def _subtree(pid):
+        """Persons to move together when pushing pid right: pid, right-ward partners, all descendants."""
+        start_x = positions.get(pid, (0,))[0]
         seen, queue = set(), [pid]
         while queue:
             curr = queue.pop()
             if curr in seen:
                 continue
             seen.add(curr)
-            queue += by_id.get(curr, {}).get("partners") or []
+            # Only follow partners that are at or to the right of the starting person.
+            for qid in (by_id.get(curr, {}).get("partners") or []):
+                if qid not in seen and positions.get(qid, (0,))[0] >= start_x:
+                    queue.append(qid)
             queue += children_of.get(curr, [])
         return seen
 
@@ -702,17 +724,111 @@ def _sweep(by_id, positions):
         for y in sorted(rows):
             row = sorted(rows[y], key=lambda p: positions[p][0])
             for i in range(len(row) - 1):
-                pid, qid = row[i], row[i + 1]
+                pid = row[i]
+                p = by_id.get(pid)
+                if not p or not _label_px(p):
+                    continue
+                px = positions[pid][0]
+                label_right = px + _px(p) / 2 + _label_px(p) - LABEL_BUFFER
+                # Check all persons to the right within label reach (not just adjacent).
+                for j in range(i + 1, len(row)):
+                    qid = row[j]
+                    q = by_id.get(qid)
+                    if not q:
+                        continue
+                    qx = positions[qid][0]
+                    if qx - _px(q) / 2 >= label_right:
+                        break  # No further right person can collide.
+                    overlap = label_right - (qx - _px(q) / 2)
+                    if overlap > 0:
+                        for mid in _subtree(qid):
+                            if mid in positions:
+                                mx, my = positions[mid]
+                                positions[mid] = (mx + overlap, my)
+                        changed = True
+        if not changed:
+            break
+
+
+def _compact(by_id, positions):
+    """Squeeze excess whitespace: pull right subtrees toward their left neighbor."""
+    children_of = {pid: [] for pid in by_id}
+    for p in by_id.values():
+        for par in [p.get("parent_a"), p.get("parent_b")]:
+            if par in children_of:
+                children_of[par].append(p["id"])
+
+    def _subtree(pid):
+        start_x = positions.get(pid, (0,))[0]
+        seen, queue = set(), [pid]
+        while queue:
+            curr = queue.pop()
+            if curr in seen:
+                continue
+            seen.add(curr)
+            for qid in (by_id.get(curr, {}).get("partners") or []):
+                if qid not in seen and positions.get(qid, (0,))[0] >= start_x:
+                    queue.append(qid)
+            queue += children_of.get(curr, [])
+        return seen
+
+    def _available_pull(subtree_set):
+        """Max pixels this subtree can shift left without colliding with left neighbors."""
+        row_leftmost = {}
+        for mid in subtree_set:
+            if mid not in positions:
+                continue
+            mx, my = positions[mid]
+            ry = round(my)
+            if ry not in row_leftmost or mx < row_leftmost[ry][0]:
+                row_leftmost[ry] = (mx, mid)
+        pull = float("inf")
+        for ry, (leftmost_x, leftmost_id) in row_leftmost.items():
+            lsz = _px(by_id.get(leftmost_id))
+            best_x, best_nb = None, None
+            for oid, (ox, oy) in positions.items():
+                if oid in subtree_set or abs(oy - ry) > 5:
+                    continue
+                if ox < leftmost_x and (best_x is None or ox > best_x):
+                    best_x, best_nb = ox, oid
+            if best_x is None:
+                continue
+            nb_p = by_id.get(best_nb)
+            nb_sz = _px(nb_p)
+            min_gap = max(_label_px(nb_p) - LABEL_BUFFER, SIBLING_GAP_FACTOR * (nb_sz + lsz) / 2)
+            min_x = best_x + nb_sz / 2 + min_gap + lsz / 2
+            pull = min(pull, leftmost_x - min_x)
+        return max(0.0, pull) if pull != float("inf") else 0.0
+
+    for _ in range(20):
+        changed = False
+        rows = {}
+        for pid, (_, y) in positions.items():
+            rows.setdefault(round(y), []).append(pid)
+        for y in sorted(rows, reverse=True):  # bottom-up: compact children before parents
+            row = sorted(rows[y], key=lambda p: positions[p][0])
+            for i in range(len(row) - 1, 0, -1):  # right-to-left
+                qid, pid = row[i], row[i - 1]
                 p, q = by_id.get(pid), by_id.get(qid)
                 if not p or not q:
                     continue
                 px, qx = positions[pid][0], positions[qid][0]
-                overlap = px + _px(p) / 2 + _label_px(p) - LABEL_BUFFER - (qx - _px(q) / 2)
-                if overlap > 0:
-                    for mid in _subtree(qid):
+                min_qx = (
+                    px
+                    + _px(p) / 2
+                    + max(_label_px(p) - LABEL_BUFFER, SIBLING_GAP_FACTOR * (_px(p) + _px(q)) / 2)
+                    + _px(q) / 2
+                )
+                row_slack = qx - min_qx
+                if row_slack < 1:
+                    continue
+                subtree = _subtree(qid)
+                pull = min(row_slack, _available_pull(subtree))
+                if pull > 1:
+                    for mid in subtree:
                         if mid in positions:
                             mx, my = positions[mid]
-                            positions[mid] = (mx + overlap, my)
+                            positions[mid] = (mx - pull, my)
                     changed = True
         if not changed:
             break
