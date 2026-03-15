@@ -221,6 +221,26 @@ is_directory = false
 
 
 [[Application.Package.Content]]
+name = "mcpbridge"
+included = true
+is_directory = true
+[[Application.Package.Content.Content]]
+name = "__init__.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "inspector.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
+name = "server.py"
+included = true
+is_directory = false
+
+
+[[Application.Package.Content]]
 name = "mcpserver"
 included = false
 is_directory = true
@@ -1099,6 +1119,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content.Content.Content]]
+name = "ModelSettingsPage.qml"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content.Content.Content]]
 name = "PDPEventCard.qml"
 included = true
 is_directory = false
@@ -1635,26 +1660,6 @@ is_directory = false
 name = "sortedlist.py"
 included = true
 is_directory = false
-
-[[Application.Package.Content]]
-name = "mcpbridge"
-included = true
-is_directory = true
-[[Application.Package.Content.Content]]
-name = "__init__.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "inspector.py"
-included = true
-is_directory = false
-
-[[Application.Package.Content.Content]]
-name = "server.py"
-included = true
-is_directory = false
-
 
 [[Application.Package.Content]]
 name = "tests"
