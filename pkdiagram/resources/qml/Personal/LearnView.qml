@@ -131,9 +131,22 @@ Page {
         }
         return maxVal === -Infinity ? (sarfGraphModel ? sarfGraphModel.yearEnd : 2025) : maxVal
     }
-    property real _clusterPad: Math.max(0.25, (_clusterMaxRaw - _clusterMinRaw) * 0.05)
-    property real clusterMinYearFrac: _clusterMinRaw - _clusterPad
-    property real clusterMaxYearFrac: _clusterMaxRaw + _clusterPad
+    property real _clusterPadBase: Math.max(0.25, (_clusterMaxRaw - _clusterMinRaw) * 0.05)
+    // Extra right padding so the last cluster bar (with minBarWidth) doesn't overflow.
+    // At zoom 1.0: minBarWidth pixels = (minBarYears / totalSpan) * gWidth,
+    // so minBarYears = minBarWidth / gWidth * totalSpan. Use iterative estimate.
+    property real _clusterPadRight: {
+        var rawSpan = _clusterMaxRaw - _clusterMinRaw
+        if (rawSpan <= 0 || gWidth <= 0) return _clusterPadBase
+        // First estimate total span with base padding on both sides
+        var estimatedSpan = rawSpan + _clusterPadBase * 2
+        // How many year-fracs does minBarWidth represent at zoom 1.0?
+        var minBarYears = (minBarWidth / gWidth) * estimatedSpan
+        // Right padding = base + enough room for the widest minBarWidth cluster at the edge
+        return _clusterPadBase + minBarYears
+    }
+    property real clusterMinYearFrac: _clusterMinRaw - _clusterPadBase
+    property real clusterMaxYearFrac: _clusterMaxRaw + _clusterPadRight
     property real clusterYearSpan: Math.max(1, clusterMaxYearFrac - clusterMinYearFrac)
 
     background: Rectangle {
