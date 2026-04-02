@@ -3,6 +3,7 @@ import logging
 from _pkdiagram import PathItemBase
 from pkdiagram.pyqt import (
     QGraphicsPixmapItem,
+    QGraphicsEllipseItem,
     QPixmap,
     QPointF,
     QGraphicsItem,
@@ -16,6 +17,10 @@ from pkdiagram.pyqt import (
     QRectF,
     QApplication,
     QVariant,
+    QPen,
+    QBrush,
+    QColor,
+    QRadialGradient,
 )
 from pkdiagram import util
 from pkdiagram.scene import Item, ItemAnimationHelper
@@ -106,6 +111,7 @@ class PathItem(PathItemBase, Item, ItemAnimationHelper):
         self._notesIcon.setVisible(False)
         self._notesIcon.setPos(self.notesIconPos())
         self._notesIcon.setZValue(util.NOTE_Z)
+        self._haloItem = None
         # debug
         self._n_updateAll = 0
         self._n_onUpdateAll = 0
@@ -404,6 +410,37 @@ class PathItem(PathItemBase, Item, ItemAnimationHelper):
             # self.updateGeometry()
             self.updatePen()
             self.update()
+
+    def _ensureHaloItem(self):
+        if self._haloItem is None:
+            self._haloItem = QGraphicsEllipseItem(self)
+            self._haloItem.setZValue(-1)
+            self._haloItem.setPen(QPen(Qt.NoPen))
+            self._haloItem.setVisible(False)
+        return self._haloItem
+
+    def setTimelineHalo(self, on):
+        halo = self._ensureHaloItem()
+        if on:
+            self.updateHaloGeometry()
+        halo.setVisible(on)
+
+    def updateHaloGeometry(self):
+        if self._haloItem is None:
+            return
+        rect = self.path().controlPointRect()
+        margin = max(rect.width(), rect.height()) * 0.3
+        r = rect.adjusted(-margin, -margin, margin, margin)
+        self._haloItem.setRect(r)
+        radius = max(r.width(), r.height()) / 2
+        gradient = QRadialGradient(r.center(), radius)
+        c = QColor(util.TIMELINE_HALO_COLOR)
+        c.setAlpha(80)
+        gradient.setColorAt(0.0, c)
+        gradient.setColorAt(0.7, c)
+        c.setAlpha(0)
+        gradient.setColorAt(1.0, c)
+        self._haloItem.setBrush(QBrush(gradient))
 
     def setEmitDoubleClick(self, on):
         self.emitDoubleClick = bool(on)
