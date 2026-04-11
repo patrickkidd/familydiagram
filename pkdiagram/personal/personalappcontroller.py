@@ -364,8 +364,16 @@ class PersonalAppController(QObject):
     # Model selection
 
     AVAILABLE_MODELS = [
-        {"id": "opus-4.6", "name": "Opus 4.6"},
-        {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash"},
+        {
+            "id": "opus-4.6",
+            "name": "Premium",
+            "description": "Deeper observations and more nuanced coaching. Makes connections between family patterns. Takes a moment longer to respond.",
+        },
+        {
+            "id": "gemini-2.5-flash",
+            "name": "Standard",
+            "description": "Quick, focused responses. Efficient at collecting family facts and keeping the conversation moving.",
+        },
     ]
     DEFAULT_MODEL = "opus-4.6"
 

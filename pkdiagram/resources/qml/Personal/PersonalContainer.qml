@@ -800,7 +800,7 @@ Page {
                 personalApp.createDiagram()
             }
             onSettingsClicked: function(setting) {
-                if (setting === "Model") {
+                if (setting === "Coaching Style") {
                     modelPopup.open()
                 } else if (setting === "Voice") {
                     voicePopup.open()

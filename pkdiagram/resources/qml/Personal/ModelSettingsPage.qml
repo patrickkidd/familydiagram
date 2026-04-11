@@ -58,7 +58,7 @@ Page {
 
         Text {
             anchors.centerIn: parent
-            text: "Model"
+            text: "Coaching Style"
             font.pixelSize: 17
             font.bold: true
             color: textColor
@@ -83,7 +83,7 @@ Page {
             spacing: 20
 
             Text {
-                text: "CONVERSATIONAL MODEL"
+                text: "COACHING STYLE"
                 font.pixelSize: 12
                 font.bold: true
                 color: secondaryText
@@ -108,18 +108,34 @@ Page {
 
                         Rectangle {
                             width: parent.width
-                            height: 50
+                            height: modelItemColumn.height + 24
                             color: "transparent"
 
                             property bool isCurrent: personalApp && personalApp.responseModel === modelData.id
 
-                            Text {
+                            Column {
+                                id: modelItemColumn
                                 anchors.left: parent.left
                                 anchors.leftMargin: 12
+                                anchors.right: checkmark.left
+                                anchors.rightMargin: 8
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: modelData.name
-                                color: textColor
-                                font.pixelSize: 15
+                                spacing: 2
+
+                                Text {
+                                    text: modelData.name
+                                    color: textColor
+                                    font.pixelSize: 15
+                                }
+
+                                Text {
+                                    width: parent.width
+                                    text: modelData.description || ""
+                                    color: secondaryText
+                                    font.pixelSize: 12
+                                    wrapMode: Text.WordWrap
+                                    visible: text !== ""
+                                }
                             }
 
                             Text {
@@ -154,7 +170,7 @@ Page {
 
             Text {
                 width: parent.width - 32
-                text: "The model used for conversation responses. Changing this does not affect data extraction."
+                text: "Controls how the AI coach responds during conversations. Does not affect data extraction."
                 color: secondaryText
                 font.pixelSize: 13
                 wrapMode: Text.WordWrap

@@ -245,7 +245,7 @@ Flickable {
                 width: parent.width
 
                 Repeater {
-                    model: ["Model", "Voice", "Privacy", "Help & Support"]
+                    model: ["Coaching Style", "Voice", "Privacy", "Help & Support"]
 
                     Rectangle {
                         width: parent.width
