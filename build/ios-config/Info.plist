@@ -64,6 +64,8 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Family Diagram includes multimedia frameworks that reference the camera, but the app does not use it.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Family Diagram uses the microphone to record audio for voice notes during personal development sessions.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
