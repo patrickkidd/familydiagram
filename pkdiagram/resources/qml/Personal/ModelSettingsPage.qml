@@ -131,7 +131,8 @@ Page {
                                 Text {
                                     width: parent.width
                                     text: modelData.description || ""
-                                    color: secondaryText
+                                    color: textColor
+                                    opacity: 0.7
                                     font.pixelSize: 12
                                     wrapMode: Text.WordWrap
                                     visible: text !== ""
