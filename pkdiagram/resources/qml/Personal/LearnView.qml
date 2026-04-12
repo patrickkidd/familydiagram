@@ -595,7 +595,8 @@ Page {
         if (sYear === eYear && sMonth === eMonth) {
             return monthNames[sMonth] + " " + sDay + "-" + eDay + ", " + shortYear
         }
-        return monthNames[sMonth] + " " + sDay + ", " + shortYear + " - " + monthNames[eMonth] + " " + eDay
+        var eShortYear = "'" + String(eYear).slice(-2)
+        return monthNames[sMonth] + " " + sDay + ", " + shortYear + " - " + monthNames[eMonth] + " " + eDay + ", " + eShortYear
     }
 
     function dateToYear(dateStr) {
