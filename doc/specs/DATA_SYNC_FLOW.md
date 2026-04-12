@@ -253,12 +253,13 @@ familydiagram (`server_types.py`). Unifying requires resolving the import
 asymmetry: the server-side model needs `import PyQt5.sip` for unpickling Qt
 objects, while the client has no Flask dependency.
 
-### Pro App applyChange Violates FR-2
+### ~~Pro App applyChange Violates FR-2~~ (Fixed 2026-04-11)
 
-`ServerFileManagerModel.setData()` builds an `applyChange` that ignores its
-input and returns a full replacement `DiagramData`. On 409 retry, the server's
-latest state (including Personal app changes) is discarded. This must be fixed
-before embedding the Personal app into the Pro app.
+Fixed. `ServerFileManagerModel.setData()` now merges Pro-owned fields into the
+incoming `diagramData` via `dataclasses.fields()` iteration, skipping fields
+tagged with `metadata={"personal": True}` on `DiagramData`. On 409 retry, the
+server's latest PDP and cluster data are preserved. New Personal-owned fields
+are automatically excluded via `DiagramData.personalFields()`.
 
 ## File Reference
 
@@ -295,6 +296,13 @@ referencing pair bonds. Fixed by calling `cleanup_pair_bonds()` at the end of
 **Blocking saves enabled reentrancy.** Personal app used blocking `save()` →
 `QEventLoop.exec_()` → pending Qt events fire → reentrant save. Fixed by
 splitting into `mutate()` + `pushToServer()`.
+
+**Pro App applyChange violated FR-2.** `ServerFileManagerModel.setData()` built
+an `applyChange` that replaced the entire `DiagramData` instead of merging,
+destroying PDP and cluster data from the Personal app on 409 retry. Fixed by
+iterating `dataclasses.fields(DiagramData)` and skipping fields tagged with
+`metadata={"personal": True}`. Ownership is declared on `DiagramData` in
+`schema.py`; new Personal-owned fields are automatically excluded.
 
 **Accept-All scene addition failure.** `_addCommittedItemsToScene` did not set
 `scene.isInitializing = True` during Phase 3. `isPairBond()` events triggered
