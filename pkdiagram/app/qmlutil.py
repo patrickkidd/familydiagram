@@ -243,7 +243,7 @@ class QmlUtil(QObject, QObjectHelper):
             util.QML_HEADER_BG = "#323232"
             util.CONTROL_BG = QColor(util.QML_ITEM_ALTERNATE_BG)
             # util.INACTIVE_TEXT_COLOR = palette.color(QPalette.Disabled, QPalette.Text) # doesn't work
-            util.INACTIVE_TEXT_COLOR = util.CONTROL_BG.lighter(160)  # workaround
+            util.INACTIVE_TEXT_COLOR = util.CONTROL_BG.lighter(250)  # workaround
             util.DROP_SHADOW_COLOR = QColor(util.QML_HEADER_BG).lighter(110)
         else:
             util.WINDOW_BG = QColor("white")

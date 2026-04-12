@@ -166,7 +166,7 @@ Rectangle {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 2
-                        visible: personData !== null && personData !== undefined && personData.parents !== null && personData.parents !== undefined && personalApp.resolveParentNames(personData.parents) !== ""
+                        visible: personData !== null && personData !== undefined && personData.parents !== null && personData.parents !== undefined && personalApp !== null && personalApp.resolveParentNames(personData.parents) !== ""
 
                         Text {
                             text: "Parents"
