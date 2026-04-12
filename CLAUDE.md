@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 |--------|-----|
 | UI constants, colors, spacing | [doc/UI_STYLE_SPEC.md](doc/UI_STYLE_SPEC.md) |
 | Test migration guide (post-Event-flattening) | [doc/TESTS_TODO.md](doc/TESTS_TODO.md) |
-| Bugs and feature requests | [doc/TODO.md](doc/TODO.md) |
+| Bugs and feature requests (Patrick's scratchpad — read-only for Claude) | [doc/TODO.md](doc/TODO.md) |
 | Timeline vignettes (future feature) | [doc/TIMELINE_VIGNETTES_VISION.md](doc/TIMELINE_VIGNETTES_VISION.md) |
 | Infrastructure (deployment, servers) | [doc/INFRASTRUCTURE.md](doc/INFRASTRUCTURE.md) |
 | Build decisions (macOS) | [doc/build-decisions-macos.md](doc/build-decisions-macos.md) |
@@ -78,6 +78,8 @@ Position fields: `itemPos` (current format) or `nonLayerPos` (older format) — 
 ## MCP Testing with familydiagram-testing Server
 
 **MANDATORY**: Before writing any Claude-driven manual test plan for the Personal app (using MCP bridge/simulator tools to exercise the UI — distinct from human manual testing and from pytest unit/integration tests), read [adrs/0002-ai-manual-testing-strategy-personal-app.md](adrs/0002-ai-manual-testing-strategy-personal-app.md) for the approved tool layers and their constraints.
+
+**Documentation routing**: For where decisions, plans, ADRs, and bugs belong, see top-level CLAUDE.md "Documentation Routing" section. Frontend/app ADRs go in `familydiagram/adrs/`. Frontend/app plans go in `familydiagram/doc/plans/`.
 
 ### Critical Rules
 
