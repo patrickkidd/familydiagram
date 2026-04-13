@@ -1390,6 +1390,7 @@ class Scene(QGraphicsScene, Item):
             hideDateSlider=data.get("hideDateSlider", False),
             hideVariablesOnDiagram=data.get("hideVariablesOnDiagram", False),
             hideVariableSteadyStates=data.get("hideVariableSteadyStates", False),
+            hideSARFGraphics=data.get("hideSARFGraphics", True),
             exclusiveLayerSelection=data.get("exclusiveLayerSelection", True),
             storePositionsInLayers=data.get("storePositionsInLayers", False),
             currentDateTime=data.get("currentDateTime"),

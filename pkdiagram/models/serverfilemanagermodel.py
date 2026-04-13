@@ -536,7 +536,52 @@ class ServerFileManagerModel(FileManagerModel):
             fpath = self.localPathForID(diagram.id)
 
             def applyChange(diagramData: DiagramData):
-                return DiagramData(**pickle.loads(dataToSave))
+                # Only modify Scene-owned fields (FR-2 in DATA_SYNC_FLOW.md).
+                # Same pattern as PersonalAppController.saveDiagram().
+                localData = pickle.loads(dataToSave)
+                # Scene collections
+                diagramData.people = localData.get("people", [])
+                diagramData.events = localData.get("events", [])
+                diagramData.pair_bonds = localData.get("pair_bonds", [])
+                diagramData.emotions = localData.get("emotions", [])
+                diagramData.multipleBirths = localData.get("multipleBirths", [])
+                diagramData.layers = localData.get("layers", [])
+                diagramData.layerItems = localData.get("layerItems", [])
+                diagramData.items = localData.get("items", [])
+                diagramData.pruned = localData.get("pruned", [])
+                # Metadata
+                diagramData.uuid = localData.get("uuid")
+                diagramData.name = localData.get("name")
+                diagramData.tags = localData.get("tags", [])
+                diagramData.loggedDateTime = localData.get("loggedDateTime", [])
+                diagramData.masterKey = localData.get("masterKey")
+                diagramData.alias = localData.get("alias")
+                diagramData.version = localData.get("version")
+                diagramData.versionCompat = localData.get("versionCompat")
+                diagramData.lastItemId = localData.get("lastItemId", 0)
+                # UI flags
+                diagramData.readOnly = localData.get("readOnly", False)
+                diagramData.contributeToResearch = localData.get("contributeToResearch", False)
+                diagramData.useRealNames = localData.get("useRealNames", False)
+                diagramData.password = localData.get("password")
+                diagramData.requirePasswordForRealNames = localData.get("requirePasswordForRealNames", False)
+                diagramData.showAliases = localData.get("showAliases", False)
+                diagramData.hideNames = localData.get("hideNames", False)
+                diagramData.hideToolBars = localData.get("hideToolBars", False)
+                diagramData.hideEmotionalProcess = localData.get("hideEmotionalProcess", False)
+                diagramData.hideEmotionColors = localData.get("hideEmotionColors", False)
+                diagramData.hideDateSlider = localData.get("hideDateSlider", False)
+                diagramData.hideVariablesOnDiagram = localData.get("hideVariablesOnDiagram", False)
+                diagramData.hideVariableSteadyStates = localData.get("hideVariableSteadyStates", False)
+                diagramData.hideSARFGraphics = localData.get("hideSARFGraphics", True)
+                diagramData.exclusiveLayerSelection = localData.get("exclusiveLayerSelection", True)
+                diagramData.storePositionsInLayers = localData.get("storePositionsInLayers", False)
+                diagramData.currentDateTime = localData.get("currentDateTime")
+                diagramData.scaleFactor = localData.get("scaleFactor")
+                diagramData.pencilColor = localData.get("pencilColor")
+                diagramData.eventProperties = localData.get("eventProperties", [])
+                diagramData.legendData = localData.get("legendData")
+                return diagramData
 
             def stillValid(refreshedData):
                 return self.handleDiagramConflict(diagram, refreshedData, fpath)

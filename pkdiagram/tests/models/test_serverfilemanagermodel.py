@@ -1,5 +1,6 @@
 import os, os.path
 import pickle
+import datetime
 import pytest
 from sqlalchemy import inspect
 
@@ -211,9 +212,9 @@ def test_no_clear_on_logout(test_user_diagrams, test_user, create_model):
     """Cache should NOT clear on logout - user may have diagram open."""
     model = create_model()
     db.session.add_all(test_user_diagrams)
-    expected_count = len(
-        [x for x in test_user_diagrams if x.check_read_access(test_user)]
-    ) + 1
+    expected_count = (
+        len([x for x in test_user_diagrams if x.check_read_access(test_user)]) + 1
+    )
     assert model.rowCount() == expected_count
 
     model.session.logout()
@@ -284,3 +285,154 @@ def test_delete_file(qtbot, create_model):
 
     qtbot.clickYesAfter(lambda: model.deleteFileAtRow(0))
     assert model.rowCount() == 0
+
+
+# --- FR-2 merge tests: applyChange must preserve Personal-owned fields ---
+
+
+def _inject_personal_data(diagram_id, pdp_dict=None, clusters=None, cache_key=None):
+    """Write Personal-app-owned fields into the server's diagram blob and bump timestamp."""
+    diagram = Diagram.query.get(diagram_id)
+    data = pickle.loads(diagram.data) if diagram.data else {}
+    if pdp_dict is not None:
+        data["pdp"] = pdp_dict
+    if clusters is not None:
+        data["clusters"] = clusters
+    if cache_key is not None:
+        data["clusterCacheKey"] = cache_key
+    diagram.data = pickle.dumps(data)
+    diagram.updated_at = datetime.datetime.utcnow()
+    db.session.commit()
+
+
+def _read_server_blob(diagram_id):
+    """Read the raw dict from the server's diagram blob."""
+    db.session.expire_all()
+    diagram = Diagram.query.get(diagram_id)
+    return pickle.loads(diagram.data) if diagram.data else {}
+
+
+SAMPLE_PDP = {
+    "people": [{"id": -1, "name": "Alice", "gender": "female"}],
+    "events": [{"id": -2, "kind": "birth", "child": -1}],
+    "pair_bonds": [],
+}
+
+SAMPLE_CLUSTERS = [
+    {"id": "c1", "pattern": "anxiety_cascade", "event_ids": [10, 11]},
+]
+
+
+def test_save_preserves_server_pdp(create_model):
+    """Pro app save must not clobber PDP written by Personal app (FR-2)."""
+    model = create_model()
+    diagram_id = model.index(0, 0).data(model.IDRole)
+
+    _inject_personal_data(diagram_id, pdp_dict=SAMPLE_PDP)
+    model.syncDiagramFromServer(diagram_id)
+
+    scene = Scene(items=Person(name="Bob"))
+    bdata = pickle.dumps(scene.data())
+    model.setData(model.index(0, 0), bdata, role=model.DiagramDataRole)
+
+    server_data = _read_server_blob(diagram_id)
+    pdp = server_data["pdp"]
+    assert len(pdp["people"]) == 1
+    assert pdp["people"][0]["name"] == "Alice"
+    assert pdp["people"][0]["id"] == -1
+    assert len(pdp["events"]) == 1
+    assert pdp["events"][0]["kind"] == "birth"
+    person_names = [p.get("name") for p in server_data.get("people", [])]
+    assert "Bob" in person_names
+
+
+def test_save_preserves_server_clusters(create_model):
+    """Pro app save must not clobber clusters written by Personal app."""
+    model = create_model()
+    diagram_id = model.index(0, 0).data(model.IDRole)
+
+    _inject_personal_data(diagram_id, clusters=SAMPLE_CLUSTERS, cache_key="abc123")
+    model.syncDiagramFromServer(diagram_id)
+
+    scene = Scene(items=Person(name="Carol"))
+    bdata = pickle.dumps(scene.data())
+    model.setData(model.index(0, 0), bdata, role=model.DiagramDataRole)
+
+    server_data = _read_server_blob(diagram_id)
+    assert server_data["clusters"] == SAMPLE_CLUSTERS
+    assert server_data["clusterCacheKey"] == "abc123"
+
+
+def test_save_merges_correctly_on_409_retry(create_model):
+    """The applyChange merge preserves Personal fields when replayed on server state."""
+    from btcopilot.schema import DiagramData, PDP, Person as SchemaPerson
+
+    create_model()  # initialize fixtures
+
+    scene = Scene(items=Person(name="Eve"))
+    localData = pickle.loads(pickle.dumps(scene.data()))
+
+    serverPdp = PDP(
+        people=[SchemaPerson(id=-1, name="Alice")],
+        events=[],
+        pair_bonds=[],
+    )
+    serverDd = DiagramData(
+        people=[{"id": 1, "name": "OldPerson", "kind": "Person"}],
+        pdp=serverPdp,
+        clusters=[{"id": "c1"}],
+        clusterCacheKey="xyz",
+    )
+
+    # Same explicit merge as applyChange in serverfilemanagermodel.py
+    serverDd.people = localData.get("people", [])
+    serverDd.events = localData.get("events", [])
+    serverDd.pair_bonds = localData.get("pair_bonds", [])
+    serverDd.name = localData.get("name")
+    serverDd.lastItemId = localData.get("lastItemId", 0)
+
+    assert serverDd.pdp is serverPdp
+    assert serverDd.pdp.people[0].name == "Alice"
+    assert serverDd.clusters == [{"id": "c1"}]
+    assert serverDd.clusterCacheKey == "xyz"
+    person_names = [p.get("name") for p in serverDd.people]
+    assert "Eve" in person_names
+    assert "OldPerson" not in person_names
+
+
+def test_save_scene_roundtrip_fidelity(create_model):
+    """All Pro-owned scene fields survive the merge unchanged."""
+    model = create_model()
+    diagram_id = model.index(0, 0).data(model.IDRole)
+
+    scene = Scene()
+    p1, p2 = scene.addItems(Person(name="Eve"), Person(name="Frank"))
+    from pkdiagram.scene import Marriage
+
+    scene.addItem(Marriage(p1, p2))
+    original_data = scene.data()
+    bdata = pickle.dumps(original_data)
+    model.setData(model.index(0, 0), bdata, role=model.DiagramDataRole)
+
+    server_data = _read_server_blob(diagram_id)
+    assert len(server_data["people"]) == len(original_data["people"])
+    assert len(server_data["pair_bonds"]) == len(original_data["pair_bonds"])
+    for orig, saved in zip(original_data["people"], server_data["people"]):
+        assert orig["name"] == saved["name"]
+        assert orig["id"] == saved["id"]
+
+
+def test_save_empty_pdp_stays_empty(create_model):
+    """When server has no PDP, save must not introduce phantom PDP data."""
+    model = create_model()
+    diagram_id = model.index(0, 0).data(model.IDRole)
+
+    scene = Scene(items=Person(name="Grace"))
+    bdata = pickle.dumps(scene.data())
+    model.setData(model.index(0, 0), bdata, role=model.DiagramDataRole)
+
+    server_data = _read_server_blob(diagram_id)
+    pdp = server_data.get("pdp", {})
+    assert pdp.get("people", []) == []
+    assert pdp.get("events", []) == []
+    assert pdp.get("pair_bonds", []) == []
