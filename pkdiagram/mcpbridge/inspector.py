@@ -136,10 +136,10 @@ class QtInspector:
                         }
                     )
 
-        session = mainWindow.session
+        session = getattr(mainWindow, "session", None)
         if any(d["className"] == "AccountDialog" for d in visibleDialogs):
             loginState = AppLoginState.AccountDialogVisible.value
-        elif session.isLoggedIn():
+        elif session and session.isLoggedIn():
             loginState = AppLoginState.LoggedIn.value
         else:
             loginState = AppLoginState.NotLoggedIn.value
@@ -152,27 +152,33 @@ class QtInspector:
         elif any(d["className"] == "WelcomeDialog" for d in visibleDialogs):
             currentView = AppView.WelcomeView.value
         else:
-            fileManager = mainWindow.fileManager
-            documentView = mainWindow.documentView
+            fileManager = getattr(mainWindow, "fileManager", None)
+            documentView = getattr(mainWindow, "documentView", None)
 
-            if fileManager.isVisible() and documentView.isVisible():
+            if (
+                fileManager
+                and documentView
+                and fileManager.isVisible()
+                and documentView.isVisible()
+            ):
                 if fileManager.pos().x() == 0:
                     currentView = AppView.FileManager.value
                 else:
                     currentView = AppView.DocumentView.value
-            elif fileManager.isVisible():
+            elif fileManager and fileManager.isVisible():
                 currentView = AppView.FileManager.value
-            elif documentView.isVisible():
+            elif documentView and documentView.isVisible():
                 currentView = AppView.DocumentView.value
-            else:
-                raise RuntimeError("Neither fileManager nor documentView is visible")
+            # During startup neither may be visible yet — leave currentView as None
 
             if currentView == AppView.DocumentView.value:
-                doc = mainWindow.scene.document()
-                if doc:
-                    url = doc.url()
-                    if url and not url.isEmpty():
-                        loadedFileName = url.toLocalFile()
+                scene = getattr(mainWindow, "scene", None)
+                if scene:
+                    doc = scene.document()
+                    if doc:
+                        url = doc.url()
+                        if url and not url.isEmpty():
+                            loadedFileName = url.toLocalFile()
 
         return {
             "success": True,
@@ -793,7 +799,9 @@ class QtInspector:
             QTest.mouseClick(widget, button, Qt.NoModifier, clickPos)
         else:
             self._postMouseEvent(widget, QMouseEvent.MouseButtonPress, button, clickPos)
-            self._postMouseEvent(widget, QMouseEvent.MouseButtonRelease, button, clickPos)
+            self._postMouseEvent(
+                widget, QMouseEvent.MouseButtonRelease, button, clickPos
+            )
         self._app.processEvents()
         return {"success": True}
 
@@ -824,7 +832,9 @@ class QtInspector:
             QTest.mouseClick(target, button, Qt.NoModifier, clickPos)
         else:
             self._postMouseEvent(target, QMouseEvent.MouseButtonPress, button, clickPos)
-            self._postMouseEvent(target, QMouseEvent.MouseButtonRelease, button, clickPos)
+            self._postMouseEvent(
+                target, QMouseEvent.MouseButtonRelease, button, clickPos
+            )
 
         self._app.processEvents()
         return {"success": True, "clickPos": {"x": clickPos.x(), "y": clickPos.y()}}
@@ -1199,33 +1209,58 @@ class QtInspector:
                 continue
             for item in scene.items():
                 if isinstance(item, Person):
-                    persons.append({
-                        "id": item.id,
-                        "name": item.name() if callable(getattr(item, "name", None)) else None,
-                        "gender": item.gender() if callable(getattr(item, "gender", None)) else None,
-                        "rect": _rect(item),
-                    })
+                    persons.append(
+                        {
+                            "id": item.id,
+                            "name": (
+                                item.name()
+                                if callable(getattr(item, "name", None))
+                                else None
+                            ),
+                            "gender": (
+                                item.gender()
+                                if callable(getattr(item, "gender", None))
+                                else None
+                            ),
+                            "rect": _rect(item),
+                        }
+                    )
                 elif isinstance(item, ItemDetails):
                     parent = item.parentItem()
-                    text = item.mainTextItem.text() if hasattr(item, "mainTextItem") else None
-                    labels.append({
-                        "parent_id": parent.id if parent and hasattr(parent, "id") else None,
-                        "text": text,
-                        "rect": _rect(item),
-                    })
+                    text = (
+                        item.mainTextItem.text()
+                        if hasattr(item, "mainTextItem")
+                        else None
+                    )
+                    labels.append(
+                        {
+                            "parent_id": (
+                                parent.id if parent and hasattr(parent, "id") else None
+                            ),
+                            "text": text,
+                            "rect": _rect(item),
+                        }
+                    )
                 elif isinstance(item, Emotion):
                     kind = item.kind()
                     person_id = item.prop("person") if hasattr(item, "prop") else None
                     target_id = item.prop("target") if hasattr(item, "prop") else None
-                    emotions.append({
-                        "id": item.id,
-                        "kind": kind.value if kind else None,
-                        "person_id": person_id,
-                        "target_id": target_id,
-                        "rect": _rect(item),
-                    })
+                    emotions.append(
+                        {
+                            "id": item.id,
+                            "kind": kind.value if kind else None,
+                            "person_id": person_id,
+                            "target_id": target_id,
+                            "rect": _rect(item),
+                        }
+                    )
 
-        return {"success": True, "persons": persons, "labels": labels, "emotions": emotions}
+        return {
+            "success": True,
+            "persons": persons,
+            "labels": labels,
+            "emotions": emotions,
+        }
 
     # -------------------------------------------------------------------------
     # Window Operations
@@ -1483,7 +1518,10 @@ class QtInspector:
         if controller.session.isLoggedIn():
             user = controller.session.user
             return {"success": True, "username": user.username if user else None}
-        return {"success": False, "error": "Login failed - check FLASK_AUTO_AUTH on server"}
+        return {
+            "success": False,
+            "error": "Login failed - check FLASK_AUTO_AUTH on server",
+        }
 
     def _findPersonalAppController(self):
         """Find the PersonalAppController instance."""
@@ -1748,12 +1786,16 @@ class QtInspector:
             target = self._findWindowForQmlItem(item)
             if target is None:
                 return {"success": False, "error": "No window for element"}
-            localPos = QPointF(*pos) if pos else QPointF(item.width() / 2, item.height() / 2)
+            localPos = (
+                QPointF(*pos) if pos else QPointF(item.width() / 2, item.height() / 2)
+            )
             scenePos = item.mapToScene(localPos).toPoint()
             if QTest is not None:
                 QTest.mouseMove(target, scenePos)
             else:
-                self._postMouseEvent(target, QMouseEvent.MouseMove, Qt.NoButton, scenePos)
+                self._postMouseEvent(
+                    target, QMouseEvent.MouseMove, Qt.NoButton, scenePos
+                )
             self._app.processEvents()
             return {"success": True}
 
@@ -1777,9 +1819,9 @@ class QtInspector:
 
         half = amount / 2
         dirMap = {
-            "up":    ((cx, cy + half), (cx, cy - half)),
-            "down":  ((cx, cy - half), (cx, cy + half)),
-            "left":  ((cx + half, cy), (cx - half, cy)),
+            "up": ((cx, cy + half), (cx, cy - half)),
+            "down": ((cx, cy - half), (cx, cy + half)),
+            "left": ((cx + half, cy), (cx - half, cy)),
             "right": ((cx - half, cy), (cx + half, cy)),
         }
         if direction not in dirMap:
@@ -1802,9 +1844,13 @@ class QtInspector:
                 QTest.qWait(durationMs)
                 QTest.mouseRelease(widget, Qt.LeftButton, Qt.NoModifier, p)
             else:
-                self._postMouseEvent(widget, QMouseEvent.MouseButtonPress, Qt.LeftButton, p)
+                self._postMouseEvent(
+                    widget, QMouseEvent.MouseButtonPress, Qt.LeftButton, p
+                )
                 _time.sleep(durationMs / 1000)
-                self._postMouseEvent(widget, QMouseEvent.MouseButtonRelease, Qt.LeftButton, p)
+                self._postMouseEvent(
+                    widget, QMouseEvent.MouseButtonRelease, Qt.LeftButton, p
+                )
             self._app.processEvents()
             return {"success": True}
 
@@ -1813,7 +1859,9 @@ class QtInspector:
             target = self._findWindowForQmlItem(item)
             if target is None:
                 return {"success": False, "error": "No window for element"}
-            localPos = QPointF(*pos) if pos else QPointF(item.width() / 2, item.height() / 2)
+            localPos = (
+                QPointF(*pos) if pos else QPointF(item.width() / 2, item.height() / 2)
+            )
             scenePos = item.mapToScene(localPos).toPoint()
             if QTest is not None:
                 QTest.mousePress(target, Qt.LeftButton, Qt.NoModifier, scenePos)
@@ -1821,9 +1869,13 @@ class QtInspector:
                 QTest.qWait(durationMs)
                 QTest.mouseRelease(target, Qt.LeftButton, Qt.NoModifier, scenePos)
             else:
-                self._postMouseEvent(target, QMouseEvent.MouseButtonPress, Qt.LeftButton, scenePos)
+                self._postMouseEvent(
+                    target, QMouseEvent.MouseButtonPress, Qt.LeftButton, scenePos
+                )
                 _time.sleep(durationMs / 1000)
-                self._postMouseEvent(target, QMouseEvent.MouseButtonRelease, Qt.LeftButton, scenePos)
+                self._postMouseEvent(
+                    target, QMouseEvent.MouseButtonRelease, Qt.LeftButton, scenePos
+                )
             self._app.processEvents()
             return {"success": True}
 

@@ -20,6 +20,7 @@ Configuration:
     Add to .mcp.json in project root to use with Claude Code.
 """
 
+import atexit
 import base64
 import fcntl
 import json
@@ -27,13 +28,15 @@ import logging
 import os
 import select
 import shutil
+import signal
 import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import uuid
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
@@ -67,8 +70,58 @@ logger = logging.getLogger("familydiagram-mcp")
 # Initialize MCP server
 mcp = FastMCP("familydiagram-testing")
 
-# Default port for the Qt test bridge
+# Default port for the Qt test bridge (used as fallback only)
 BRIDGE_PORT = 9876
+
+
+# =============================================================================
+# Helpers
+# =============================================================================
+
+
+def _find_free_port() -> int:
+    """Find an available TCP port by binding to port 0."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("", 0))
+        return s.getsockname()[1]
+
+
+# -- Orphan prevention --
+# Three layers ensure no leaked processes or temp dirs:
+# 1. atexit: normal exit, unhandled exceptions
+# 2. Signal handlers: SIGTERM/SIGINT from Claude Code
+# 3. ppid watchdog: parent dies (SIGKILL/crash) — macOS has no PR_SET_PDEATHSIG
+
+_ORIGINAL_PPID = os.getppid()
+
+
+def _cleanup_all_instances():
+    """Called by atexit / signal handlers. Import-safe — TestInstance may not exist yet."""
+    if "TestInstance" in globals():
+        TestInstance.close_all()
+
+
+atexit.register(_cleanup_all_instances)
+
+
+def _signal_handler(signum, frame):
+    logger.info(f"Signal {signum} received, cleaning up")
+    _cleanup_all_instances()
+    sys.exit(0)
+
+
+signal.signal(signal.SIGTERM, _signal_handler)
+signal.signal(signal.SIGINT, _signal_handler)
+
+
+def _parent_death_watchdog():
+    """Poll ppid every 2s. If parent dies (reparented to launchd), kill everything."""
+    while True:
+        time.sleep(2)
+        if os.getppid() != _ORIGINAL_PPID:
+            logger.warning("Parent process died, cleaning up all instances")
+            _cleanup_all_instances()
+            os._exit(1)
 
 
 # =============================================================================
@@ -197,79 +250,91 @@ class SandboxManager:
         self.app_data_dir: Optional[Path] = None
         self.documents_dir: Optional[Path] = None
 
-    def create_sandbox(
-        self,
-        login_state: LoginState = LoginState.NoData,
-        username: Optional[str] = None,
-        personal: bool = False,
-    ) -> Dict[str, str]:
+    def create_sandbox(self, personal: bool = False) -> Dict[str, str]:
         """
-        Create isolated sandbox for test session.
+        Create isolated sandbox directories.
 
-        Args:
-            login_state: LoginState.NoData for fresh login test, LoginState.LoggedIn for pre-authenticated
-            username: Optional username for dev auto-login (defaults to FLASK_AUTO_AUTH_USER on server)
-            personal: True for Personal app (uses different prefs file)
-
-        Returns:
-            Dict with environment variables to pass to app
+        Returns env vars dict. Caller must add FD_SERVER_URL_ROOT separately
+        (depends on whether ephemeral server is used).
         """
         self.sandbox_dir = Path(tempfile.mkdtemp(prefix="fd_test_"))
         self.prefs_dir = self.sandbox_dir / "prefs"
         self.app_data_dir = self.sandbox_dir / "appdata"
         self.documents_dir = self.sandbox_dir / "Documents"
 
-        self.prefs_dir.mkdir(parents=True, exist_ok=True)
-        self.app_data_dir.mkdir(parents=True, exist_ok=True)
-        self.documents_dir.mkdir(parents=True, exist_ok=True)
+        for d in (self.prefs_dir, self.app_data_dir, self.documents_dir):
+            d.mkdir(parents=True, exist_ok=True)
 
         logger.info(f"Created test sandbox: {self.sandbox_dir}")
-        logger.info(f"Documents directory: {self.documents_dir}")
 
-        env = {
+        return {
             "QT_QPA_PLATFORMTHEME": "offscreen",
             "HOME": str(self.sandbox_dir),
             "XDG_DATA_HOME": str(self.app_data_dir),
             "XDG_CONFIG_HOME": str(self.prefs_dir),
             "FD_TEST_DATA_DIR": str(self.app_data_dir / "Family Diagram"),
-            "FD_SERVER_URL_ROOT": "http://127.0.0.1:8888",
         }
 
-        if login_state == LoginState.LoggedIn:
-            if not self._check_btcopilot_server():
-                raise RuntimeError(
-                    "btcopilot server not running on port 8888. "
-                    "Please start the Flask server before launching with login_state='logged_in'"
-                )
-            self._populate_logged_in_data(username, personal=personal)
+    def populate_login(
+        self,
+        server_url: str,
+        username: Optional[str] = None,
+        personal: bool = False,
+    ) -> None:
+        """Get session from server and write to sandbox AppConfig."""
+        if not self._check_server(server_url):
+            raise RuntimeError(
+                f"Server not responding at {server_url}. "
+                "Start the Flask server or use ephemeral_server=True."
+            )
 
-        return env
+        session_data = self._get_session(server_url, username)
+        if not session_data:
+            raise RuntimeError(
+                f"Failed to get session from {server_url}. "
+                "Ensure the user exists and auto-auth is configured."
+            )
 
-    def _check_btcopilot_server(self) -> bool:
-        """Check if btcopilot Flask server is running."""
+        appconfig_dir = self.app_data_dir / "Family Diagram"
+        appconfig_dir.mkdir(parents=True, exist_ok=True)
+        prefs_suffix = "-personal.alaskafamilysystems.com" if personal else ""
+        appconfig_file = appconfig_dir / f"cherries{prefs_suffix}"
+
+        appconfig = AppConfig(filePath=str(appconfig_file))
+        appconfig.hardwareUUID = util.HARDWARE_UUID
+        appconfig.set("lastSessionData", session_data, pickled=True)
+        appconfig.write()
+
+        user_email = (
+            session_data.get("session", {}).get("user", {}).get("username", "unknown")
+        )
+        logger.info(f"Wrote session for {user_email} to {appconfig_file}")
+
+    def _check_server(self, server_url: str) -> bool:
         import requests
 
         try:
-            requests.get("http://127.0.0.1:8888/", timeout=2)
+            requests.get(f"{server_url}/", timeout=2)
             return True
         except requests.RequestException:
             return False
 
-    def _get_dev_session(self, username: Optional[str] = None) -> Optional[dict]:
-        """Call /v1/sessions without password to trigger dev auto-login."""
-        import pickle
+    def _get_session(
+        self, server_url: str, username: Optional[str] = None
+    ) -> Optional[dict]:
+        """Call /v1/sessions to trigger dev auto-login."""
         import hashlib
+        import pickle
         import time as time_module
         import wsgiref.handlers
+
         import requests
 
-        url = "http://127.0.0.1:8888/v1/sessions"
+        url = f"{server_url}/v1/sessions"
 
-        # Build signed request (anonymous auth, no password = dev auto-login)
         args = {}
         if username:
             args["username"] = username
-        # No password field → triggers dev auto-login on server
 
         data = pickle.dumps(args)
         content_md5 = hashlib.md5(data).hexdigest()
@@ -299,7 +364,7 @@ class SandboxManager:
         try:
             response = requests.post(url, data=data, headers=headers, timeout=10)
         except requests.RequestException as e:
-            logger.error(f"Failed to connect to btcopilot server: {e}")
+            logger.error(f"Failed to connect to server at {server_url}: {e}")
             return None
 
         if response.status_code != 200:
@@ -309,35 +374,6 @@ class SandboxManager:
             return None
 
         return pickle.loads(response.content)
-
-    def _populate_logged_in_data(
-        self, username: Optional[str] = None, personal: bool = False
-    ) -> None:
-        """Get real session from btcopilot server and write to sandbox AppConfig."""
-        appconfig_dir = self.app_data_dir / "Family Diagram"
-        appconfig_dir.mkdir(parents=True, exist_ok=True)
-        # Personal app uses different prefs name
-        prefs_suffix = "-personal.alaskafamilysystems.com" if personal else ""
-        appconfig_file = appconfig_dir / f"cherries{prefs_suffix}"
-
-        logger.info(f"Getting real session from btcopilot server (personal={personal})")
-
-        session_data = self._get_dev_session(username)
-        if not session_data:
-            raise RuntimeError(
-                "Failed to get session from btcopilot server. "
-                "Ensure FLASK_AUTO_AUTH_USER is set and the user exists."
-            )
-
-        appconfig = AppConfig(filePath=str(appconfig_file))
-        appconfig.hardwareUUID = util.HARDWARE_UUID
-        appconfig.set("lastSessionData", session_data, pickled=True)
-        appconfig.write()
-
-        user_email = (
-            session_data.get("session", {}).get("user", {}).get("username", "unknown")
-        )
-        logger.info(f"Wrote real session for {user_email} to {appconfig_file}")
 
     def cleanup(self) -> None:
         """Remove sandbox directory."""
@@ -355,25 +391,29 @@ class SandboxManager:
 # =============================================================================
 
 
-class TestSession:
+class TestInstance:
     """
-    Manages the PyQt application test session.
+    Manages a single test instance: app process + optional ephemeral server.
 
-    This class handles:
-    - Application lifecycle (launch, close)
-    - Process management
-    - Communication with the Qt test bridge
+    Multiple instances can run simultaneously, each on dynamic ports with its
+    own sandbox. Replaces the old TestSession singleton.
     """
 
-    _instance: Optional["TestSession"] = None
+    _instances: Dict[str, "TestInstance"] = {}
+    _current_id: Optional[str] = None
 
-    def __init__(self):
+    def __init__(self, instance_id: str):
+        self.id = instance_id
         self.process: Optional[subprocess.Popen] = None
+        self.server_process: Optional[subprocess.Popen] = None
         self.start_time: Optional[float] = None
         self.project_root = Path(__file__).parent.parent
         self._screenshot_counter = 0
         self._bridge: Optional[BridgeClient] = None
-        self._bridge_port = BRIDGE_PORT
+        self._bridge_port: Optional[int] = None
+        self._server_port: Optional[int] = None
+        self._sim_udid: Optional[str] = None
+        self._sim_bundle_id: Optional[str] = None
         self._stdout_lines: List[str] = []
         self._stderr_lines: List[str] = []
         self._stdout_partial: str = ""
@@ -381,76 +421,286 @@ class TestSession:
         self._sandbox = SandboxManager()
 
     @classmethod
-    def get_instance(cls) -> "TestSession":
-        """Get singleton instance."""
-        if cls._instance is None:
-            cls._instance = TestSession()
-        return cls._instance
+    def create(cls) -> "TestInstance":
+        instance_id = str(uuid.uuid4())[:8]
+        instance = cls(instance_id)
+        cls._instances[instance_id] = instance
+        cls._current_id = instance_id
+        return instance
+
+    @classmethod
+    def get(cls, instance_id: Optional[str] = None) -> "TestInstance":
+        """Resolve by ID, or return most recently launched."""
+        if instance_id:
+            if instance_id not in cls._instances:
+                raise ValueError(
+                    f"No instance '{instance_id}'. "
+                    f"Active: {list(cls._instances.keys()) or 'none'}"
+                )
+            return cls._instances[instance_id]
+        if cls._current_id and cls._current_id in cls._instances:
+            return cls._instances[cls._current_id]
+        raise ValueError("No active instance. Call launch_app first.")
+
+    @classmethod
+    def close_all(cls) -> List[str]:
+        closed = []
+        for iid in list(cls._instances.keys()):
+            try:
+                cls._instances[iid]._do_close(force=True)
+            except Exception as e:
+                logger.warning(f"Error closing instance {iid}: {e}")
+            closed.append(iid)
+        cls._instances.clear()
+        cls._current_id = None
+        return closed
 
     @property
     def is_running(self) -> bool:
-        """Check if the application is running."""
         if self.process is None:
             return False
         return self.process.poll() is None
 
     @property
     def pid(self) -> Optional[int]:
-        """Get process ID if running."""
         if self.is_running:
             return self.process.pid
         return None
 
     @property
     def uptime(self) -> Optional[float]:
-        """Get uptime in seconds."""
         if self.is_running and self.start_time:
             return time.time() - self.start_time
         return None
 
     @property
     def bridge(self) -> Optional[BridgeClient]:
-        """Get the bridge client."""
         return self._bridge
+
+    @property
+    def server_port(self) -> Optional[int]:
+        return self._server_port
+
+    # -- Ephemeral server --
+
+    def _start_ephemeral_server(self, auto_auth_user: str) -> Tuple[bool, str]:
+        self._server_port = _find_free_port()
+        db_dir = str(self._sandbox.sandbox_dir / "db")
+        os.makedirs(db_dir, exist_ok=True)
+
+        workspace_root = self.project_root.parent
+        cmd = [
+            "uv",
+            "run",
+            "--directory",
+            str(workspace_root),
+            "python",
+            "-u",
+            str(self.project_root / "mcpserver" / "ephemeral_server.py"),
+            "--port",
+            str(self._server_port),
+            "--db-dir",
+            db_dir,
+        ]
+
+        env = os.environ.copy()
+        env.pop("VIRTUAL_ENV", None)
+        env["PYTHONUNBUFFERED"] = "1"
+        env["FLASK_CONFIG"] = "development"
+        env["FLASK_AUTO_AUTH_USER"] = auto_auth_user
+
+        logger.info(
+            f"[{self.id}] Starting ephemeral server on port {self._server_port}"
+        )
+
+        self.server_process = subprocess.Popen(
+            cmd,
+            cwd=str(workspace_root),
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        start = time.time()
+        while time.time() - start < 30:
+            if self.server_process.poll() is not None:
+                stderr = self.server_process.stderr.read().decode()
+                return False, f"Ephemeral server exited early: {stderr[-500:]}"
+            ready, _, _ = select.select([self.server_process.stdout], [], [], 0.5)
+            if not ready:
+                continue
+            line = self.server_process.stdout.readline().decode().strip()
+            if line.startswith("READY:"):
+                # READY is printed before app.run() binds the socket.
+                # Poll health endpoint until it responds.
+                import requests
+
+                for _ in range(20):
+                    try:
+                        requests.get(
+                            f"http://127.0.0.1:{self._server_port}/test/health",
+                            timeout=1,
+                        )
+                        break
+                    except requests.ConnectionError:
+                        time.sleep(0.25)
+                logger.info(
+                    f"[{self.id}] Ephemeral server ready on port {self._server_port}"
+                )
+                return True, f"Server started on port {self._server_port}"
+
+        if self.server_process.poll() is None:
+            self.server_process.kill()
+        return False, "Ephemeral server timed out (30s)"
+
+    def _seed_default_user(self, email: str) -> None:
+        import requests
+
+        response = requests.post(
+            f"http://127.0.0.1:{self._server_port}/test/seed",
+            json={
+                "users": [
+                    {"username": email, "password": "test", "status": "confirmed"}
+                ]
+            },
+            timeout=10,
+        )
+        if response.status_code != 200:
+            raise RuntimeError(f"Failed to seed default user: {response.text}")
+
+    def _stop_ephemeral_server(self) -> None:
+        if self.server_process and self.server_process.poll() is None:
+            pid = self.server_process.pid
+            self.server_process.terminate()
+            try:
+                self.server_process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self.server_process.kill()
+                self.server_process.wait(timeout=3)
+        self.server_process = None
+        self._server_port = None
+
+    # -- iOS Simulator --
+
+    def _launch_in_simulator(
+        self,
+        app_path: str,
+        bundle_id: str = "com.vedanamedia.familydiagram",
+        udid: Optional[str] = None,
+    ) -> Tuple[bool, str]:
+        """Install and launch app in iOS simulator, connect bridge on port 9876."""
+        # Boot simulator if not already booted
+        if udid:
+            ok, out = _simctl("boot", udid, timeout=60)
+            if not ok and "booted" not in out.lower():
+                return False, f"Failed to boot simulator {udid}: {out}"
+            self._sim_udid = udid
+        else:
+            # Find first booted, or boot one
+            self._sim_udid = _booted_udid()
+            if not self._sim_udid:
+                ok, out = _simctl("list", "devices", "available", "--json")
+                if ok:
+                    data = json.loads(out)
+                    for runtime_devices in data.get("devices", {}).values():
+                        for d in runtime_devices:
+                            if "iPhone" in d.get("name", ""):
+                                self._sim_udid = d["udid"]
+                                break
+                        if self._sim_udid:
+                            break
+                if not self._sim_udid:
+                    return False, "No available iPhone simulator found"
+                ok, out = _simctl("boot", self._sim_udid, timeout=60)
+                if not ok and "booted" not in out.lower():
+                    return False, f"Failed to boot simulator: {out}"
+
+        self._sim_bundle_id = bundle_id
+
+        # Install
+        ok, out = _simctl("install", self._sim_udid, app_path, timeout=60)
+        if not ok:
+            return False, f"Failed to install app: {out}"
+
+        # Launch
+        ok, out = _simctl("launch", self._sim_udid, bundle_id, timeout=30)
+        if not ok:
+            return False, f"Failed to launch app: {out}"
+
+        self.start_time = time.time()
+
+        # Bridge auto-starts on port 9876 in simulator builds
+        self._bridge_port = 9876
+        time.sleep(4)  # QML startup
+
+        self._bridge = BridgeClient(port=self._bridge_port)
+        if not self._bridge.connect(timeout=15):
+            return (
+                False,
+                "Bridge not reachable. App may not have the test bridge compiled in.",
+            )
+
+        response = self._bridge.send_command({"command": "ping"})
+        if not response.get("success"):
+            return False, f"Bridge ping failed: {response}"
+
+        logger.info(
+            f"[{self.id}] Simulator app connected via bridge on port {self._bridge_port}"
+        )
+        return True, f"App running in simulator {self._sim_udid}"
+
+    def _terminate_simulator_app(self) -> None:
+        if self._sim_bundle_id and self._sim_udid:
+            _simctl("terminate", self._sim_udid, self._sim_bundle_id)
+        self._sim_udid = None
+        self._sim_bundle_id = None
+
+    # -- App lifecycle --
 
     def launch(
         self,
         headless: bool = True,
         personal: bool = False,
         enable_bridge: bool = True,
-        bridge_port: int = BRIDGE_PORT,
         open_file: Optional[str] = None,
         extra_args: Optional[List[str]] = None,
         timeout: int = 30,
         login_state: LoginState = LoginState.NoData,
         username: str = None,
+        ephemeral_server: bool = False,
+        auto_auth_user: str = "test@example.com",
     ) -> Tuple[bool, str]:
-        """
-        Launch the Family Diagram application.
-
-        Args:
-            headless: Run in headless mode (for CI/testing)
-            personal: Run the personal/mobile UI
-            enable_bridge: Enable the Qt test bridge for element inspection
-            bridge_port: Port for the test bridge
-            open_file: Path to .fd file to open at startup
-            extra_args: Additional command-line arguments
-            timeout: Maximum time to wait for startup
-            login_state: LoginState.NoData (fresh) or LoginState.LoggedIn (pre-auth)
-            username: Optional username for dev auto-login (defaults to FLASK_AUTO_AUTH_USER on server)
-
-        Returns:
-            Tuple of (success, message)
-        """
         if self.is_running:
-            return False, f"Application already running (PID: {self.pid})"
+            return False, f"Instance {self.id} already running (PID: {self.pid})"
 
-        # Clear output buffers from previous run
         self._stdout_lines.clear()
         self._stderr_lines.clear()
 
         try:
-            # Use uv run from workspace root to get proper venv with built _pkdiagram
+            # 1. Create sandbox
+            sandbox_env = self._sandbox.create_sandbox(personal=personal)
+
+            # 2. Optional ephemeral server
+            if ephemeral_server:
+                ok, msg = self._start_ephemeral_server(auto_auth_user)
+                if not ok:
+                    self._sandbox.cleanup()
+                    return False, msg
+                server_url = f"http://127.0.0.1:{self._server_port}"
+                if login_state == LoginState.LoggedIn:
+                    self._seed_default_user(username or auto_auth_user)
+            else:
+                server_url = "http://127.0.0.1:8888"
+
+            sandbox_env["FD_SERVER_URL_ROOT"] = server_url
+
+            # 3. Populate login if requested
+            if login_state == LoginState.LoggedIn:
+                self._sandbox.populate_login(
+                    server_url, username or auto_auth_user, personal
+                )
+
+            # 4. Build app command
             workspace_root = self.project_root.parent
             cmd = [
                 "uv",
@@ -458,49 +708,37 @@ class TestSession:
                 "--directory",
                 str(workspace_root),
                 "python",
-                "-u",  # Force unbuffered stdout/stderr
+                "-u",
                 "-m",
                 "pkdiagram",
             ]
-
             if personal:
                 cmd.append("--personal")
 
+            self._bridge_port = _find_free_port()
             if enable_bridge:
-                cmd.extend(["--test-server", "--test-server-port", str(bridge_port)])
-                self._bridge_port = bridge_port
+                cmd.extend(
+                    ["--test-server", "--test-server-port", str(self._bridge_port)]
+                )
 
             if open_file:
                 cmd.extend(["--open-file", open_file])
-
             if extra_args:
                 cmd.extend(extra_args)
 
-            # Set up environment
+            # 5. Environment
             env = os.environ.copy()
-
-            # Force unbuffered stdout/stderr from child process
             env["PYTHONUNBUFFERED"] = "1"
-
-            # Clear problematic virtual environment variable from MCP server venv
             env.pop("VIRTUAL_ENV", None)
-
-            # Create sandbox and get sandbox-specific env vars
-            sandbox_env = self._sandbox.create_sandbox(
-                login_state=login_state, username=username, personal=personal
-            )
             env.update(sandbox_env)
-
             if headless:
                 env["QT_QPA_PLATFORM"] = "offscreen"
-
-            # Disable GPU for stability
             env["QT_QUICK_BACKEND"] = "software"
 
-            # Log sandbox environment for debugging
-            logger.info(f"Launching application: {' '.join(cmd)}")
-            logger.info(f"Sandbox HOME: {env.get('HOME', 'NOT SET')}")
-            logger.info(f"FD_TEST_DATA_DIR: {env.get('FD_TEST_DATA_DIR', 'NOT SET')}")
+            logger.info(f"[{self.id}] Launching: {' '.join(cmd)}")
+            logger.info(
+                f"[{self.id}] Server: {server_url}, Bridge port: {self._bridge_port}"
+            )
 
             self.process = subprocess.Popen(
                 cmd,
@@ -509,52 +747,100 @@ class TestSession:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )
-
             self.start_time = time.time()
-
-            # Wait for app to start
             time.sleep(2)
 
             if not self.is_running:
                 stderr = (
                     self.process.stderr.read().decode() if self.process.stderr else ""
                 )
-                return False, f"Application failed to start: {stderr}"
+                self._stop_ephemeral_server()
+                self._sandbox.cleanup()
+                return False, f"App failed to start: {stderr[-500:]}"
 
-            # Connect to bridge if enabled
+            # 6. Connect bridge
             if enable_bridge:
-                self._bridge = BridgeClient(port=bridge_port)
+                self._bridge = BridgeClient(port=self._bridge_port)
                 if not self._bridge.connect(timeout=10):
-                    logger.warning("Failed to connect to test bridge")
+                    logger.warning(f"[{self.id}] Failed to connect to test bridge")
                 else:
-                    # Verify connection
                     response = self._bridge.send_command({"command": "ping"})
                     if response.get("success"):
-                        logger.info("Qt test bridge connected and verified")
+                        logger.info(f"[{self.id}] Bridge connected and verified")
 
-            logger.info(f"Application started (PID: {self.pid})")
-            return True, f"Application started successfully (PID: {self.pid})"
+            logger.info(f"[{self.id}] App started (PID: {self.pid})")
+            return True, f"Instance {self.id} started (PID: {self.pid})"
 
+        except Exception as e:
+            logger.exception(f"[{self.id}] Failed to launch")
+            # Kill app process if it was already started
+            if self.process and self.process.poll() is None:
+                self.process.kill()
+                self.process.wait(timeout=5)
+            self.process = None
+            self._stop_ephemeral_server()
+            self._sandbox.cleanup()
+            return False, f"Failed to launch: {e}"
+
+    def close(self, force: bool = False, timeout: int = 10) -> Tuple[bool, str]:
+        """Close this instance. Removes from registry."""
+        try:
+            return self._do_close(force=force, timeout=timeout)
+        finally:
+            TestInstance._instances.pop(self.id, None)
+            if TestInstance._current_id == self.id:
+                remaining = list(TestInstance._instances.keys())
+                TestInstance._current_id = remaining[-1] if remaining else None
+
+    def _do_close(self, force: bool = False, timeout: int = 10) -> Tuple[bool, str]:
+        if (
+            not self.is_running
+            and self.server_process is None
+            and self._sim_bundle_id is None
+        ):
+            self._sandbox.cleanup()
+            return True, f"Instance {self.id} not running"
+
+        pid = self.pid
+
+        if self._bridge:
+            self._bridge.disconnect()
+            self._bridge = None
+
+        try:
+            if self.process and self.process.poll() is None:
+                self.process.terminate()
+                try:
+                    self.process.wait(timeout=timeout)
+                except subprocess.TimeoutExpired:
+                    if force:
+                        self.process.kill()
+                        self.process.wait(timeout=5)
+                    else:
+                        return False, "Graceful shutdown timed out. Use force=True."
         except OSError as e:
-            logger.exception("Failed to launch application")
-            return False, f"Failed to launch: {str(e)}"
+            logger.exception(f"[{self.id}] Error closing app: {e}")
+        finally:
+            self.process = None
+            self.start_time = None
+
+        self._terminate_simulator_app()
+        self._stop_ephemeral_server()
+        self._sandbox.cleanup()
+        return True, f"Instance {self.id} closed"
+
+    # -- Output collection --
 
     def collect_output(self) -> None:
-        """Collect non-blocking stdout/stderr from the running process."""
         if not self.process or not self.is_running:
             return
 
         def read_nonblocking(pipe, buffer_list, partial_buffer):
-            """Read available data from pipe without blocking."""
             if not pipe:
                 return partial_buffer
-
             fd = pipe.fileno()
-
-            # Set non-blocking mode
             flags = fcntl.fcntl(fd, fcntl.F_GETFL)
             fcntl.fcntl(fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
-
             try:
                 while True:
                     ready, _, _ = select.select([pipe], [], [], 0)
@@ -565,7 +851,6 @@ class TestSession:
                         if not chunk:
                             break
                         partial_buffer += chunk.decode("utf-8", errors="replace")
-                        # Split into lines, keep partial line for next time
                         while "\n" in partial_buffer:
                             line, partial_buffer = partial_buffer.split("\n", 1)
                             buffer_list.append(line)
@@ -574,9 +859,7 @@ class TestSession:
             except (OSError, ValueError):
                 pass
             finally:
-                # Restore blocking mode
                 fcntl.fcntl(fd, fcntl.F_SETFL, flags)
-
             return partial_buffer
 
         self._stdout_partial = read_nonblocking(
@@ -586,63 +869,35 @@ class TestSession:
             self.process.stderr, self._stderr_lines, self._stderr_partial
         )
 
-    def close(self, force: bool = False, timeout: int = 10) -> Tuple[bool, str]:
-        """
-        Close the application.
-
-        Args:
-            force: Force kill if graceful shutdown fails
-            timeout: Timeout for graceful shutdown
-
-        Returns:
-            Tuple of (success, message)
-        """
-        if not self.is_running:
-            return True, "Application not running"
-
-        pid = self.pid
-
-        # Disconnect bridge
-        if self._bridge:
-            self._bridge.disconnect()
-            self._bridge = None
-
-        try:
-            # Try graceful shutdown first
-            self.process.terminate()
-
-            try:
-                self.process.wait(timeout=timeout)
-                logger.info(f"Application terminated gracefully (PID: {pid})")
-                return True, f"Application terminated (PID: {pid})"
-            except subprocess.TimeoutExpired:
-                if force:
-                    self.process.kill()
-                    self.process.wait(timeout=5)
-                    logger.warning(f"Application force killed (PID: {pid})")
-                    return True, f"Application force killed (PID: {pid})"
-                else:
-                    return False, "Graceful shutdown timed out. Use force=True to kill."
-
-        except OSError as e:
-            logger.exception("Failed to close application")
-            return False, f"Failed to close: {str(e)}"
-        finally:
-            self.process = None
-            self.start_time = None
-            self._sandbox.cleanup()
-
     def get_screenshot_path(self, name: Optional[str] = None) -> Path:
-        """Get a unique screenshot path."""
         screenshot_dir = self.project_root / "screenshots"
         screenshot_dir.mkdir(exist_ok=True)
-
         if name:
             return screenshot_dir / f"{name}.png"
-
         self._screenshot_counter += 1
         timestamp = int(time.time())
         return screenshot_dir / f"screenshot_{timestamp}_{self._screenshot_counter}.png"
+
+
+# =============================================================================
+# Instance resolution helpers
+# =============================================================================
+
+
+def _resolve_instance(instance_id: Optional[str] = None):
+    try:
+        return TestInstance.get(instance_id), None
+    except ValueError as e:
+        return None, {"success": False, "error": str(e)}
+
+
+def _resolve_bridge(instance_id: Optional[str] = None):
+    instance, err = _resolve_instance(instance_id)
+    if err:
+        return None, err
+    if not instance.bridge or not instance.bridge.is_connected:
+        return None, {"success": False, "error": "Bridge not connected"}
+    return instance.bridge, None
 
 
 # =============================================================================
@@ -659,93 +914,203 @@ def launch_app(
     open_file: Optional[str] = None,
     login_state: str = LoginState.LoggedIn.value,
     username: Optional[str] = None,
+    ephemeral_server: bool = False,
+    auto_auth_user: str = "test@example.com",
 ) -> Dict[str, Any]:
-    """Launch app. Returns {success, pid, bridge_connected}. Default login_state is 'logged_in'.
+    """Launch app. Returns {success, instance_id, pid, bridge_connected}.
+
+    Set ephemeral_server=True for a fully isolated btcopilot server (no external
+    Flask server needed). Each instance gets its own dynamic ports.
 
     Args:
-        username: Optional username for dev auto-login (defaults to FLASK_AUTO_AUTH_USER on server)
+        username: User email for dev auto-login
+        ephemeral_server: Start isolated btcopilot server for this instance
+        auto_auth_user: Email for ephemeral server auto-auth (default test@example.com)
     """
-    session = TestSession.get_instance()
+    instance = TestInstance.create()
 
     try:
         login_enum = LoginState(login_state)
     except ValueError:
         valid_values = [e.value for e in LoginState]
+        TestInstance._instances.pop(instance.id, None)
         return {
             "success": False,
-            "pid": None,
+            "instance_id": None,
             "message": f"Invalid login_state: {login_state}. Use one of: {valid_values}",
-            "bridge_connected": False,
         }
 
-    success, message = session.launch(
+    success, message = instance.launch(
         headless=headless,
         personal=personal,
         enable_bridge=enable_bridge,
         open_file=open_file,
         login_state=login_enum,
         username=username,
+        ephemeral_server=ephemeral_server,
+        auto_auth_user=auto_auth_user,
     )
 
     if success and wait_seconds > 0:
         time.sleep(wait_seconds)
 
+    if not success:
+        TestInstance._instances.pop(instance.id, None)
+        if TestInstance._current_id == instance.id:
+            remaining = list(TestInstance._instances.keys())
+            TestInstance._current_id = remaining[-1] if remaining else None
+
     return {
         "success": success,
-        "pid": session.pid,
+        "instance_id": instance.id if success else None,
+        "pid": instance.pid,
         "message": message,
-        "bridge_connected": session.bridge.is_connected if session.bridge else False,
+        "bridge_connected": instance.bridge.is_connected if instance.bridge else False,
+        "bridge_port": instance._bridge_port,
+        "server_port": instance._server_port,
     }
 
 
 @mcp.tool()
-def close_app(force: bool = False) -> Dict[str, Any]:
-    """Close app. Use force=True to kill."""
-    session = TestSession.get_instance()
-    success, message = session.close(force=force)
-
-    return {
-        "success": success,
-        "message": message,
-    }
+def close_app(force: bool = False, instance_id: Optional[str] = None) -> Dict[str, Any]:
+    """Close app instance. Use force=True to kill. Defaults to most recent instance."""
+    instance, err = _resolve_instance(instance_id)
+    if err:
+        return err
+    success, message = instance.close(force=force)
+    return {"success": success, "message": message}
 
 
 @mcp.tool()
-def get_app_state(include_process: bool = False) -> Dict[str, Any]:
+def close_all_instances() -> Dict[str, Any]:
+    """Close all running test instances. Use for cleanup."""
+    closed = TestInstance.close_all()
+    return {"success": True, "closed": closed, "count": len(closed)}
+
+
+@mcp.tool()
+def launch_app_in_simulator(
+    app_path: Optional[str] = None,
+    bundle_id: str = "com.vedanamedia.familydiagram",
+    udid: Optional[str] = None,
+    ephemeral_server: bool = False,
+    auto_auth_user: str = "test@example.com",
+    login_state: str = LoginState.LoggedIn.value,
+) -> Dict[str, Any]:
+    """Launch the Personal app in the iOS Simulator with full bridge interactivity.
+
+    The app must be pre-built for the simulator. Default app_path is the
+    Debug-iphonesimulator build in the repo. Bridge auto-starts on port 9876
+    in simulator builds — all interaction tools (click, scroll, etc.) work.
+
+    Args:
+        app_path: Path to .app bundle (defaults to build/ios/Debug-iphonesimulator/Family Diagram.app)
+        bundle_id: iOS bundle identifier
+        udid: Simulator UDID (auto-selects iPhone if omitted)
+        ephemeral_server: Start isolated btcopilot server
+        auto_auth_user: Email for auto-auth
+        login_state: 'no_data' or 'logged_in'
+    """
+    if app_path is None:
+        default_path = (
+            Path(__file__).parent.parent
+            / "build"
+            / "ios"
+            / "Debug-iphonesimulator"
+            / "Family Diagram.app"
+        )
+        if not default_path.exists():
+            return {
+                "success": False,
+                "error": f"No iOS simulator build found at {default_path}. Build the app first.",
+            }
+        app_path = str(default_path)
+
+    try:
+        login_enum = LoginState(login_state)
+    except ValueError:
+        return {"success": False, "error": f"Invalid login_state: {login_state}"}
+
+    instance = TestInstance.create()
+
+    try:
+        # Optional ephemeral server
+        if ephemeral_server:
+            sandbox_env = instance._sandbox.create_sandbox(personal=True)
+            ok, msg = instance._start_ephemeral_server(auto_auth_user)
+            if not ok:
+                instance._sandbox.cleanup()
+                TestInstance._instances.pop(instance.id, None)
+                return {"success": False, "error": msg}
+
+            server_url = f"http://127.0.0.1:{instance._server_port}"
+            if login_enum == LoginState.LoggedIn:
+                instance._seed_default_user(auto_auth_user)
+
+        # Launch in simulator
+        ok, msg = instance._launch_in_simulator(app_path, bundle_id, udid)
+        if not ok:
+            instance._stop_ephemeral_server()
+            instance._sandbox.cleanup()
+            TestInstance._instances.pop(instance.id, None)
+            return {"success": False, "error": msg}
+
+        return {
+            "success": True,
+            "instance_id": instance.id,
+            "sim_udid": instance._sim_udid,
+            "bridge_port": instance._bridge_port,
+            "server_port": instance._server_port,
+            "message": msg,
+        }
+    except Exception as e:
+        instance._terminate_simulator_app()
+        instance._stop_ephemeral_server()
+        instance._sandbox.cleanup()
+        TestInstance._instances.pop(instance.id, None)
+        return {"success": False, "error": str(e)}
+
+
+@mcp.tool()
+def get_app_state(
+    include_process: bool = False, instance_id: Optional[str] = None
+) -> Dict[str, Any]:
     """Get app state. Use FIRST before other tools. Returns windows, dialogs, semantic state."""
-    session = TestSession.get_instance()
+    instance, err = _resolve_instance(instance_id)
+    if err:
+        return err
 
     result = {}
     if include_process:
         result.update(
             {
-                "running": session.is_running,
-                "pid": session.pid,
-                "uptime": session.uptime,
+                "instance_id": instance.id,
+                "running": instance.is_running,
+                "pid": instance.pid,
+                "uptime": instance.uptime,
+                "server_port": instance.server_port,
+                "bridge_port": instance._bridge_port,
             }
         )
 
-    if not session.bridge or not session.bridge.is_connected:
+    if not instance.bridge or not instance.bridge.is_connected:
         result["success"] = False
         result["error"] = "Bridge not connected"
         return result
 
-    response = session.bridge.send_command({"command": "get_app_state"})
+    response = instance.bridge.send_command({"command": "get_app_state"})
     result.update(response)
     return result
 
 
 @mcp.tool()
-def open_file(file_path: str) -> Dict[str, Any]:
+def open_file(file_path: str, instance_id: Optional[str] = None) -> Dict[str, Any]:
     """Open .fd file by path."""
-    session = TestSession.get_instance()
+    bridge, err = _resolve_bridge(instance_id)
+    if err:
+        return err
 
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
-
-    response = session.bridge.send_command(
-        {"command": "open_file", "filePath": file_path}
-    )
+    response = bridge.send_command({"command": "open_file", "filePath": file_path})
 
     # Return full response including verification info
     return response
@@ -757,14 +1122,13 @@ def open_file(file_path: str) -> Dict[str, Any]:
 
 
 @mcp.tool()
-def find_element(name: str) -> Dict[str, Any]:
+def find_element(name: str, instance_id: Optional[str] = None) -> Dict[str, Any]:
     """Find element by objectName. Returns {name, type, text}."""
-    session = TestSession.get_instance()
+    bridge, err = _resolve_bridge(instance_id)
+    if err:
+        return err
 
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
-
-    return session.bridge.send_command({"command": "find_element", "objectName": name})
+    return bridge.send_command({"command": "find_element", "objectName": name})
 
 
 @mcp.tool()
@@ -773,14 +1137,14 @@ def list_elements(
     depth: int = 3,
     limit: int = 50,
     verbose: bool = False,
+    instance_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """List named visible elements. Returns [{name, type, text}]. Use get_app_state() first."""
-    session = TestSession.get_instance()
+    bridge, err = _resolve_bridge(instance_id)
+    if err:
+        return err
 
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
-
-    response = session.bridge.send_command(
+    response = bridge.send_command(
         {
             "command": "list_elements",
             "type": type,
@@ -796,19 +1160,20 @@ def list_elements(
 
 
 @mcp.tool()
-def prop(name: str, property: str, value: Any = None) -> Dict[str, Any]:
+def prop(
+    name: str, property: str, value: Any = None, instance_id: Optional[str] = None
+) -> Dict[str, Any]:
     """Get/set element property. Omit value to get, provide value to set."""
-    session = TestSession.get_instance()
-
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
+    bridge, err = _resolve_bridge(instance_id)
+    if err:
+        return err
 
     if value is None:
-        return session.bridge.send_command(
+        return bridge.send_command(
             {"command": "get_property", "objectName": name, "property": property}
         )
     else:
-        return session.bridge.send_command(
+        return bridge.send_command(
             {
                 "command": "set_property",
                 "objectName": name,
@@ -819,17 +1184,19 @@ def prop(name: str, property: str, value: Any = None) -> Dict[str, Any]:
 
 
 @mcp.tool()
-def click(name: str, double: bool = False, button: str = "left") -> Dict[str, Any]:
+def click(
+    name: str,
+    double: bool = False,
+    button: str = "left",
+    instance_id: Optional[str] = None,
+) -> Dict[str, Any]:
     """Click element. Use double=True for double-click."""
-    session = TestSession.get_instance()
-
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
+    bridge, err = _resolve_bridge(instance_id)
+    if err:
+        return err
 
     cmd = "double_click" if double else "click"
-    return session.bridge.send_command(
-        {"command": cmd, "objectName": name, "button": button}
-    )
+    return bridge.send_command({"command": cmd, "objectName": name, "button": button})
 
 
 @mcp.tool()
@@ -841,14 +1208,14 @@ def drag(
     endY: int,
     button: str = "left",
     steps: int = 10,
+    instance_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Drag within element from (startX, startY) to (endX, endY). Coordinates relative to element."""
-    session = TestSession.get_instance()
+    bridge, err = _resolve_bridge(instance_id)
+    if err:
+        return err
 
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
-
-    return session.bridge.send_command(
+    return bridge.send_command(
         {
             "command": "drag",
             "objectName": name,
@@ -862,20 +1229,23 @@ def drag(
 
 @mcp.tool()
 def input(
-    text: str = None, key: str = None, name: str = None, modifiers: List[str] = None
+    text: str = None,
+    key: str = None,
+    name: str = None,
+    modifiers: List[str] = None,
+    instance_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Type text or press key. Provide text for typing, key for key press."""
-    session = TestSession.get_instance()
-
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
+    bridge, err = _resolve_bridge(instance_id)
+    if err:
+        return err
 
     if text is not None:
-        return session.bridge.send_command(
+        return bridge.send_command(
             {"command": "type_text", "text": text, "objectName": name}
         )
     elif key is not None:
-        return session.bridge.send_command(
+        return bridge.send_command(
             {
                 "command": "press_key",
                 "key": key,
@@ -888,13 +1258,18 @@ def input(
 
 
 @mcp.tool()
-def hover(name: str, x: Optional[int] = None, y: Optional[int] = None) -> Dict[str, Any]:
+def hover(
+    name: str,
+    x: Optional[int] = None,
+    y: Optional[int] = None,
+    instance_id: Optional[str] = None,
+) -> Dict[str, Any]:
     """Hover over element (triggers tooltips, hover states). Maps to iOS long-press entry."""
-    session = TestSession.get_instance()
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
+    bridge, err = _resolve_bridge(instance_id)
+    if err:
+        return err
     pos = [x, y] if x is not None and y is not None else None
-    return session.bridge.send_command({"command": "hover", "objectName": name, "pos": pos})
+    return bridge.send_command({"command": "hover", "objectName": name, "pos": pos})
 
 
 @mcp.tool()
@@ -902,44 +1277,52 @@ def scroll(
     name: str,
     direction: str = "up",
     amount: int = 100,
+    instance_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Scroll element by simulating a swipe drag. direction: up/down/left/right. amount: pixels.
     iOS semantics: scroll 'up' moves content upward (finger drags up)."""
-    session = TestSession.get_instance()
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
-    return session.bridge.send_command(
-        {"command": "scroll", "objectName": name, "direction": direction, "amount": amount}
+    bridge, err = _resolve_bridge(instance_id)
+    if err:
+        return err
+    return bridge.send_command(
+        {
+            "command": "scroll",
+            "objectName": name,
+            "direction": direction,
+            "amount": amount,
+        }
     )
 
 
 @mcp.tool()
-def long_press(name: str, duration_ms: int = 500) -> Dict[str, Any]:
+def long_press(
+    name: str, duration_ms: int = 500, instance_id: Optional[str] = None
+) -> Dict[str, Any]:
     """Long-press element (iOS context menu / haptic trigger equivalent)."""
-    session = TestSession.get_instance()
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
-    return session.bridge.send_command(
+    bridge, err = _resolve_bridge(instance_id)
+    if err:
+        return err
+    return bridge.send_command(
         {"command": "long_press", "objectName": name, "durationMs": duration_ms}
     )
 
 
 @mcp.tool()
-def get_text(name: str) -> Dict[str, Any]:
+def get_text(name: str, instance_id: Optional[str] = None) -> Dict[str, Any]:
     """Read visible text from element without knowing property name."""
-    session = TestSession.get_instance()
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
-    return session.bridge.send_command({"command": "get_text", "objectName": name})
+    bridge, err = _resolve_bridge(instance_id)
+    if err:
+        return err
+    return bridge.send_command({"command": "get_text", "objectName": name})
 
 
 @mcp.tool()
-def get_bounds(name: str) -> Dict[str, Any]:
+def get_bounds(name: str, instance_id: Optional[str] = None) -> Dict[str, Any]:
     """Get element bounding box {x, y, width, height} in global screen coordinates."""
-    session = TestSession.get_instance()
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
-    return session.bridge.send_command({"command": "get_bounds", "objectName": name})
+    bridge, err = _resolve_bridge(instance_id)
+    if err:
+        return err
+    return bridge.send_command({"command": "get_bounds", "objectName": name})
 
 
 # iPhone viewport presets (logical points, not pixels)
@@ -956,11 +1339,12 @@ def resize_window(
     width: Optional[int] = None,
     height: Optional[int] = None,
     preset: Optional[str] = None,
+    instance_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Resize app window to simulate iPhone viewport. preset: iphone_se / iphone_14 / iphone_14_pro_max / iphone_16_pro."""
-    session = TestSession.get_instance()
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
+    bridge, err = _resolve_bridge(instance_id)
+    if err:
+        return err
 
     if preset:
         if preset not in _IPHONE_PRESETS:
@@ -972,39 +1356,42 @@ def resize_window(
     elif width is None or height is None:
         return {"success": False, "error": "Provide width+height or preset"}
 
-    return session.bridge.send_command(
+    return bridge.send_command(
         {"command": "resize_window", "width": width, "height": height}
     )
 
 
 @mcp.tool()
-def layout_bounds() -> Dict[str, Any]:
+def layout_bounds(instance_id: Optional[str] = None) -> Dict[str, Any]:
     """
     Get scene bounding rects for all persons, their name labels (ItemDetails), and R symbols (Emotions).
     Returns {persons: [{id, name, gender, rect}], labels: [{parent_id, text, rect}], emotions: [{id, kind, person_id, target_id, rect}]}.
     rect fields: x, y, w, h (scene coordinates).
     Use to detect label/R-symbol collisions and calibrate the layout algorithm.
     """
-    session = TestSession.get_instance()
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
-    return session.bridge.send_command({"command": "get_layout_bounds"})
+    bridge, err = _resolve_bridge(instance_id)
+    if err:
+        return err
+    return bridge.send_command({"command": "get_layout_bounds"})
 
 
 @mcp.tool()
 def scene(
-    action: str = "list", name: str = None, type: str = None, button: str = "left"
+    action: str = "list",
+    name: str = None,
+    type: str = None,
+    button: str = "left",
+    instance_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Scene items. action="list" to list items, action="click" with name to click."""
-    session = TestSession.get_instance()
-
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
+    bridge, err = _resolve_bridge(instance_id)
+    if err:
+        return err
 
     if action == "list":
-        return session.bridge.send_command({"command": "get_scene_items", "type": type})
+        return bridge.send_command({"command": "get_scene_items", "type": type})
     elif action == "click" and name:
-        return session.bridge.send_command(
+        return bridge.send_command(
             {"command": "click_scene_item", "name": name, "button": button}
         )
     else:
@@ -1015,19 +1402,16 @@ def scene(
 
 
 @mcp.tool()
-def window(name: str = None) -> Dict[str, Any]:
+def window(name: str = None, instance_id: Optional[str] = None) -> Dict[str, Any]:
     """List windows if no name, activate window if name provided."""
-    session = TestSession.get_instance()
-
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
+    bridge, err = _resolve_bridge(instance_id)
+    if err:
+        return err
 
     if name is None:
-        return session.bridge.send_command({"command": "get_windows"})
+        return bridge.send_command({"command": "get_windows"})
     else:
-        return session.bridge.send_command(
-            {"command": "activate_window", "objectName": name}
-        )
+        return bridge.send_command({"command": "activate_window", "objectName": name})
 
 
 @mcp.tool()
@@ -1037,12 +1421,15 @@ def screenshot(
     baseline: str = None,
     current: str = None,
     threshold: float = 0.01,
+    instance_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Screenshots. action="take"(default), "list", or "compare" with baseline path."""
-    session = TestSession.get_instance()
+    instance, err = _resolve_instance(instance_id)
+    if err:
+        return err
 
     if action == "list":
-        screenshot_dir = session.project_root / "screenshots"
+        screenshot_dir = instance.project_root / "screenshots"
         if not screenshot_dir.exists():
             return {"success": True, "screenshots": [], "count": 0}
         screenshots = sorted(screenshot_dir.glob("*.png"))
@@ -1053,9 +1440,9 @@ def screenshot(
         }
 
     elif action == "take":
-        if not session.is_running:
+        if not instance.is_running:
             return {"success": False, "error": "App not running"}
-        if not session.bridge or not session.bridge.is_connected:
+        if not instance.bridge or not instance.bridge.is_connected:
             return {"success": False, "error": "Bridge not connected"}
 
         try:
@@ -1065,9 +1452,9 @@ def screenshot(
 
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             fname = f"{timestamp}_{name}" if name else timestamp
-            output_path = session.get_screenshot_path(fname)
+            output_path = instance.get_screenshot_path(fname)
 
-            response = session.bridge.send_command({"command": "take_screenshot"})
+            response = instance.bridge.send_command({"command": "take_screenshot"})
             if not response.get("success"):
                 return {"success": False, "error": response.get("error", "Failed")}
 
@@ -1103,9 +1490,9 @@ def screenshot(
             if current:
                 current_img = Image.open(current)
             else:
-                if not session.bridge or not session.bridge.is_connected:
+                if not instance.bridge or not instance.bridge.is_connected:
                     return {"success": False, "error": "Bridge not connected"}
-                response = session.bridge.send_command({"command": "take_screenshot"})
+                response = instance.bridge.send_command({"command": "take_screenshot"})
                 if not response.get("success"):
                     return {"success": False, "error": response.get("error", "Failed")}
                 current_img = Image.open(io.BytesIO(base64.b64decode(response["data"])))
@@ -1143,39 +1530,49 @@ def wait(seconds: float) -> Dict[str, Any]:
 
 @mcp.tool()
 def get_app_output(
-    stream: str = "both", last_n: Optional[int] = None, clear: bool = False
+    stream: str = "both",
+    last_n: Optional[int] = None,
+    clear: bool = False,
+    instance_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Get app stdout/stderr. stream="stdout", "stderr", or "both"."""
-    session = TestSession.get_instance()
+    instance, err = _resolve_instance(instance_id)
+    if err:
+        return err
 
-    if not session.is_running:
+    if not instance.is_running:
         return {"success": False, "error": "App not running"}
 
-    session.collect_output()
+    instance.collect_output()
     result = {"success": True}
 
     if stream in ("stdout", "both"):
-        lines = session._stdout_lines[-last_n:] if last_n else session._stdout_lines
+        lines = instance._stdout_lines[-last_n:] if last_n else instance._stdout_lines
         result["stdout"] = lines
     if stream in ("stderr", "both"):
-        lines = session._stderr_lines[-last_n:] if last_n else session._stderr_lines
+        lines = instance._stderr_lines[-last_n:] if last_n else instance._stderr_lines
         result["stderr"] = lines
 
     if clear:
         if stream in ("stdout", "both"):
-            session._stdout_lines.clear()
+            instance._stdout_lines.clear()
         if stream in ("stderr", "both"):
-            session._stderr_lines.clear()
+            instance._stderr_lines.clear()
 
     return result
 
 
 @mcp.tool()
 def report_testing_limitation(
-    feature: str, missing_controls: List[str], workaround: Optional[str] = None
+    feature: str,
+    missing_controls: List[str],
+    workaround: Optional[str] = None,
+    instance_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Report missing objectNames needed to test a feature. Logged for developer action."""
-    session = TestSession.get_instance()
+    instance, err = _resolve_instance(instance_id)
+    if err:
+        return err
 
     limitation = {
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -1188,7 +1585,9 @@ def report_testing_limitation(
         f"Testing limitation: {feature} - missing: {', '.join(missing_controls)}"
     )
 
-    limitations_file = session.project_root / "screenshots" / "testing_limitations.json"
+    limitations_file = (
+        instance.project_root / "screenshots" / "testing_limitations.json"
+    )
     limitations_file.parent.mkdir(exist_ok=True)
 
     limitations_list = []
@@ -1210,25 +1609,66 @@ def report_testing_limitation(
 
 
 # =============================================================================
+# MCP Tools - Data Seeding
+# =============================================================================
+
+
+@mcp.tool()
+def seed_server_data(
+    data: Dict[str, Any], instance_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """Seed test data into the ephemeral server. Requires ephemeral_server=True on launch.
+
+    data: dict with optional 'users' and 'diagrams' lists.
+    Users: {username, password, first_name, last_name, status}
+    Diagrams: {user_id, data}
+    """
+    instance, err = _resolve_instance(instance_id)
+    if err:
+        return err
+
+    if not instance.server_port:
+        return {
+            "success": False,
+            "error": "No ephemeral server for this instance. Launch with ephemeral_server=True.",
+        }
+
+    import requests
+
+    try:
+        response = requests.post(
+            f"http://127.0.0.1:{instance.server_port}/test/seed",
+            json=data,
+            timeout=10,
+        )
+        return response.json()
+    except requests.RequestException as e:
+        return {"success": False, "error": str(e)}
+
+
+# =============================================================================
 # MCP Tools - Personal App State
 # =============================================================================
 
 
 @mcp.tool()
-def personal_state(component: str = "all") -> Dict[str, Any]:
+def personal_state(
+    component: str = "all", instance_id: Optional[str] = None
+) -> Dict[str, Any]:
     """Get Personal app state. component: 'all', 'learn', 'discuss', 'plan', 'pdp'."""
-    session = TestSession.get_instance()
+    bridge, err = _resolve_bridge(instance_id)
+    if err:
+        return err
 
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
-
-    return session.bridge.send_command(
+    return bridge.send_command(
         {"command": "get_personal_state", "component": component}
     )
 
 
 @mcp.tool()
-def inject_pdp_data(data: Dict[str, Any]) -> Dict[str, Any]:
+def inject_pdp_data(
+    data: Dict[str, Any], instance_id: Optional[str] = None
+) -> Dict[str, Any]:
     """Inject test PDP data into the running Personal app.
 
     data: dict with 'people', 'events', 'pair_bonds' lists.
@@ -1237,23 +1677,21 @@ def inject_pdp_data(data: Dict[str, Any]) -> Dict[str, Any]:
     EventKind: 'shift', 'birth', 'married', 'separated', 'divorced', 'death', 'moved', 'bonded', 'adopted'
     VariableShift: 'up', 'down', 'same'
     """
-    session = TestSession.get_instance()
+    bridge, err = _resolve_bridge(instance_id)
+    if err:
+        return err
 
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
-
-    return session.bridge.send_command({"command": "inject_pdp_data", "data": data})
+    return bridge.send_command({"command": "inject_pdp_data", "data": data})
 
 
 @mcp.tool()
-def open_pdp_sheet() -> Dict[str, Any]:
+def open_pdp_sheet(instance_id: Optional[str] = None) -> Dict[str, Any]:
     """Open the PDP sheet drawer in the Personal app."""
-    session = TestSession.get_instance()
+    bridge, err = _resolve_bridge(instance_id)
+    if err:
+        return err
 
-    if not session.bridge or not session.bridge.is_connected:
-        return {"success": False, "error": "Bridge not connected"}
-
-    return session.bridge.send_command({"command": "open_pdp_sheet"})
+    return bridge.send_command({"command": "open_pdp_sheet"})
 
 
 # =============================================================================
@@ -1265,9 +1703,7 @@ def _simctl(*args, timeout: int = 30) -> Tuple[bool, str]:
     """Run xcrun simctl command. Returns (success, output)."""
     cmd = ["xcrun", "simctl"] + list(args)
     try:
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=timeout
-        )
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
         if result.returncode == 0:
             return True, result.stdout.strip()
         return False, result.stderr.strip() or result.stdout.strip()
@@ -1309,7 +1745,9 @@ def sim_list() -> Dict[str, Any]:
                         "name": d["name"],
                         "udid": d["udid"],
                         "state": d["state"],
-                        "runtime": runtime.replace("com.apple.CoreSimulator.SimRuntime.", ""),
+                        "runtime": runtime.replace(
+                            "com.apple.CoreSimulator.SimRuntime.", ""
+                        ),
                     }
                 )
         booted = [d for d in devices if d["state"] == "Booted"]
@@ -1433,7 +1871,18 @@ def sim_log(
     target = udid or _booted_udid() or "booted"
 
     # Use log stream with a short timeout to capture recent entries
-    cmd = ["xcrun", "simctl", "spawn", target, "log", "show", "--last", "30s", "--style", "compact"]
+    cmd = [
+        "xcrun",
+        "simctl",
+        "spawn",
+        target,
+        "log",
+        "show",
+        "--last",
+        "30s",
+        "--style",
+        "compact",
+    ]
     if bundle_id:
         # Extract process name from bundle ID (last component)
         process = bundle_id.split(".")[-1]
@@ -1450,5 +1899,6 @@ def sim_log(
 
 
 if __name__ == "__main__":
+    threading.Thread(target=_parent_death_watchdog, daemon=True).start()
     logger.info("Starting Family Diagram MCP Testing Server")
     mcp.run(transport="stdio")

@@ -81,17 +81,31 @@ Position fields: `itemPos` (current format) or `nonLayerPos` (older format) — 
 
 **Documentation routing**: For where decisions, plans, ADRs, and bugs belong, see top-level CLAUDE.md "Documentation Routing" section. Frontend/app ADRs go in `familydiagram/adrs/`. Frontend/app plans go in `familydiagram/doc/plans/`.
 
+### Multi-Instance Architecture
+
+Each `launch_app()` call creates an isolated **TestInstance** with:
+- Its own dynamic bridge port (no more hardcoded 9876)
+- Optional ephemeral btcopilot server (Flask + SQLite, fully sandboxed)
+- Sandboxed filesystem (temp dir, auto-cleaned)
+- UUID-based `instance_id` returned from `launch_app()`
+
+**Multiple apps run simultaneously** — Pro and Personal can run side by side, each with its own ephemeral server and data. All tools accept `instance_id` (defaults to most recent).
+
+**Ephemeral server**: `launch_app(ephemeral_server=True)` starts an isolated btcopilot Flask server with file-based SQLite. Seed data with `seed_server_data()`. No external Flask server needed.
+
+**iOS Simulator**: `launch_app_in_simulator()` boots a simulator, installs the pre-built iOS app, and connects via the bridge (auto-starts on port 9876 in simulator builds).
+
+**Cleanup**: `close_all_instances()` tears down everything. Orphan prevention via atexit, signal handlers, and ppid watchdog.
+
 ### Critical Rules
 
-1. **Close previous app instances first**: Before launching a new app, ALWAYS call `close_app(force=True)` first. Multiple app instances cause port conflicts (bridge server on 9876) and the MCP bridge will connect to the wrong app.
+1. **Wait for full startup**: Personal app needs 5-6 seconds after launch for QML initialization. Pro app is faster.
 
-2. **Pro vs Personal app detection**: The `get_app_state()` checks for Pro app MainWindow first. If a Pro app is running, it will always be detected even if you launched Personal. Kill all instances before switching app types.
+2. **Verify app type after launch**: Check `get_app_state()` returns the expected `appType` ("pro" or "personal").
 
-3. **Wait for full startup**: After launching the Personal app, wait at least 5-6 seconds. The QML UI takes longer to initialize than the Pro app's native widgets.
+3. **Use `close_all_instances()` for cleanup**: Kills all app processes, ephemeral servers, and sandbox dirs.
 
-4. **Verify app type after launch**: Always check `get_app_state()` returns the expected `appType` ("pro" or "personal") before proceeding with tests. Don't assume the launch worked correctly.
-
-5. **One app at a time**: Never attempt to run Pro and Personal apps simultaneously during MCP testing. The bridge server port conflict will cause failures.
+4. **Simulator bridge port is fixed at 9876**: Only one simulator app at a time can use the bridge (desktop proxy instances use dynamic ports and have no such limitation).
 
 ### QML Overlay Quirks
 - QML overlay items (Drawer, Popup) are parented to `Overlay.overlay` — not in standard `contentItem` tree
@@ -100,10 +114,8 @@ Position fields: `itemPos` (current format) or `nonLayerPos` (older format) — 
 
 ### Common Mistakes to Avoid
 
-- **Launching without closing**: Starting a new app while another is running causes bridge connection to wrong process
-- **Wrong app type detection**: Seeing `appType: "pro"` when you expected "personal" means there's a stale Pro app running
-- **Ignoring port errors**: "Address already in use" on port 9876 means close all app instances before retrying
 - **Insufficient wait time**: Personal app needs more startup time than Pro app due to QML engine initialization
+- **Forgetting cleanup**: Always call `close_all_instances()` or `close_app()` when done
 
 ## Architecture Overview
 
