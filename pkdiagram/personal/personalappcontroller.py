@@ -286,7 +286,7 @@ class PersonalAppController(QObject):
                 diagramData.version = sceneDiagramData.version
                 diagramData.versionCompat = sceneDiagramData.versionCompat
                 diagramData.name = sceneDiagramData.name
-                diagramData.lastItemId = sceneDiagramData.lastItemId
+                diagramData.lastItemId = max(diagramData.lastItemId, sceneDiagramData.lastItemId)
                 diagramData.clusters = self.clusterModel.clusters
                 diagramData.clusterCacheKey = self.clusterModel.cacheKey
                 return diagramData

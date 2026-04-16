@@ -436,3 +436,365 @@ def test_save_empty_pdp_stays_empty(create_model):
     assert pdp.get("people", []) == []
     assert pdp.get("events", []) == []
     assert pdp.get("pair_bonds", []) == []
+
+
+# --- Concurrent save simulation tests ---
+#
+# These tests verify the data merge logic of each app's applyChange callback
+# directly on DiagramData, without server round-trips. They simulate the 409
+# replay flow: one app saves, creating a new server state, then the second
+# app's applyChange runs against that state as if replaying after a conflict.
+
+from btcopilot.schema import (
+    DiagramData,
+    PDP,
+    Person as SchemaPerson,
+    Event as SchemaEvent,
+    EventKind,
+)
+import pickle
+import copy
+
+
+def _pro_apply_change(diagramData: DiagramData, localData: dict) -> DiagramData:
+    """Reproduce Pro app's applyChange from serverfilemanagermodel.py:538-584."""
+    diagramData.people = localData.get("people", [])
+    diagramData.events = localData.get("events", [])
+    diagramData.pair_bonds = localData.get("pair_bonds", [])
+    diagramData.emotions = localData.get("emotions", [])
+    diagramData.multipleBirths = localData.get("multipleBirths", [])
+    diagramData.layers = localData.get("layers", [])
+    diagramData.layerItems = localData.get("layerItems", [])
+    diagramData.items = localData.get("items", [])
+    diagramData.pruned = localData.get("pruned", [])
+    diagramData.uuid = localData.get("uuid")
+    diagramData.name = localData.get("name")
+    diagramData.tags = localData.get("tags", [])
+    diagramData.loggedDateTime = localData.get("loggedDateTime", [])
+    diagramData.masterKey = localData.get("masterKey")
+    diagramData.alias = localData.get("alias")
+    diagramData.version = localData.get("version")
+    diagramData.versionCompat = localData.get("versionCompat")
+    diagramData.lastItemId = localData.get("lastItemId", 0)
+    diagramData.readOnly = localData.get("readOnly", False)
+    diagramData.contributeToResearch = localData.get("contributeToResearch", False)
+    diagramData.useRealNames = localData.get("useRealNames", False)
+    diagramData.password = localData.get("password")
+    diagramData.requirePasswordForRealNames = localData.get(
+        "requirePasswordForRealNames", False
+    )
+    diagramData.showAliases = localData.get("showAliases", False)
+    diagramData.hideNames = localData.get("hideNames", False)
+    diagramData.hideToolBars = localData.get("hideToolBars", False)
+    diagramData.hideEmotionalProcess = localData.get("hideEmotionalProcess", False)
+    diagramData.hideEmotionColors = localData.get("hideEmotionColors", False)
+    diagramData.hideDateSlider = localData.get("hideDateSlider", False)
+    diagramData.hideVariablesOnDiagram = localData.get(
+        "hideVariablesOnDiagram", False
+    )
+    diagramData.hideVariableSteadyStates = localData.get(
+        "hideVariableSteadyStates", False
+    )
+    diagramData.hideSARFGraphics = localData.get("hideSARFGraphics", True)
+    diagramData.exclusiveLayerSelection = localData.get(
+        "exclusiveLayerSelection", True
+    )
+    diagramData.storePositionsInLayers = localData.get(
+        "storePositionsInLayers", False
+    )
+    diagramData.currentDateTime = localData.get("currentDateTime")
+    diagramData.scaleFactor = localData.get("scaleFactor")
+    diagramData.pencilColor = localData.get("pencilColor")
+    diagramData.eventProperties = localData.get("eventProperties", [])
+    diagramData.legendData = localData.get("legendData")
+    return diagramData
+
+
+def _personal_apply_change(
+    diagramData: DiagramData,
+    sceneDiagramData: DiagramData,
+    clusters: list,
+    clusterCacheKey: str | None,
+) -> DiagramData:
+    """Reproduce Personal app's applyChange from personalappcontroller.py:275-292."""
+    diagramData.people = sceneDiagramData.people
+    diagramData.events = sceneDiagramData.events
+    diagramData.pair_bonds = sceneDiagramData.pair_bonds
+    diagramData.emotions = sceneDiagramData.emotions
+    diagramData.multipleBirths = sceneDiagramData.multipleBirths
+    diagramData.layers = sceneDiagramData.layers
+    diagramData.layerItems = sceneDiagramData.layerItems
+    diagramData.items = sceneDiagramData.items
+    diagramData.pruned = sceneDiagramData.pruned
+    diagramData.version = sceneDiagramData.version
+    diagramData.versionCompat = sceneDiagramData.versionCompat
+    diagramData.name = sceneDiagramData.name
+    diagramData.lastItemId = sceneDiagramData.lastItemId
+    diagramData.clusters = clusters
+    diagramData.clusterCacheKey = clusterCacheKey
+    return diagramData
+
+
+def _names(dd: DiagramData) -> set[str]:
+    return {p.get("name") for p in dd.people}
+
+
+def test_concurrent_pro_saves_first_personal_replays():
+    """Pro saves scene edit (Alice), Personal replays with PDP + clusters on 409."""
+    serverState = DiagramData(
+        people=[{"id": 1, "name": "Alice", "kind": "Person"}],
+        lastItemId=1,
+    )
+
+    personalScene = DiagramData(
+        people=[{"id": 1, "name": "Alice", "kind": "Person"}],
+        lastItemId=1,
+    )
+    clusters = [{"id": "c1", "pattern": "anxiety_cascade", "event_ids": [10]}]
+    cacheKey = "personal-key-1"
+
+    # Personal's applyChange does NOT set pdp — it's preserved from server state.
+    # Simulate Personal having written PDP to server previously.
+    serverState.pdp = PDP(
+        people=[SchemaPerson(id=-1, name="PDPBob")],
+        events=[SchemaEvent(id=-2, kind=EventKind.Shift, person=-1)],
+        pair_bonds=[],
+    )
+
+    result = _personal_apply_change(serverState, personalScene, clusters, cacheKey)
+
+    assert "Alice" in _names(result)
+    assert result.pdp.people[0].name == "PDPBob"
+    assert len(result.pdp.events) == 1
+    assert result.clusters == clusters
+    assert result.clusterCacheKey == cacheKey
+
+
+def test_concurrent_personal_saves_first_pro_replays():
+    """Personal saves PDP + committed person Bob + clusters. Pro replays with scene edit
+    (Charlie + hideNames=True) on 409.
+
+    KNOWN LIMITATION: Pro's applyChange overwrites `people` from its local Scene,
+    which does not include Bob. Bob is lost from `people`. This is the expected
+    trade-off of the current architecture — each app owns its field list and the
+    Pro app does not merge people arrays.
+    """
+    serverState = DiagramData(
+        people=[{"id": 1, "name": "Bob", "kind": "Person"}],
+        pdp=PDP(people=[], events=[], pair_bonds=[]),
+        clusters=[{"id": "c1", "pattern": "anxiety_cascade"}],
+        clusterCacheKey="personal-key-1",
+        lastItemId=1,
+    )
+
+    proLocalData = {
+        "people": [{"id": 2, "name": "Charlie", "kind": "Person"}],
+        "events": [],
+        "pair_bonds": [],
+        "emotions": [],
+        "hideNames": True,
+        "lastItemId": 2,
+    }
+
+    result = _pro_apply_change(serverState, proLocalData)
+
+    assert result.hideNames is True
+    assert "Charlie" in _names(result)
+    # Bob is lost — Pro's applyChange replaces `people` wholesale from its local Scene
+    assert "Bob" not in _names(result)
+    # Personal-owned fields survive because Pro doesn't touch them
+    assert result.clusters == [{"id": "c1", "pattern": "anxiety_cascade"}]
+    assert result.clusterCacheKey == "personal-key-1"
+
+
+def test_concurrent_pdp_commit_then_pro_saves_stale():
+    """Personal committed PDP person Bob into `people` and saved. Pro (stale,
+    no Bob in local Scene) saves and gets 409, then replays.
+
+    KNOWN TRADE-OFF: Bob is lost from `people` because Pro replaces the entire
+    people array with its local state. The PDP entry for Bob was already removed
+    during commit (committed items leave PDP). This is the expected data loss
+    window in the current architecture — the mitigation is operational (Pro should
+    sync before editing).
+    """
+    serverState = DiagramData(
+        people=[
+            {"id": 1, "name": "ExistingPerson", "kind": "Person"},
+            {"id": 2, "name": "Bob", "kind": "Person"},  # committed from PDP
+        ],
+        pdp=PDP(people=[], events=[], pair_bonds=[]),  # Bob already committed out
+        lastItemId=2,
+    )
+
+    # Pro's local Scene is stale — only has ExistingPerson
+    proLocalData = {
+        "people": [{"id": 1, "name": "ExistingPerson", "kind": "Person"}],
+        "events": [],
+        "pair_bonds": [],
+        "emotions": [],
+        "lastItemId": 1,
+    }
+
+    result = _pro_apply_change(serverState, proLocalData)
+
+    # Bob is lost from people — Pro's local state didn't have him
+    assert "Bob" not in _names(result)
+    assert "ExistingPerson" in _names(result)
+    # PDP is empty — Bob was already committed out of it
+    assert result.pdp.people == []
+
+
+def test_concurrent_ui_flags_survive_personal_apply():
+    """Pro set hideNames=True and hideSARFGraphics=False. Personal replays
+    (doesn't set UI flags). UI flags must survive on the server."""
+    serverState = DiagramData(
+        hideNames=True,
+        hideSARFGraphics=False,
+        exclusiveLayerSelection=False,
+        storePositionsInLayers=True,
+        readOnly=True,
+        scaleFactor=1.5,
+    )
+
+    personalScene = DiagramData(
+        people=[{"id": 1, "name": "Someone"}],
+        lastItemId=1,
+    )
+
+    result = _personal_apply_change(serverState, personalScene, clusters=[], clusterCacheKey=None)
+
+    # Personal's applyChange only touches scene collections, version metadata,
+    # and clusters. All UI flags are untouched — they survive from server state.
+    assert result.hideNames is True
+    assert result.hideSARFGraphics is False
+    assert result.exclusiveLayerSelection is False
+    assert result.storePositionsInLayers is True
+    assert result.readOnly is True
+    assert result.scaleFactor == 1.5
+
+
+def test_concurrent_clusters_survive_pro_apply():
+    """Personal wrote clusters + clusterCacheKey. Pro replays. Both must survive."""
+    clusters = [
+        {"id": "c1", "pattern": "anxiety_cascade", "event_ids": [10, 11]},
+        {"id": "c2", "pattern": "triangle_activation", "event_ids": [12]},
+    ]
+    serverState = DiagramData(
+        clusters=clusters,
+        clusterCacheKey="cache-abc",
+    )
+
+    proLocalData = {
+        "people": [{"id": 1, "name": "Eve"}],
+        "events": [],
+        "pair_bonds": [],
+        "emotions": [],
+        "lastItemId": 1,
+    }
+
+    result = _pro_apply_change(serverState, proLocalData)
+
+    assert result.clusters == clusters
+    assert result.clusterCacheKey == "cache-abc"
+
+
+def test_concurrent_pdp_survives_pro_apply():
+    """Personal wrote non-empty PDP. Pro replays. PDP must survive intact."""
+    pdp = PDP(
+        people=[
+            SchemaPerson(id=-1, name="PDPAlice"),
+            SchemaPerson(id=-2, name="PDPBob"),
+        ],
+        events=[
+            SchemaEvent(id=-3, kind=EventKind.Shift, person=-1, description="anxiety spike"),
+            SchemaEvent(id=-4, kind=EventKind.Married, person=-1, spouse=-2),
+        ],
+        pair_bonds=[],
+    )
+    serverState = DiagramData(pdp=pdp)
+
+    proLocalData = {
+        "people": [{"id": 1, "name": "ScenePerson"}],
+        "events": [],
+        "pair_bonds": [],
+        "emotions": [],
+        "lastItemId": 1,
+    }
+
+    result = _pro_apply_change(serverState, proLocalData)
+
+    assert len(result.pdp.people) == 2
+    assert result.pdp.people[0].name == "PDPAlice"
+    assert result.pdp.people[1].name == "PDPBob"
+    assert len(result.pdp.events) == 2
+    assert result.pdp.events[0].kind == EventKind.Shift
+    assert result.pdp.events[1].kind == EventKind.Married
+
+
+def test_concurrent_alternating_saves_three_rounds():
+    """Simulate Pro → Personal (409) → Pro (409). Each app adds distinct data.
+    Verify final state within known limitations.
+
+    Round 1: Pro saves Alice + hideNames=True
+    Round 2: Personal gets 409, replays with clusters + its scene (which includes Alice)
+    Round 3: Pro gets 409, replays with Dave added to scene (stale, doesn't have clusters change)
+
+    After round 3, Pro's replay preserves clusters (not in Pro's field list) but
+    Pro's people array replaces server's — so the final people list is whatever
+    Pro's local Scene had.
+    """
+    # Round 1: Pro saves
+    serverState = DiagramData()
+    proLocalR1 = {
+        "people": [{"id": 1, "name": "Alice"}],
+        "events": [],
+        "pair_bonds": [],
+        "emotions": [],
+        "hideNames": True,
+        "lastItemId": 1,
+    }
+    serverState = _pro_apply_change(serverState, proLocalR1)
+
+    assert "Alice" in _names(serverState)
+    assert serverState.hideNames is True
+
+    # Round 2: Personal gets 409, replays. Personal's scene has Alice (synced before editing).
+    personalSceneR2 = DiagramData(
+        people=[{"id": 1, "name": "Alice"}],
+        lastItemId=1,
+    )
+    clustersR2 = [{"id": "c1", "pattern": "anxiety_cascade"}]
+    serverState.pdp = PDP(
+        people=[SchemaPerson(id=-1, name="PDPEve")], events=[], pair_bonds=[]
+    )
+    serverState = _personal_apply_change(
+        serverState, personalSceneR2, clustersR2, "cache-r2"
+    )
+
+    assert "Alice" in _names(serverState)
+    assert serverState.clusters == clustersR2
+    assert serverState.clusterCacheKey == "cache-r2"
+    assert serverState.hideNames is True  # UI flag survived Personal's replay
+    assert serverState.pdp.people[0].name == "PDPEve"
+
+    # Round 3: Pro gets 409, replays. Pro's local scene has Alice + Dave, but
+    # Pro doesn't know about clusters or PDP (stale).
+    proLocalR3 = {
+        "people": [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Dave"}],
+        "events": [],
+        "pair_bonds": [],
+        "emotions": [],
+        "hideNames": True,
+        "hideSARFGraphics": False,
+        "lastItemId": 2,
+    }
+    serverState = _pro_apply_change(serverState, proLocalR3)
+
+    # Pro-owned fields reflect Pro's latest
+    assert _names(serverState) == {"Alice", "Dave"}
+    assert serverState.hideNames is True
+    assert serverState.hideSARFGraphics is False
+    # Personal-owned fields survive all three rounds
+    assert serverState.clusters == clustersR2
+    assert serverState.clusterCacheKey == "cache-r2"
+    assert serverState.pdp.people[0].name == "PDPEve"

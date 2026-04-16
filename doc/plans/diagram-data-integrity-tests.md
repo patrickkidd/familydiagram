@@ -71,16 +71,18 @@ Failure indicators: PDP tab shows "no data" after Pro save, layers gone after Pe
 
 ### Test Results
 
-| # | Result | Date | Notes |
-|---|--------|------|-------|
-| 1 | PASS | 2026-04-12 | |
-| 2 | PASS | 2026-04-12 | |
-| 3 | PASS | 2026-04-12 | Used Hide Names toggle (scale is ephemeral) |
-| 4 | PASS (partial) | 2026-04-12 | Patrick ran concurrent variant: opened in Personal, opened in Pro, added event in Pro, sent "ping" in Personal chat, closed+reopened Personal — event survived but chat message+response was gone. **Chat loss is NOT a T0-4 issue** — chat statements are in the Discussion DB table, not DiagramData. Filed in MVP dashboard. |
-| 5 | | | |
-| 6 | | | |
-| 7 | | | |
-| 8 | | | |
+**Legend**: "Human verified" = Patrick manually ran the test and confirmed. "Agentic" = automated harness ran the scenario with no data loss detected. Only human verification counts as DONE.
+
+| # | Result | Verification | Date | Notes |
+|---|--------|-------------|------|-------|
+| 1 | PASS | Human verified | 2026-04-12 | |
+| 2 | PASS | Human verified | 2026-04-12 | |
+| 3 | PASS | Human verified | 2026-04-12 | Used Hide Names toggle (scale is ephemeral) |
+| 4 | PASS (partial) | Human verified | 2026-04-12 | Patrick ran concurrent variant: opened in Personal, opened in Pro, added event in Pro, sent "ping" in Personal chat, closed+reopened Personal — event survived but chat message+response was gone. **Chat loss is NOT a T0-4 issue** — chat statements are in the Discussion DB table, not DiagramData. Filed in MVP dashboard. |
+| 5 | PASS (agentic) | Agentic only | 2026-04-12 | Can't verify person in Personal UI (no diagram view). Used chat + reopen in Pro to confirm person persisted. Needs human verification. |
+| 6 | PASS (agentic) | Agentic only | 2026-04-12 | Needs human verification. |
+| 7 | PASS (agentic) | Agentic only | 2026-04-12 | Diagram data (people, pruned, event) survived. Chat "ping" lost on reopen — same known bug as #4. Needs human verification. |
+| 8 | PASS (agentic) | Agentic only | 2026-04-12 | Pro's event survived in Personal. Chat history lost on Personal reopen — same known bug. Needs human verification. |
 
 ---
 
@@ -124,6 +126,19 @@ This is an architectural decision that must be made before embedding ships. Thes
 | M5 | Rapid alternating saves | A saves, B saves, A saves, B saves (multiple 409 cycles) | Final state has both users' latest from each partition | Data regresses to earlier state after many retries |
 | M6 | One user offline, reconnects | A saves while B is offline. B reconnects, saves (409 with large delta). | B's retry merges onto A's state cleanly | Large version gap causes unexpected merge behavior |
 
+#### Multi-user Test Results
+
+**Legend**: "Agentic" = automated harness ran the scenario with no data loss detected. Only human verification counts as DONE.
+
+| # | Result | Verification | Date | Notes |
+|---|--------|-------------|------|-------|
+| M1 | PASS (agentic) | Agentic only | 2026-04-15 | Needs human verification. |
+| M2 | PASS (agentic) | Agentic only | 2026-04-15 | Needs human verification. |
+| M3 | BLOCKED | — | 2026-04-15 | Requires embedded Personal-in-Pro architecture (not yet shipped). Cannot test shared-process multi-user with two separate apps. |
+| M4 | BLOCKED | — | 2026-04-15 | Requires embedded Personal-in-Pro architecture. PDP commit moving items between pdp and scene arrays needs single-process shared Scene. |
+| M5 | PASS (agentic) | Agentic only | 2026-04-15 | Needs human verification. |
+| M6 | PASS (agentic) | Agentic only | 2026-04-15 | Needs human verification. |
+
 ### Category 3: Boundary and edge cases
 
 | # | Scenario | Steps | Pass criteria | What could break |
@@ -132,6 +147,17 @@ This is an architectural decision that must be made before embedding ships. Thes
 | B2 | Chat history survives diagram save | Send chat, save diagram, close, reopen | Chat messages present | Statements in Discussion table not loaded on reopen (KNOWN BUG — filed in MVP dashboard) |
 | B3 | Cluster cache key invalidation | Extract PDP (clusters generated), Pro edits scene (adds events), save | clusterCacheKey invalidated so clusters re-detect on next view | Stale clusters displayed after scene changes |
 | B4 | Empty diagram round-trip | Both apps open empty diagram, save from each | No phantom data introduced, no crashes | Default values written as explicit data |
+
+#### Boundary Test Results
+
+**Legend**: "Agentic" = automated harness ran the scenario with no data loss detected. Only human verification counts as DONE.
+
+| # | Result | Verification | Date | Notes |
+|---|--------|-------------|------|-------|
+| B1 | BLOCKED | — | 2026-04-15 | Requires embedded architecture to test crash-during-commit atomicity. Two separate apps can't share in-memory PDP commit state. |
+| B2 | KNOWN BUG | — | — | Chat history lost on diagram reopen. Already filed in MVP dashboard. Statements are in Discussion DB table, not DiagramData — not a data integrity issue for this test plan. |
+| B3 | BLOCKED | — | 2026-04-15 | Requires embedded architecture. clusterCacheKey invalidation on scene edit needs single-process shared Scene to observe stale cluster behavior. |
+| B4 | PASS (agentic) | Agentic only | 2026-04-15 | Needs human verification. |
 
 All embedded tests (Categories 1-3) are blocked until the embedded architecture ships. The current manual test script (tests 1-8) covers the two-separate-app architecture.
 

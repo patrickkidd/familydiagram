@@ -558,7 +558,7 @@ class ServerFileManagerModel(FileManagerModel):
                 diagramData.alias = localData.get("alias")
                 diagramData.version = localData.get("version")
                 diagramData.versionCompat = localData.get("versionCompat")
-                diagramData.lastItemId = localData.get("lastItemId", 0)
+                diagramData.lastItemId = max(diagramData.lastItemId, localData.get("lastItemId", 0))
                 # UI flags
                 diagramData.readOnly = localData.get("readOnly", False)
                 diagramData.contributeToResearch = localData.get("contributeToResearch", False)

@@ -39,6 +39,19 @@ When adding or removing fields on `btcopilot/btcopilot/schema.py:DiagramData`, d
 
 Each app's `applyChange` explicitly sets only the fields it owns. A field missing from these lists is preserved from the server's existing state, which is the correct behavior for fields owned by the other app.
 
+### FMEA Database (MANDATORY)
+
+[doc/fmea/](doc/fmea/) stores Failure Mode and Effects Analysis records. Each file is named `YYYY-MM-DD--slug.md`.
+
+**When to create an entry:**
+- Any FMEA analysis performed during a session (adversarial sub-agents, risk assessment)
+- Any data integrity or data loss bug found or reported by Patrick
+- Any production incident or near-miss
+
+**Format:** Each entry should include: scope, failure modes table (failure mode, trigger, severity, detection, mitigation status), and any related unit tests.
+
+**Periodic extraction (MANDATORY):** At the end of any session involving bug fixes, testing, or data integrity work, run a sub-agent to scan the conversation for bugs found, user complaints, near-misses, or data integrity concerns that were NOT already captured in an FMEA entry. Add them to a new or existing FMEA file. Update [doc/fmea/README.md](doc/fmea/README.md) index.
+
 ## Development Commands
 
 ### Environment Setup
