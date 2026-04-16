@@ -31,6 +31,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - For undoable app verbs, keep with the pattern of a verb method with
   `undo=False` and then a `def _do_<VERB>` method that does the actual work.
 
+### DiagramData Field Sync (MANDATORY)
+
+When adding or removing fields on `btcopilot/btcopilot/schema.py:DiagramData`, determine ownership first:
+- **Scene-owned fields** (people, events, UI flags, etc.): update `Scene.diagramData()` in `pkdiagram/scene/scene.py` AND the Pro app's `applyChange()` in `pkdiagram/models/serverfilemanagermodel.py`.
+- **Personal-owned fields** (pdp, clusters, clusterCacheKey): do NOT add to `applyChange()` or `Scene.diagramData()`. These pass through untouched when the Pro app saves — adding them would cause the Pro app to overwrite Personal data with empty defaults.
+
+Each app's `applyChange` explicitly sets only the fields it owns. A field missing from these lists is preserved from the server's existing state, which is the correct behavior for fields owned by the other app.
+
 ## Development Commands
 
 ### Environment Setup
