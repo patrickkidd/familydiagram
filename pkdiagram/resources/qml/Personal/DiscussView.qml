@@ -494,6 +494,7 @@ Page {
 
                     PK.TextEdit {
                         id: textEdit
+                        objectName: "chatTextEdit"
                         width: inputFlickable.width
                         selectByMouse: true
                         selectionColor: util.QML_HIGHLIGHT_COLOR
@@ -573,6 +574,7 @@ Page {
 
                 Rectangle {
                     id: sendButton
+                    objectName: "chatSendButton"
                     visible: textEdit.text.trim().length > 0
                     anchors {
                         right: parent.right

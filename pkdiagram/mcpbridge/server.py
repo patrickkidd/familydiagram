@@ -92,6 +92,7 @@ class TestBridgeServer(QObject):
             "activate_window": self._handleActivateWindow,
             # File operations
             "open_file": self._handleOpenFile,
+            "open_server_diagram": self._handleOpenServerDiagram,
             # Screenshots
             "take_screenshot": self._handleTakeScreenshot,
             # Personal app state
@@ -504,6 +505,13 @@ class TestBridgeServer(QObject):
             return {"success": False, "error": "Missing 'filePath'"}
 
         return self._inspector.openFile(filePath)
+
+    def _handleOpenServerDiagram(self, command: Dict) -> Dict:
+        """Handle open_server_diagram command."""
+        diagramId = command.get("diagramId")
+        if not diagramId:
+            return {"success": False, "error": "Missing 'diagramId'"}
+        return self._inspector.openServerDiagram(diagramId)
 
     def _handleTakeScreenshot(self, command: Dict) -> Dict:
         """Handle take_screenshot command."""

@@ -56,8 +56,16 @@ def _register_test_routes(app):
     """Register test-only endpoints for data seeding and health checks."""
     from flask import jsonify, request
 
+    import btcopilot
     from btcopilot.extensions import db
-    from btcopilot.pro.models import Diagram, User
+    from btcopilot.pro.models import (
+        Activation,
+        Diagram,
+        License,
+        Machine,
+        Policy,
+        User,
+    )
 
     @app.route("/test/seed", methods=["POST"])
     def test_seed():
@@ -88,8 +96,78 @@ def _register_test_routes(app):
             db.session.flush()
             result["diagrams"].append({"id": diagram.id, "user_id": diagram.user_id})
 
+        # Auto-create licenses + activation for each user so the app
+        # doesn't show license modals. Beta builds only honor LICENSE_BETA.
+        for user_info in result["users"]:
+            uid = user_info["id"]
+            hw_uuid = data.get("hardware_uuid", "test-hardware-uuid")
+            machine = Machine(user_id=uid, name="Test Machine", code=hw_uuid)
+            db.session.add(machine)
+            db.session.flush()
+            for code, product in [
+                (
+                    btcopilot.LICENSE_PROFESSIONAL_MONTHLY,
+                    btcopilot.LICENSE_PROFESSIONAL,
+                ),
+                (btcopilot.LICENSE_BETA, btcopilot.LICENSE_BETA),
+            ]:
+                policy = Policy(
+                    code=code,
+                    product=product,
+                    name=f"Test {product}",
+                    interval="month",
+                    amount=0,
+                    maxActivations=10,
+                    active=True,
+                    public=True,
+                )
+                db.session.add(policy)
+                db.session.flush()
+                lic = License(user_id=uid, policy=policy)
+                db.session.add(lic)
+                db.session.flush()
+                activation = Activation(license_id=lic.id, machine_id=machine.id)
+                db.session.add(activation)
+                db.session.flush()
+
         db.session.commit()
         return jsonify(result)
+
+    @app.route("/test/diagrams/<int:diagram_id>", methods=["GET"])
+    def test_read_diagram(diagram_id):
+        """Return raw pickle bytes. Use pickle.loads() on the response content."""
+        diagram = Diagram.query.get(diagram_id)
+        if not diagram:
+            return jsonify({"success": False, "error": "Not found"}), 404
+        from flask import Response
+
+        return Response(diagram.data or b"", mimetype="application/octet-stream")
+
+    @app.route("/test/diagrams/<int:diagram_id>", methods=["PUT"])
+    def test_update_diagram(diagram_id):
+        """Accept raw pickle bytes as request body."""
+        diagram = Diagram.query.get(diagram_id)
+        if not diagram:
+            return jsonify({"success": False, "error": "Not found"}), 404
+        diagram.data = request.data
+        db.session.commit()
+        return jsonify({"success": True})
+
+    @app.route("/test/diagrams/seed_pickle", methods=["POST"])
+    def test_seed_pickle():
+        """Seed a diagram from raw pickle bytes (preserves Qt types).
+        Send pickle bytes as request body with Content-Type: application/octet-stream.
+        Query params: user_id (required), name (optional).
+        """
+        user_id = request.args.get("user_id", type=int)
+        name = request.args.get("name", "")
+        if not user_id:
+            return jsonify({"success": False, "error": "user_id required"}), 400
+        diagram = Diagram(user_id=user_id, data=request.data, name=name)
+        db.session.add(diagram)
+        db.session.flush()
+        db.session.commit()
+        return jsonify({"success": True, "id": diagram.id})
 
     @app.route("/test/reset", methods=["POST"])
     def test_reset():

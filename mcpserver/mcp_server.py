@@ -561,7 +561,8 @@ class TestInstance:
             json={
                 "users": [
                     {"username": email, "password": "test", "status": "confirmed"}
-                ]
+                ],
+                "hardware_uuid": util.HARDWARE_UUID,
             },
             timeout=10,
         )
@@ -669,6 +670,7 @@ class TestInstance:
         username: str = None,
         ephemeral_server: bool = False,
         auto_auth_user: str = "test@example.com",
+        server_url: Optional[str] = None,
     ) -> Tuple[bool, str]:
         if self.is_running:
             return False, f"Instance {self.id} already running (PID: {self.pid})"
@@ -680,8 +682,11 @@ class TestInstance:
             # 1. Create sandbox
             sandbox_env = self._sandbox.create_sandbox(personal=personal)
 
-            # 2. Optional ephemeral server
-            if ephemeral_server:
+            # 2. Determine server URL
+            if server_url:
+                # Use explicitly provided server (e.g. another instance's ephemeral server)
+                pass
+            elif ephemeral_server:
                 ok, msg = self._start_ephemeral_server(auto_auth_user)
                 if not ok:
                     self._sandbox.cleanup()
@@ -916,16 +921,21 @@ def launch_app(
     username: Optional[str] = None,
     ephemeral_server: bool = False,
     auto_auth_user: str = "test@example.com",
+    server_url: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Launch app. Returns {success, instance_id, pid, bridge_connected}.
 
     Set ephemeral_server=True for a fully isolated btcopilot server (no external
     Flask server needed). Each instance gets its own dynamic ports.
 
+    Use server_url to point at another instance's ephemeral server (for shared-diagram
+    tests where Pro and Personal need the same backend).
+
     Args:
         username: User email for dev auto-login
         ephemeral_server: Start isolated btcopilot server for this instance
         auto_auth_user: Email for ephemeral server auto-auth (default test@example.com)
+        server_url: Override server URL (e.g. http://127.0.0.1:{other_instance.server_port})
     """
     instance = TestInstance.create()
 
@@ -949,6 +959,7 @@ def launch_app(
         username=username,
         ephemeral_server=ephemeral_server,
         auto_auth_user=auto_auth_user,
+        server_url=server_url,
     )
 
     if success and wait_seconds > 0:
@@ -1109,11 +1120,22 @@ def open_file(file_path: str, instance_id: Optional[str] = None) -> Dict[str, An
     bridge, err = _resolve_bridge(instance_id)
     if err:
         return err
+    return bridge.send_command({"command": "open_file", "filePath": file_path})
 
-    response = bridge.send_command({"command": "open_file", "filePath": file_path})
 
-    # Return full response including verification info
-    return response
+@mcp.tool()
+def open_server_diagram(
+    diagram_id: int, instance_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """Open a server diagram by ID — same code path as clicking in the file manager.
+    Requires the app to be logged in (login_state='logged_in').
+    """
+    bridge, err = _resolve_bridge(instance_id)
+    if err:
+        return err
+    return bridge.send_command(
+        {"command": "open_server_diagram", "diagramId": diagram_id}
+    )
 
 
 # =============================================================================

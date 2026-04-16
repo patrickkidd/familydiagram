@@ -1371,6 +1371,49 @@ class QtInspector:
             log.exception(f"Error opening file: {e}")
             return {"success": False, "error": str(e)}
 
+    def openServerDiagram(self, diagramId: int) -> Dict[str, Any]:
+        """Open a server diagram by ID — same code path as clicking in the file manager."""
+        try:
+            mainWindow = None
+            for window in self._app.topLevelWidgets():
+                if type(window).__name__ == "MainWindow":
+                    mainWindow = window
+                    break
+            if mainWindow is None:
+                return {"success": False, "error": "MainWindow not found"}
+
+            fileManager = getattr(mainWindow, "fileManager", None)
+            if not fileManager:
+                return {"success": False, "error": "FileManager not found"}
+
+            serverModel = fileManager.rootProp("serverFileModel")
+            if not serverModel:
+                return {"success": False, "error": "serverFileModel not found"}
+
+            diagram = serverModel.syncDiagramFromServer(diagramId)
+            if not diagram:
+                return {
+                    "success": False,
+                    "error": f"Failed to sync diagram {diagramId} from server",
+                }
+
+            fpath = serverModel.localPathForID(diagramId)
+
+            def _doOpen():
+                mainWindow.onServerFileClicked(fpath, diagram)
+
+            QTimer.singleShot(0, _doOpen)
+
+            return {
+                "success": True,
+                "message": f"Opening server diagram {diagramId}",
+                "diagramId": diagramId,
+            }
+
+        except Exception as e:
+            log.exception(f"Error opening server diagram: {e}")
+            return {"success": False, "error": str(e)}
+
     def activateWindow(self, objectName: str) -> Dict[str, Any]:
         """Activate a window."""
         for window in self._app.topLevelWidgets():
