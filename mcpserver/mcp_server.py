@@ -874,6 +874,35 @@ class TestInstance:
             self.process.stderr, self._stderr_lines, self._stderr_partial
         )
 
+    _ERROR_PATTERNS = (
+        "ERROR",
+        "Traceback",
+        "AssertionError",
+        "AttributeError",
+        "KeyError",
+        "TypeError",
+        "RuntimeError",
+    )
+
+    def collectErrors(self, since: int = 0) -> List[str]:
+        """Collect error lines from stdout since a given line index.
+
+        The app logs errors to stdout, not stderr. This method scans stdout
+        for ERROR/Traceback/Exception patterns and returns matching lines.
+
+        Usage:
+            mark = len(instance._stdout_lines)
+            # ... do something ...
+            instance.collect_output()
+            errors = instance.collectErrors(since=mark)
+        """
+        self.collect_output()
+        return [
+            l
+            for l in self._stdout_lines[since:]
+            if any(p in l for p in self._ERROR_PATTERNS)
+        ]
+
     def get_screenshot_path(self, name: Optional[str] = None) -> Path:
         screenshot_dir = self.project_root / "screenshots"
         screenshot_dir.mkdir(exist_ok=True)
@@ -1582,6 +1611,33 @@ def get_app_output(
             instance._stderr_lines.clear()
 
     return result
+
+
+@mcp.tool()
+def check_app_errors(
+    since: int = 0,
+    instance_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Check for errors in app output (stdout). Returns error lines since a given index.
+
+    The app logs errors to stdout, not stderr. Always use this instead of
+    manually checking stderr.
+
+    Args:
+        since: Only check lines after this index (use 0 for all). Pass the
+               'next_index' from a previous call to check only new errors.
+    """
+    instance, err = _resolve_instance(instance_id)
+    if err:
+        return err
+
+    errors = instance.collectErrors(since=since)
+    return {
+        "success": True,
+        "errors": errors,
+        "count": len(errors),
+        "next_index": len(instance._stdout_lines),
+    }
 
 
 @mcp.tool()
