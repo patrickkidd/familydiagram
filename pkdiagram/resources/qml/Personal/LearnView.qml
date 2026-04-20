@@ -21,6 +21,10 @@ Page {
     property bool showClusters: clusterModel ? clusterModel.showClusters : true
     onShowClustersChanged: { timelineZoom = 1.0; timelineScrollX = 0 }
 
+    // Baseline view: show raw SARF lines + dots when clusters are enabled but none detected yet (new diagrams)
+    property bool hasClusters: clusterModel && clusterModel.hasClusters
+    property bool showBaselineView: !hasClusters
+
     // WCAG AA colors for SARF
     readonly property color symptomColor: "#e05555"
     readonly property color anxietyColor: "#40a060"
@@ -812,14 +816,7 @@ Page {
                 color: util.IS_UI_DARK_MODE ? "#151520" : "#f5f5fa"
             }
 
-            // // Baseline
-            // Rectangle {
-            //     x: gLeft; y: yPosMini(0)
-            //     width: gWidth; height: 1
-            //     color: dividerColor
-            // }
-
-            // Graph lines
+            // Graph lines (baseline zero-line is drawn inside the canvas onPaint handler)
             Canvas {
                 id: graphCanvas
                 anchors.fill: parent
@@ -828,8 +825,48 @@ Page {
                 onPaint: {
                     var ctx = getContext("2d")
                     ctx.clearRect(0, 0, width, height)
-                    // Focused mode is handled by focusedViewContainer - nothing to draw here
-                    // Non-focused mode: cluster bars handle visualization
+                    // Focused mode is handled by focusedViewContainer
+                    if (isFocused) return
+                    // Draw SARF cumulative lines in baseline view (no clusters) or raw data mode
+                    if (!showBaselineView && showClusters) return
+                    if (!sarfGraphModel || !sarfGraphModel.cumulative || sarfGraphModel.cumulative.length < 2) return
+
+                    var cumulative = sarfGraphModel.cumulative
+
+                    // Draw baseline (zero) line
+                    ctx.strokeStyle = Qt.rgba(dividerColor.r, dividerColor.g, dividerColor.b, 0.5)
+                    ctx.lineWidth = 1
+                    ctx.beginPath()
+                    ctx.moveTo(gLeft, yPosMini(0))
+                    ctx.lineTo(gRight, yPosMini(0))
+                    ctx.stroke()
+
+                    // Draw SARF lines
+                    var lines = [
+                        {key: "symptom", color: symptomColor},
+                        {key: "anxiety", color: anxietyColor},
+                        {key: "functioning", color: functioningColor}
+                    ]
+                    for (var l = 0; l < lines.length; l++) {
+                        var key = lines[l].key
+                        var hasChange = false
+                        for (var c = 1; c < cumulative.length; c++) {
+                            if (cumulative[c][key] !== cumulative[0][key]) { hasChange = true; break }
+                        }
+                        if (!hasChange) continue
+
+                        ctx.strokeStyle = lines[l].color.toString()
+                        ctx.lineWidth = 2
+                        ctx.beginPath()
+                        var first = true
+                        for (var i = 0; i < cumulative.length; i++) {
+                            var x = xPosZoomed(cumulative[i].yearFrac)
+                            var y = yPosMini(cumulative[i][key])
+                            if (first) { ctx.moveTo(x, y); first = false }
+                            else { ctx.lineTo(x, y) }
+                        }
+                        ctx.stroke()
+                    }
                 }
             }
 
@@ -854,6 +891,9 @@ Page {
             Connections {
                 target: root
                 function onFocusedClusterIndexChanged() { graphCanvas.requestPaint() }
+                function onShowBaselineViewChanged() { graphCanvas.requestPaint() }
+                function onTimelineZoomChanged() { graphCanvas.requestPaint() }
+                function onTimelineScrollXChanged() { graphCanvas.requestPaint() }
             }
 
             // Time markers on x-axis (always visible, adaptive granularity)
@@ -950,7 +990,7 @@ Page {
                 MouseArea {
                     anchors.fill: parent
                     acceptedButtons: Qt.NoButton
-                    enabled: !showClusters
+                    enabled: !showClusters || showBaselineView
                     onWheel: {
                         var deltaX = wheel.angleDelta.x !== 0 ? wheel.angleDelta.x : wheel.angleDelta.y
                         var maxScroll = Math.max(0, gWidth * timelineZoom - gWidth)
@@ -962,7 +1002,7 @@ Page {
                 // Pinch to zoom with drag-to-pan (active when cluster container isn't handling it)
                 PinchArea {
                     anchors.fill: parent
-                    enabled: !showClusters
+                    enabled: !showClusters || showBaselineView
 
                     property real startZoom: 1.0
                     property real startScrollX: 0
@@ -1024,7 +1064,7 @@ Page {
                 width: gWidth
                 height: miniGraphH
                 clip: true
-                visible: showClusters
+                visible: showClusters && !showBaselineView
                 z: 150
 
                 // Wheel scroll for panning
@@ -1264,9 +1304,9 @@ Page {
                 }
             }
 
-            // Event dot markers on graph (only shown in raw data mode - not cluster mode)
+            // Event dot markers on graph (shown in raw data mode or baseline view when no clusters detected)
             Repeater {
-                model: sarfGraphModel && !showClusters ? sarfGraphModel.events : []
+                model: sarfGraphModel && (!showClusters || showBaselineView) ? sarfGraphModel.events : []
                 Item {
                     x: xPosZoomed(modelData.yearFrac) - 20
                     y: yPosMini(0) - 20
