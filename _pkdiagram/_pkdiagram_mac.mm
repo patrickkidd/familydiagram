@@ -157,7 +157,9 @@ static NSString * cNSString(const char *str) {
 }
 
 
+#if !TARGET_OS_IOS
 static NSString * const DocumentType = @"Family Diagram";
+#endif
 static NSString * const FileExtension = cNSString(CUtil::FileExtension);
 static NSString * const PickleFileName = cNSString(CUtil::PickleFileName);
 static NSString * const PeopleDirName = cNSString(CUtil::PeopleDirName);
@@ -806,6 +808,9 @@ static NSString * const EventsDirName = cNSString(CUtil::EventsDirName);
     [[NSNotificationCenter defaultCenter]
         removeObserver:self
         name:@"UIDeviceOrientationDidChangeNotification" object:nil];
+#if !__has_feature(objc_arc)
+    [super dealloc];
+#endif
 #elif TARGET_OS_MAC
 #if !__has_feature(objc_arc)
     [super dealloc];
@@ -1914,12 +1919,11 @@ public:
             return false;
         }
 #else
-        UIUserInterfaceStyle s = [UITraitCollection currentTraitCollection].userInterfaceStyle;
-        if(s == UIUserInterfaceStyleDark) {
-            return true;
-        } else {
-            return false;
+        if (@available(iOS 13.0, *)) {
+            UIUserInterfaceStyle s = [UITraitCollection currentTraitCollection].userInterfaceStyle;
+            return s == UIUserInterfaceStyleDark;
         }
+        return false;
 #endif
     }
 
@@ -2228,7 +2232,6 @@ void FDDocumentMac::save(bool quietly) {
 }
 
 void FDDocumentMac::saveAs(const QUrl &url) {
-    NSError *outError = nil;
 #if TARGET_OS_IOS
     [doc saveToURL:url.toNSURL() forSaveOperation:UIDocumentSaveForCreating completionHandler:^(BOOL success) {
         if(success) {
@@ -2239,6 +2242,7 @@ void FDDocumentMac::saveAs(const QUrl &url) {
         }
     }];
 #else
+    NSError *outError = nil;
     [doc writeToURL:url.toNSURL() ofType:DocumentType
                         forSaveOperation:NSSaveToOperation
                      originalContentsURL:doc.fileURL
