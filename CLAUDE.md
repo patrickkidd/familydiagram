@@ -111,13 +111,26 @@ Each `launch_app()` call creates an isolated **TestInstance** with:
 - Sandboxed filesystem (temp dir, auto-cleaned)
 - UUID-based `instance_id` returned from `launch_app()`
 
-**Multiple apps run simultaneously** — Pro and Personal can run side by side, each with its own ephemeral server and data. All tools accept `instance_id` (defaults to most recent).
+**Multiple apps run simultaneously** — Pro and Personal can run side by side, each pointing at the same or different backend. All tools accept `instance_id` (defaults to most recent).
 
-**Ephemeral server**: `launch_app(ephemeral_server=True)` starts an isolated btcopilot Flask server with file-based SQLite. Seed data with `seed_server_data()`. No external Flask server needed.
+**Shared ephemeral server**: Launch Pro with `ephemeral_server=True`, then launch Personal with `server_url=f"http://127.0.0.1:{pro.server_port}"`. Both apps share one DB. Use `seed_server_data()` or the `/test/seed` endpoint to create the user and diagrams the test requires.
 
 **iOS Simulator**: `launch_app_in_simulator()` boots a simulator, installs the pre-built iOS app, and connects via the bridge (auto-starts on port 9876 in simulator builds).
 
 **Cleanup**: `close_all_instances()` tears down everything. Orphan prevention via atexit, signal handlers, and ppid watchdog.
+
+### Bridge Coordination Tools (added 2026-04-30)
+
+These bridge commands make multi-instance tests deterministic without `time.sleep`:
+
+| Command | When to use |
+|---------|-------------|
+| `open_server_diagram(id)` | Now **blocks until fully loaded** (Pro and Personal). Previously fire-and-forget for Personal; now uses a nested QEventLoop for the async Personal load path. |
+| `save_diagram` | Trigger save and **block until complete**, including all 409 retries. Returns `{success, conflicts}` where `conflicts > 0` confirms the merge code path (applyChange) actually fired. |
+| `get_status` | Lightweight query: `{appType, serverDiagramId, sceneLoaded}`. Dispatched to main thread; returns as soon as main thread is free. |
+| `wait_until_idle` | No-op dispatched to the Qt main thread. Returns only when the main thread is free. Use after any async operation the bridge did not trigger directly. |
+
+**Ordering saves across instances**: `save_diagram` is synchronous at the bridge level, so sequential bridge calls are naturally ordered. Call A's `save_diagram` (blocks until done), then call B's `save_diagram`. B will hold a stale version and get a 409.
 
 ### Critical Rules
 
@@ -129,6 +142,8 @@ Each `launch_app()` call creates an isolated **TestInstance** with:
 
 4. **Simulator bridge port is fixed at 9876**: Only one simulator app at a time can use the bridge (desktop proxy instances use dynamic ports and have no such limitation).
 
+5. **For concurrent-save tests**: use `save_diagram` (not keyboard shortcuts). Keyboard shortcuts trigger async Qt actions that may not be done when the bridge command returns.
+
 ### QML Overlay Quirks
 - QML overlay items (Drawer, Popup) are parented to `Overlay.overlay` — not in standard `contentItem` tree
 - Drawer is a QQuickPopup (QObject), not QQuickItem — use `property("visible")` not `isVisible()`
@@ -138,6 +153,7 @@ Each `launch_app()` call creates an isolated **TestInstance** with:
 
 - **Insufficient wait time**: Personal app needs more startup time than Pro app due to QML engine initialization
 - **Forgetting cleanup**: Always call `close_all_instances()` or `close_app()` when done
+- **Using keyboard shortcuts for saves in multi-instance tests**: Use `save_diagram` instead — it blocks and reports conflicts
 
 ## Architecture Overview
 

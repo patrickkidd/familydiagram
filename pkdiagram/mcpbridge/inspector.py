@@ -1161,30 +1161,37 @@ class QtInspector:
         return {"success": False, "error": f"Scene item not found: {name}"}
 
     def getSceneItems(self, itemType: Optional[str] = None) -> Dict[str, Any]:
-        """
-        Get all scene items.
-
-        Args:
-            itemType: Optional type filter
-
-        Returns:
-            Dict with list of items
-        """
         items = []
-        for view in self._getGraphicsViews():
-            scene = view.scene()
-            if scene is None:
-                continue
 
+        def _collectFrom(scene, view=None):
             for item in scene.items():
                 className = type(item).__name__
                 if itemType is not None and className != itemType:
                     continue
+                items.append(self._getSceneItemInfo(item, view))
 
-                info = self._getSceneItemInfo(item, view)
-                items.append(info)
+        for view in self._getGraphicsViews():
+            scene = view.scene()
+            if scene is not None:
+                _collectFrom(scene, view)
+
+        # Personal app: scene is not attached to a QGraphicsView.
+        controller = self._findPersonalAppController()
+        if controller is not None and getattr(controller, "scene", None) is not None:
+            _collectFrom(controller.scene)
 
         return {"success": True, "items": items}
+
+    def addPerson(self) -> Dict[str, Any]:
+        for view in self._getGraphicsViews():
+            scene = view.scene()
+            if scene is None:
+                continue
+            from pkdiagram.scene.person import Person
+            person = Person()
+            scene.addItems(person)
+            return {"success": True, "id": person.id}
+        return {"success": False, "error": "No scene found"}
 
     def getLayoutBounds(self) -> Dict[str, Any]:
         """
@@ -1372,15 +1379,23 @@ class QtInspector:
             return {"success": False, "error": str(e)}
 
     def openServerDiagram(self, diagramId: int) -> Dict[str, Any]:
-        """Open a server diagram by ID — same code path as clicking in the file manager."""
+        """Open a server diagram by ID. Works for both Pro and Personal apps.
+        Blocks until the diagram is fully loaded before returning.
+        """
         try:
+            # Personal app path — async load, wait via nested event loop
+            controller = self._findPersonalAppController()
+            if controller is not None:
+                return self._openPersonalDiagram(controller, diagramId)
+
+            # Pro app path — synchronous
             mainWindow = None
             for window in self._app.topLevelWidgets():
                 if type(window).__name__ == "MainWindow":
                     mainWindow = window
                     break
             if mainWindow is None:
-                return {"success": False, "error": "MainWindow not found"}
+                return {"success": False, "error": "MainWindow not found (Pro or Personal)"}
 
             fileManager = getattr(mainWindow, "fileManager", None)
             if not fileManager:
@@ -1409,6 +1424,38 @@ class QtInspector:
         except Exception as e:
             log.exception(f"Error opening server diagram: {e}")
             return {"success": False, "error": str(e)}
+
+    def _openPersonalDiagram(self, controller, diagramId: int) -> Dict[str, Any]:
+        """Load a specific diagram in the Personal app, blocking until done."""
+        from pkdiagram.pyqt import QEventLoop
+
+        loaded = {"ok": False, "error": None}
+        loop = QEventLoop()
+
+        def onLoaded():
+            if controller._diagram and controller._diagram.id == diagramId:
+                loaded["ok"] = True
+                loop.quit()
+
+        def onError(msg=""):
+            loaded["error"] = f"Failed to load diagram {diagramId}: {msg}"
+            loop.quit()
+
+        controller.appConfig.set("lastDiagramId", diagramId)
+        controller.diagramChanged.connect(onLoaded)
+        controller.serverError.connect(onError)
+        controller.serverDown.connect(onError)
+        try:
+            controller._refreshDiagram()
+            loop.exec_()
+        finally:
+            controller.diagramChanged.disconnect(onLoaded)
+            controller.serverError.disconnect(onError)
+            controller.serverDown.disconnect(onError)
+
+        if loaded["ok"]:
+            return {"success": True, "message": f"Opened personal diagram {diagramId}", "diagramId": diagramId}
+        return {"success": False, "error": loaded["error"] or f"Diagram {diagramId} not loaded"}
 
     def activateWindow(self, objectName: str) -> Dict[str, Any]:
         """Activate a window."""
@@ -1996,8 +2043,8 @@ class QtInspector:
         """
         Trigger a save and block until it completes (including any 409 retries).
 
-        Returns success, attempt count, and conflict count. Conflicts > 0 means
-        the merge code path fired at least once.
+        Returns success, and conflict count. Conflicts > 0 means the merge code
+        path fired at least once.
         """
         import logging
 
@@ -2019,11 +2066,7 @@ class QtInspector:
             controller = self._findPersonalAppController()
             if controller is not None:
                 controller.saveDiagram()
-                return {
-                    "success": True,
-                    "attempts": counter.attempts,
-                    "conflicts": counter.conflicts,
-                }
+                return {"success": True, "conflicts": counter.conflicts}
 
             # Pro app path
             mainWindow = None
@@ -2042,10 +2085,34 @@ class QtInspector:
                 return {"success": False, "error": "No server diagram open"}
 
             mainWindow.save()
-            return {
-                "success": True,
-                "conflicts": counter.conflicts,
-            }
+            return {"success": True, "conflicts": counter.conflicts}
 
         finally:
             server_types_log.removeHandler(counter)
+
+    def getStatus(self) -> Dict[str, Any]:
+        """
+        Lightweight status snapshot — does NOT require Qt main thread dispatch.
+        Safe to call any time, even while main thread is busy with a load or save.
+        """
+        is_personal = self._findPersonalAppController() is not None
+        mainWindow = None
+        for window in self._app.topLevelWidgets():
+            if type(window).__name__ == "MainWindow":
+                mainWindow = window
+                break
+
+        scene = None
+        server_diagram_id = None
+        if mainWindow:
+            scene = getattr(mainWindow, "scene", None)
+            if scene:
+                sd = scene.serverDiagram() if hasattr(scene, "serverDiagram") else None
+                server_diagram_id = sd.id if sd else None
+
+        return {
+            "success": True,
+            "appType": "personal" if is_personal else "pro",
+            "serverDiagramId": server_diagram_id,
+            "sceneLoaded": scene is not None,
+        }

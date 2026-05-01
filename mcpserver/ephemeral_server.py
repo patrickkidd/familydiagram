@@ -72,20 +72,28 @@ def _register_test_routes(app):
         data = request.get_json()
         result = {"success": True, "users": [], "diagrams": []}
 
+        new_user_ids = []
         for ud in data.get("users", []):
-            user = User(
-                username=ud["username"],
-                first_name=ud.get("first_name", "Test"),
-                last_name=ud.get("last_name", "User"),
-                status=ud.get("status", "confirmed"),
-            )
-            if ud.get("password"):
-                user.set_password(ud["password"])
-            db.session.add(user)
-            db.session.flush()
-            user.set_free_diagram(pickle.dumps({}))
-            db.session.flush()
-            result["users"].append({"id": user.id, "username": user.username})
+            user = User.query.filter_by(username=ud["username"]).first()
+            if user is None:
+                user = User(
+                    username=ud["username"],
+                    first_name=ud.get("first_name", "Test"),
+                    last_name=ud.get("last_name", "User"),
+                    status=ud.get("status", "confirmed"),
+                )
+                if ud.get("password"):
+                    user.set_password(ud["password"])
+                db.session.add(user)
+                db.session.flush()
+                user.set_free_diagram(pickle.dumps({}))
+                db.session.flush()
+                new_user_ids.append(user.id)
+            result["users"].append({
+                "id": user.id,
+                "username": user.username,
+                "free_diagram_id": user.free_diagram_id,
+            })
 
         for dd in data.get("diagrams", []):
             diagram = Diagram(
@@ -96,19 +104,17 @@ def _register_test_routes(app):
             db.session.flush()
             result["diagrams"].append({"id": diagram.id, "user_id": diagram.user_id})
 
-        # Auto-create licenses + activation for each user so the app
-        # doesn't show license modals. Beta builds only honor LICENSE_BETA.
+        # License + machine seeding only for newly created users.
         for user_info in result["users"]:
             uid = user_info["id"]
+            if uid not in new_user_ids:
+                continue
             hw_uuid = data.get("hardware_uuid", "test-hardware-uuid")
             machine = Machine(user_id=uid, name="Test Machine", code=hw_uuid)
             db.session.add(machine)
             db.session.flush()
             for code, product in [
-                (
-                    btcopilot.LICENSE_PROFESSIONAL_MONTHLY,
-                    btcopilot.LICENSE_PROFESSIONAL,
-                ),
+                (btcopilot.LICENSE_PROFESSIONAL_MONTHLY, btcopilot.LICENSE_PROFESSIONAL),
                 (btcopilot.LICENSE_BETA, btcopilot.LICENSE_BETA),
             ]:
                 policy = Policy(
@@ -223,7 +229,7 @@ def main():
 
     signal.signal(signal.SIGTERM, handle_sigterm)
 
-    app.run(host="127.0.0.1", port=args.port, debug=False, use_reloader=False)
+    app.run(host="127.0.0.1", port=args.port, debug=False, use_reloader=False, threaded=True)
 
 
 if __name__ == "__main__":

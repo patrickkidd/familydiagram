@@ -59,7 +59,12 @@ class TestBridgeServer(QObject):
         self._setupHandlers()
 
     def _setupHandlers(self):
-        """Set up command handlers."""
+        """Set up command handlers.
+
+        Thread-safe handlers run directly on the bridge thread — safe to call
+        even while Qt's main thread is busy (load, save, layout).  All other
+        handlers are dispatched to the Qt main thread via _executeOnMain.
+        """
         self._handlers = {
             # App state (high-level)
             "get_app_state": self._handleGetAppState,
@@ -86,6 +91,7 @@ class TestBridgeServer(QObject):
             # Scene items
             "click_scene_item": self._handleClickSceneItem,
             "get_scene_items": self._handleGetSceneItems,
+            "add_person": self._handleAddPerson,
             "get_layout_bounds": self._handleGetLayoutBounds,
             # Windows
             "get_windows": self._handleGetWindows,
@@ -102,7 +108,16 @@ class TestBridgeServer(QObject):
             "open_pdp_sheet": self._handleOpenPdpSheet,
             # Status
             "ping": self._handlePing,
+            # Coordination — dispatched to main thread; block until done
+            "save_diagram": self._handleSaveDiagram,
+            # Coordination — thread-safe; never block on main thread
+            "get_status": self._handleGetStatus,
+            "wait_until_idle": self._handleWaitUntilIdle,
         }
+        # Commands that run directly on the bridge thread (no Qt dispatch).
+        # These must only read thread-safe state from the inspector.
+        # ping reads no Qt state — safe to answer directly on the bridge thread.
+        self._threadSafeHandlers = {"ping"}
 
     @property
     def port(self) -> int:
@@ -239,20 +254,30 @@ class TestBridgeServer(QObject):
                 {"success": False, "error": f"Unknown command: {cmdName}"}
             )
 
-        # Execute on main thread and wait for result
+        # Thread-safe commands run directly — never dispatch to Qt main thread.
+        if cmdName in self._threadSafeHandlers:
+            try:
+                return json.dumps(handler(command))
+            except Exception as e:
+                log.exception(f"Error in thread-safe handler {cmdName}: {e}")
+                return json.dumps({"success": False, "error": str(e)})
+
+        # All other commands execute on the Qt main thread.
+        # save_diagram and open_server_diagram can take >30 s under load.
+        import time
+
+        long_running = {"save_diagram", "open_server_diagram", "open_file"}
+        timeout = 120 if cmdName in long_running else 30
+
         result = {"pending": True}
         self._executeOnMain.emit(lambda: handler(command), result)
 
-        # Wait for result (with timeout)
-        import time
-
-        timeout = 30
         start = time.time()
         while result.get("pending") and time.time() - start < timeout:
             time.sleep(0.01)
 
         if result.get("pending"):
-            return json.dumps({"success": False, "error": "Command timeout"})
+            return json.dumps({"success": False, "error": f"Command timeout ({timeout}s): {cmdName}"})
 
         return json.dumps(
             result.get("response", {"success": False, "error": "No response"})
@@ -482,6 +507,9 @@ class TestBridgeServer(QObject):
         itemType = command.get("type")
         return self._inspector.getSceneItems(itemType)
 
+    def _handleAddPerson(self, command: Dict) -> Dict:
+        return self._inspector.addPerson()
+
     def _handleGetLayoutBounds(self, command: Dict) -> Dict:
         """Handle get_layout_bounds command."""
         return self._inspector.getLayoutBounds()
@@ -537,6 +565,24 @@ class TestBridgeServer(QObject):
     def _handleOpenPdpSheet(self, command: Dict) -> Dict:
         """Handle open_pdp_sheet command."""
         return self._inspector.openPdpSheet()
+
+    # -- Coordination handlers --
+
+    def _handleSaveDiagram(self, command: Dict) -> Dict:
+        """Trigger save synchronously; block until done (including 409 retries)."""
+        return self._inspector.saveDiagram()
+
+    def _handleGetStatus(self, command: Dict) -> Dict:
+        """Thread-safe status snapshot. Never dispatches to Qt main thread."""
+        return self._inspector.getStatus()
+
+    def _handleWaitUntilIdle(self, command: Dict) -> Dict:
+        """
+        Dispatched to the Qt main thread like any other command.
+        Returns immediately once the main thread processes it, proving
+        there are no blocking operations in flight.
+        """
+        return {"success": True}
 
 
 def startTestBridgeServer(port: int = DEFAULT_PORT) -> TestBridgeServer:
