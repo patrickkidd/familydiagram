@@ -2041,8 +2041,10 @@ class QtInspector:
 
     def saveDiagram(self) -> Dict[str, Any]:
         """
-        Trigger a save and block until it completes, including any 409 retries.
-        Returns conflicts > 0 when the merge code path fired.
+        Trigger a save and block until it completes (including any 409 retries).
+
+        Returns success, and conflict count. Conflicts > 0 means the merge code
+        path fired at least once.
         """
         import logging
 
@@ -2056,14 +2058,17 @@ class QtInspector:
                     self.conflicts += 1
 
         counter = _ConflictCounter()
-        target_log = logging.getLogger("pkdiagram.server_types")
-        target_log.addHandler(counter)
+        server_types_log = logging.getLogger("pkdiagram.server_types")
+        server_types_log.addHandler(counter)
+
         try:
+            # Personal app path
             controller = self._findPersonalAppController()
             if controller is not None:
                 controller.saveDiagram()
                 return {"success": True, "conflicts": counter.conflicts}
 
+            # Pro app path
             mainWindow = None
             for window in self._app.topLevelWidgets():
                 if type(window).__name__ == "MainWindow":
@@ -2073,13 +2078,17 @@ class QtInspector:
                 return {"success": False, "error": "No app found (Pro or Personal)"}
 
             scene = getattr(mainWindow, "scene", None)
-            if not scene or not scene.serverDiagram():
+            if scene is None:
+                return {"success": False, "error": "No scene loaded"}
+
+            if not scene.serverDiagram():
                 return {"success": False, "error": "No server diagram open"}
 
             mainWindow.save()
             return {"success": True, "conflicts": counter.conflicts}
+
         finally:
-            target_log.removeHandler(counter)
+            server_types_log.removeHandler(counter)
 
     def getStatus(self) -> Dict[str, Any]:
         """

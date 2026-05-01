@@ -457,16 +457,16 @@ import copy
 
 
 def _pro_apply_change(diagramData: DiagramData, localData: dict) -> DiagramData:
-    """Reproduce Pro app's applyChange from serverfilemanagermodel.py:538-584."""
-    diagramData.people = localData.get("people", [])
-    diagramData.events = localData.get("events", [])
-    diagramData.pair_bonds = localData.get("pair_bonds", [])
-    diagramData.emotions = localData.get("emotions", [])
-    diagramData.multipleBirths = localData.get("multipleBirths", [])
-    diagramData.layers = localData.get("layers", [])
-    diagramData.layerItems = localData.get("layerItems", [])
-    diagramData.items = localData.get("items", [])
-    diagramData.pruned = localData.get("pruned", [])
+    """Reproduce Pro app's applyChange from serverfilemanagermodel.py."""
+    for fname in DiagramData.SCENE_COLLECTION_FIELDS:
+        setattr(
+            diagramData,
+            fname,
+            DiagramData.merge_scene_collection(
+                getattr(diagramData, fname),
+                localData.get(fname, []),
+            ),
+        )
     diagramData.uuid = localData.get("uuid")
     diagramData.name = localData.get("name")
     diagramData.tags = localData.get("tags", [])
@@ -516,20 +516,20 @@ def _personal_apply_change(
     clusters: list,
     clusterCacheKey: str | None,
 ) -> DiagramData:
-    """Reproduce Personal app's applyChange from personalappcontroller.py:275-292."""
-    diagramData.people = sceneDiagramData.people
-    diagramData.events = sceneDiagramData.events
-    diagramData.pair_bonds = sceneDiagramData.pair_bonds
-    diagramData.emotions = sceneDiagramData.emotions
-    diagramData.multipleBirths = sceneDiagramData.multipleBirths
-    diagramData.layers = sceneDiagramData.layers
-    diagramData.layerItems = sceneDiagramData.layerItems
-    diagramData.items = sceneDiagramData.items
-    diagramData.pruned = sceneDiagramData.pruned
+    """Reproduce Personal app's applyChange from personalappcontroller.py."""
+    for fname in DiagramData.SCENE_COLLECTION_FIELDS:
+        setattr(
+            diagramData,
+            fname,
+            DiagramData.merge_scene_collection(
+                getattr(diagramData, fname),
+                getattr(sceneDiagramData, fname),
+            ),
+        )
     diagramData.version = sceneDiagramData.version
     diagramData.versionCompat = sceneDiagramData.versionCompat
     diagramData.name = sceneDiagramData.name
-    diagramData.lastItemId = sceneDiagramData.lastItemId
+    diagramData.lastItemId = max(diagramData.lastItemId, sceneDiagramData.lastItemId)
     diagramData.clusters = clusters
     diagramData.clusterCacheKey = clusterCacheKey
     return diagramData
@@ -572,12 +572,7 @@ def test_concurrent_pro_saves_first_personal_replays():
 
 def test_concurrent_personal_saves_first_pro_replays():
     """Personal saves PDP + committed person Bob + clusters. Pro replays with scene edit
-    (Charlie + hideNames=True) on 409.
-
-    KNOWN LIMITATION: Pro's applyChange overwrites `people` from its local Scene,
-    which does not include Bob. Bob is lost from `people`. This is the expected
-    trade-off of the current architecture — each app owns its field list and the
-    Pro app does not merge people arrays.
+    (Charlie) on 409. Bob (server-only, added by Personal) survives the merge.
     """
     serverState = DiagramData(
         people=[{"id": 1, "name": "Bob", "kind": "Person"}],
@@ -592,16 +587,13 @@ def test_concurrent_personal_saves_first_pro_replays():
         "events": [],
         "pair_bonds": [],
         "emotions": [],
-        "hideNames": True,
         "lastItemId": 2,
     }
 
     result = _pro_apply_change(serverState, proLocalData)
 
-    assert result.hideNames is True
     assert "Charlie" in _names(result)
-    # Bob is lost — Pro's applyChange replaces `people` wholesale from its local Scene
-    assert "Bob" not in _names(result)
+    assert "Bob" in _names(result)
     # Personal-owned fields survive because Pro doesn't touch them
     assert result.clusters == [{"id": "c1", "pattern": "anxiety_cascade"}]
     assert result.clusterCacheKey == "personal-key-1"
@@ -609,13 +601,8 @@ def test_concurrent_personal_saves_first_pro_replays():
 
 def test_concurrent_pdp_commit_then_pro_saves_stale():
     """Personal committed PDP person Bob into `people` and saved. Pro (stale,
-    no Bob in local Scene) saves and gets 409, then replays.
-
-    KNOWN TRADE-OFF: Bob is lost from `people` because Pro replaces the entire
-    people array with its local state. The PDP entry for Bob was already removed
-    during commit (committed items leave PDP). This is the expected data loss
-    window in the current architecture — the mitigation is operational (Pro should
-    sync before editing).
+    no Bob in local Scene) saves and gets 409, then replays. Merge keeps Bob
+    (server-only) and ExistingPerson (in both).
     """
     serverState = DiagramData(
         people=[
@@ -637,8 +624,8 @@ def test_concurrent_pdp_commit_then_pro_saves_stale():
 
     result = _pro_apply_change(serverState, proLocalData)
 
-    # Bob is lost from people — Pro's local state didn't have him
-    assert "Bob" not in _names(result)
+    # Bob survives — server-only items are kept by the merge
+    assert "Bob" in _names(result)
     assert "ExistingPerson" in _names(result)
     # PDP is empty — Bob was already committed out of it
     assert result.pdp.people == []
