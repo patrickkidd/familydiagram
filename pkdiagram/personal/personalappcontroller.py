@@ -274,15 +274,17 @@ class PersonalAppController(QObject):
         def _do():
             def applyChange(diagramData: DiagramData):
                 sceneDiagramData = self.scene.diagramData()
-                diagramData.people = sceneDiagramData.people
-                diagramData.events = sceneDiagramData.events
-                diagramData.pair_bonds = sceneDiagramData.pair_bonds
-                diagramData.emotions = sceneDiagramData.emotions
-                diagramData.multipleBirths = sceneDiagramData.multipleBirths
-                diagramData.layers = sceneDiagramData.layers
-                diagramData.layerItems = sceneDiagramData.layerItems
-                diagramData.items = sceneDiagramData.items
-                diagramData.pruned = sceneDiagramData.pruned
+                # Scene collections — union merge by ID; local wins on conflict.
+                # See serverfilemanagermodel.py for the symmetric Pro path.
+                for fname in DiagramData.SCENE_COLLECTION_FIELDS:
+                    setattr(
+                        diagramData,
+                        fname,
+                        DiagramData.merge_scene_collection(
+                            getattr(diagramData, fname),
+                            getattr(sceneDiagramData, fname),
+                        ),
+                    )
                 diagramData.version = sceneDiagramData.version
                 diagramData.versionCompat = sceneDiagramData.versionCompat
                 diagramData.name = sceneDiagramData.name

@@ -539,16 +539,19 @@ class ServerFileManagerModel(FileManagerModel):
                 # Only modify Scene-owned fields (FR-2 in DATA_SYNC_FLOW.md).
                 # Same pattern as PersonalAppController.saveDiagram().
                 localData = pickle.loads(dataToSave)
-                # Scene collections
-                diagramData.people = localData.get("people", [])
-                diagramData.events = localData.get("events", [])
-                diagramData.pair_bonds = localData.get("pair_bonds", [])
-                diagramData.emotions = localData.get("emotions", [])
-                diagramData.multipleBirths = localData.get("multipleBirths", [])
-                diagramData.layers = localData.get("layers", [])
-                diagramData.layerItems = localData.get("layerItems", [])
-                diagramData.items = localData.get("items", [])
-                diagramData.pruned = localData.get("pruned", [])
+                # Scene collections — union merge by ID; local wins on conflict.
+                # On 409 retry, diagramData holds the server's latest state, which
+                # may contain items the other app added since our last sync.
+                # Wholesale-replacing would destroy them.
+                for fname in DiagramData.SCENE_COLLECTION_FIELDS:
+                    setattr(
+                        diagramData,
+                        fname,
+                        DiagramData.merge_scene_collection(
+                            getattr(diagramData, fname),
+                            localData.get(fname, []),
+                        ),
+                    )
                 # Metadata
                 diagramData.uuid = localData.get("uuid")
                 diagramData.name = localData.get("name")

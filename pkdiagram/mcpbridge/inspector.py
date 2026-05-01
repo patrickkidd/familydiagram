@@ -1398,15 +1398,11 @@ class QtInspector:
                 }
 
             fpath = serverModel.localPathForID(diagramId)
-
-            def _doOpen():
-                mainWindow.onServerFileClicked(fpath, diagram)
-
-            QTimer.singleShot(0, _doOpen)
+            mainWindow.onServerFileClicked(fpath, diagram)
 
             return {
                 "success": True,
-                "message": f"Opening server diagram {diagramId}",
+                "message": f"Opened server diagram {diagramId}",
                 "diagramId": diagramId,
             }
 
@@ -1995,3 +1991,61 @@ class QtInspector:
                 return {"success": True, "width": width, "height": height}
 
         return {"success": False, "error": "No visible window found"}
+
+    def saveDiagram(self) -> Dict[str, Any]:
+        """
+        Trigger a save and block until it completes (including any 409 retries).
+
+        Returns success, attempt count, and conflict count. Conflicts > 0 means
+        the merge code path fired at least once.
+        """
+        import logging
+
+        class _ConflictCounter(logging.Handler):
+            def __init__(self):
+                super().__init__()
+                self.conflicts = 0
+
+            def emit(self, record):
+                if "Version conflict when saving" in record.getMessage():
+                    self.conflicts += 1
+
+        counter = _ConflictCounter()
+        server_types_log = logging.getLogger("pkdiagram.server_types")
+        server_types_log.addHandler(counter)
+
+        try:
+            # Personal app path
+            controller = self._findPersonalAppController()
+            if controller is not None:
+                controller.saveDiagram()
+                return {
+                    "success": True,
+                    "attempts": counter.attempts,
+                    "conflicts": counter.conflicts,
+                }
+
+            # Pro app path
+            mainWindow = None
+            for window in self._app.topLevelWidgets():
+                if type(window).__name__ == "MainWindow":
+                    mainWindow = window
+                    break
+            if mainWindow is None:
+                return {"success": False, "error": "No app found (Pro or Personal)"}
+
+            scene = getattr(mainWindow, "scene", None)
+            if scene is None:
+                return {"success": False, "error": "No scene loaded"}
+
+            if not scene.serverDiagram():
+                return {"success": False, "error": "No server diagram open"}
+
+            mainWindow.save()
+            return {
+                "success": True,
+                "conflicts": counter.conflicts,
+            }
+
+        finally:
+            server_types_log.removeHandler(counter)
