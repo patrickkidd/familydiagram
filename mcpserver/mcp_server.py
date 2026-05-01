@@ -60,6 +60,17 @@ from pkdiagram.server_types import (
 import pkdiagram.util as util
 
 
+def _uv_workspace_root(start: Path) -> Path:
+    """Walk up from start to find the directory containing the uv workspace pyproject.toml."""
+    current = start.resolve()
+    while current != current.parent:
+        pyproject = current / "pyproject.toml"
+        if pyproject.exists() and "[tool.uv.workspace]" in pyproject.read_text():
+            return current
+        current = current.parent
+    return start.parent  # fallback
+
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -191,25 +202,18 @@ class BridgeClient:
         self._connected = False
 
     def send_command(self, command: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Send a command to the bridge and get response.
-
-        Args:
-            command: Command dict with 'command' key and parameters
-
-        Returns:
-            Response dict from the bridge
-        """
         if not self.is_connected:
             if not self.connect():
                 return {"success": False, "error": "Not connected to bridge"}
 
+        long_running = {"save_diagram", "open_server_diagram", "open_file"}
+        recv_timeout = 130.0 if command.get("command") in long_running else 60.0
+        self._socket.settimeout(recv_timeout)
+
         try:
-            # Send command
             data = json.dumps(command) + "\n"
             self._socket.sendall(data.encode("utf-8"))
 
-            # Receive response
             buffer = b""
             while b"\n" not in buffer:
                 chunk = self._socket.recv(4096)
@@ -419,6 +423,7 @@ class TestInstance:
         self._stdout_partial: str = ""
         self._stderr_partial: str = ""
         self._sandbox = SandboxManager()
+        self._drain_threads: List[threading.Thread] = []
 
     @classmethod
     def create(cls) -> "TestInstance":
@@ -488,7 +493,7 @@ class TestInstance:
         db_dir = str(self._sandbox.sandbox_dir / "db")
         os.makedirs(db_dir, exist_ok=True)
 
-        workspace_root = self.project_root.parent
+        workspace_root = _uv_workspace_root(self.project_root)
         cmd = [
             "uv",
             "run",
@@ -547,6 +552,18 @@ class TestInstance:
                 logger.info(
                     f"[{self.id}] Ephemeral server ready on port {self._server_port}"
                 )
+                # Drain server pipes so Flask log writes never block its threads.
+                def _drain_server(pipe, lines):
+                    for raw in pipe:
+                        lines.append(raw.decode(errors="replace").rstrip("\n"))
+
+                for pipe, buf in [
+                    (self.server_process.stdout, self._stdout_lines),
+                    (self.server_process.stderr, self._stderr_lines),
+                ]:
+                    t = threading.Thread(target=_drain_server, args=(pipe, buf), daemon=True)
+                    t.start()
+                    self._drain_threads.append(t)
                 return True, f"Server started on port {self._server_port}"
 
         if self.server_process.poll() is None:
@@ -706,7 +723,7 @@ class TestInstance:
                 )
 
             # 4. Build app command
-            workspace_root = self.project_root.parent
+            workspace_root = _uv_workspace_root(self.project_root)
             cmd = [
                 "uv",
                 "run",
@@ -739,6 +756,11 @@ class TestInstance:
             if headless:
                 env["QT_QPA_PLATFORM"] = "offscreen"
             env["QT_QUICK_BACKEND"] = "software"
+            # Ensure subprocess loads this worktree's pkdiagram, not the main repo's editable install.
+            existing_pythonpath = env.get("PYTHONPATH", "")
+            env["PYTHONPATH"] = (
+                str(self.project_root) + (":" + existing_pythonpath if existing_pythonpath else "")
+            )
 
             logger.info(f"[{self.id}] Launching: {' '.join(cmd)}")
             logger.info(
@@ -753,6 +775,17 @@ class TestInstance:
                 stderr=subprocess.PIPE,
             )
             self.start_time = time.time()
+
+            def _drain(pipe, lines):
+                for raw in pipe:
+                    lines.append(raw.decode(errors="replace").rstrip("\n"))
+
+            for pipe, buf in [(self.process.stdout, self._stdout_lines),
+                               (self.process.stderr, self._stderr_lines)]:
+                t = threading.Thread(target=_drain, args=(pipe, buf), daemon=True)
+                t.start()
+                self._drain_threads.append(t)
+
             time.sleep(2)
 
             if not self.is_running:
@@ -763,15 +796,27 @@ class TestInstance:
                 self._sandbox.cleanup()
                 return False, f"App failed to start: {stderr[-500:]}"
 
-            # 6. Connect bridge
+            # 6. Connect bridge and wait for main thread to be idle.
+            # The bridge accepts 'ping' before the Qt event loop starts (ping is thread-safe),
+            # but other commands need the main thread. Poll wait_until_idle so we don't
+            # hand control back until the app has fully initialized.
             if enable_bridge:
                 self._bridge = BridgeClient(port=self._bridge_port)
                 if not self._bridge.connect(timeout=10):
                     logger.warning(f"[{self.id}] Failed to connect to test bridge")
                 else:
-                    response = self._bridge.send_command({"command": "ping"})
-                    if response.get("success"):
-                        logger.info(f"[{self.id}] Bridge connected and verified")
+                    deadline = time.time() + timeout
+                    ready = False
+                    while time.time() < deadline:
+                        resp = self._bridge.send_command({"command": "wait_until_idle"})
+                        if resp.get("success"):
+                            ready = True
+                            break
+                        time.sleep(0.5)
+                    if ready:
+                        logger.info(f"[{self.id}] Bridge connected and main thread idle")
+                    else:
+                        logger.warning(f"[{self.id}] Main thread not idle after {timeout}s")
 
             logger.info(f"[{self.id}] App started (PID: {self.pid})")
             return True, f"Instance {self.id} started (PID: {self.pid})"
@@ -837,6 +882,9 @@ class TestInstance:
     # -- Output collection --
 
     def collect_output(self) -> None:
+        # No-op when drain threads are active (they keep _stdout_lines/_stderr_lines live)
+        if self._drain_threads:
+            return
         if not self.process or not self.is_running:
             return
 
@@ -1156,7 +1204,7 @@ def open_file(file_path: str, instance_id: Optional[str] = None) -> Dict[str, An
 def open_server_diagram(
     diagram_id: int, instance_id: Optional[str] = None
 ) -> Dict[str, Any]:
-    """Open a server diagram by ID — same code path as clicking in the file manager.
+    """Open a server diagram by ID. Blocks until the diagram is fully loaded.
     Requires the app to be logged in (login_state='logged_in').
     """
     bridge, err = _resolve_bridge(instance_id)
@@ -1165,6 +1213,49 @@ def open_server_diagram(
     return bridge.send_command(
         {"command": "open_server_diagram", "diagramId": diagram_id}
     )
+
+
+@mcp.tool()
+def save_diagram(instance_id: Optional[str] = None) -> Dict[str, Any]:
+    """Trigger a save and block until it completes, including any 409 retries.
+
+    Returns {success, conflicts} where conflicts > 0 means a version conflict
+    was detected and the merge code path (applyChange) fired at least once.
+    Use this instead of keyboard shortcuts in multi-instance tests so saves
+    are fully serialized at the harness level.
+    """
+    bridge, err = _resolve_bridge(instance_id)
+    if err:
+        return err
+    return bridge.send_command({"command": "save_diagram"})
+
+
+@mcp.tool()
+def get_status(instance_id: Optional[str] = None) -> Dict[str, Any]:
+    """Get a lightweight status snapshot from the app.
+
+    Returns {appType, serverDiagramId, sceneLoaded}. Safe to call any time —
+    dispatched to the Qt main thread and returns as soon as it processes.
+    """
+    bridge, err = _resolve_bridge(instance_id)
+    if err:
+        return err
+    return bridge.send_command({"command": "get_status"})
+
+
+@mcp.tool()
+def wait_until_idle(instance_id: Optional[str] = None) -> Dict[str, Any]:
+    """Wait until the app's Qt main thread is idle (no load or save in flight).
+
+    Implemented by sending a no-op to the main thread and waiting for it to
+    return — if the main thread is blocked, this blocks too. Returns when the
+    main thread is free. Useful after triggering async operations that the
+    bridge does not natively serialize.
+    """
+    bridge, err = _resolve_bridge(instance_id)
+    if err:
+        return err
+    return bridge.send_command({"command": "wait_until_idle"})
 
 
 # =============================================================================
