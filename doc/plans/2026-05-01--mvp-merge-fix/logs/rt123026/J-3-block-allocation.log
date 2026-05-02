@@ -1,0 +1,10 @@
+=== J-3-block-allocation ===
+
+[baseline] lastItemId=None version=None people=[]
+[after-pro-add] lastItemId=None version=None people=[]
+pro save: {'success': True, 'conflicts': 0}
+[after-pro-save] lastItemId=1 version=2.1.23b1 people=[]
+new Pro people ids (above 0): []
+FAIL: Pro added no person
+
+Verdict: FAIL

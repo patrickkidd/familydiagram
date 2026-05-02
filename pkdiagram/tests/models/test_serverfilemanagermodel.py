@@ -456,14 +456,21 @@ import pickle
 import copy
 
 
-def _pro_apply_change(diagramData: DiagramData, localData: dict) -> DiagramData:
+def _pro_apply_change(
+    diagramData: DiagramData,
+    localData: dict,
+    openSnapshot: dict | None = None,
+) -> DiagramData:
     """Reproduce Pro app's applyChange from serverfilemanagermodel.py."""
+    if openSnapshot is None:
+        openSnapshot = {}
     for fname in DiagramData.SCENE_COLLECTION_FIELDS:
         setattr(
             diagramData,
             fname,
-            DiagramData.merge_scene_collection(
+            DiagramData.apply_local_changes(
                 getattr(diagramData, fname),
+                openSnapshot.get(fname, []),
                 localData.get(fname, []),
             ),
         )
@@ -515,14 +522,18 @@ def _personal_apply_change(
     sceneDiagramData: DiagramData,
     clusters: list,
     clusterCacheKey: str | None,
+    openSnapshot: dict | None = None,
 ) -> DiagramData:
     """Reproduce Personal app's applyChange from personalappcontroller.py."""
+    if openSnapshot is None:
+        openSnapshot = {}
     for fname in DiagramData.SCENE_COLLECTION_FIELDS:
         setattr(
             diagramData,
             fname,
-            DiagramData.merge_scene_collection(
+            DiagramData.apply_local_changes(
                 getattr(diagramData, fname),
+                openSnapshot.get(fname, []),
                 getattr(sceneDiagramData, fname),
             ),
         )

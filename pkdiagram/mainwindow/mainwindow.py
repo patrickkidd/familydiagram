@@ -51,6 +51,7 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram import version, util
 from pkdiagram.server_types import Diagram, HTTPError
+from pkdiagram.serverblockallocator import ServerBlockAllocator
 from pkdiagram.scene import ItemGarbage, Property, Scene
 from pkdiagram.scene.clipboard import Clipboard, ImportItems
 from pkdiagram.views import AccountDialog
@@ -105,13 +106,14 @@ class MainWindow(QMainWindow):
         self.isInitialized = False
         self.isInitializing = False
         self._blocked = False
-        self._savingServerFile = False
         self._isOpeningDiagram = False
         self._isImportingToFreeDiagram = False
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         if QApplication.platformName() != "offscreen":
             self.setUnifiedTitleAndToolBarOnMac(True)  # crash
+        elif util.IS_MAC:
+            self.menuBar().hide()  # native menu bar unavailable in offscreen mode
 
         #
         _translate = QCoreApplication.translate
@@ -209,12 +211,7 @@ class MainWindow(QMainWindow):
         self.fileManager.localFilesShownChanged[bool].connect(
             self.onLocalFilesShownChanged
         )
-        self.fileManager.serverFileModel.dataChanged.connect(
-            self.onServerFileModelDataChanged
-        )
-        self.fileManager.serverFileModel.reloadDiagramRequested[str, Diagram].connect(
-            self.onServerFileClicked
-        )
+
         self.centralWidgetContent.layout().addWidget(self.fileManager)
         self.prefsDialog = None
         self.documentView.raise_()
@@ -480,36 +477,6 @@ class MainWindow(QMainWindow):
         self.view.sceneToolBar.onItemsVisibilityChanged()
         self.view.adjustToolBars()
 
-    def onServerFileModelDataChanged(self, fromIndex, toIndex, roles):
-        if not self.scene:
-            return
-
-        if self._savingServerFile:
-            return
-
-        # Warn that current loaded file was updated from server
-        diagram = self.scene.serverDiagram()
-        if not diagram:
-            return
-
-        # # Check if alias of scene should be updated.
-        # row = self.serverFileModel.rowForDiagramId(diagram.id)
-        # alias = self.serverFileModel.index(row, 0).data(self.serverFileModel.AliasRole)
-        # if alias and alias != self.scene.alias():
-        #     self.scene.setAlias(alias)
-        #     self.updateWindowTitle()
-
-        if (
-            diagram
-            and self.serverFileModel.DiagramDataRole in roles
-            and not self._isImportingToFreeDiagram
-        ):
-            model = self.fileManager.serverFileModel
-            loadedRow = model.rowForDiagramId(diagram.id)
-            if loadedRow in list(range(fromIndex.row(), toIndex.row() + 1)):
-                updatedDiagram = model.diagramForRow(loadedRow)
-                fpath = model.localPathForID(diagram.id)
-                model.handleDiagramConflict(updatedDiagram, updatedDiagram.data, fpath)
 
     def onShowUndoView(self, on):
         if on:
@@ -705,7 +672,6 @@ class MainWindow(QMainWindow):
 
         # Write to server
         if self.scene.serverDiagram():
-            self._savingServerFile = True
             diagram_id = self.scene.serverDiagram().id
             row = self.serverFileModel.rowForDiagramId(diagram_id)
             if row is None:
@@ -724,7 +690,6 @@ class MainWindow(QMainWindow):
                     "Could not save file to server",
                     self.S_FAILED_TO_SAVE_SERVER_FILE,
                 )
-            self._savingServerFile = False
         else:
             self.document.save(quietly=latent)  # emits 'saved'; calls onDocumentSaved()
         self.scene.stack().setClean()
@@ -875,6 +840,14 @@ class MainWindow(QMainWindow):
         self._isOpeningServerDiagram = diagram  # just to set Scene.readOnly
         self.open(filePath=fpath)
         self.documentView.qmlEngine().setServerDiagram(diagram)
+        # Bind server-side id allocator so new items get ids from a
+        # server-reserved block. Prevents lastItemId collisions across
+        # concurrent writers (Pro × Personal). Local .fd files don't bind.
+        # Plan: doc/plans/2026-05-01--mvp-merge-fix/README.md
+        if self.scene and self.session:
+            self.scene.setIdAllocator(
+                ServerBlockAllocator(diagram, self.session.server())
+            )
         # Document load is now complete for server diagrams
         self._onDocumentLoadComplete()
         self.updateWindowTitle()

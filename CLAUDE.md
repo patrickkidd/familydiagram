@@ -16,6 +16,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Release process | [doc/RELEASE_PROCESS.md](doc/RELEASE_PROCESS.md) |
 | AI-driven test logs (Personal app) | [doc/test-logs/INDEX.md](doc/test-logs/INDEX.md) |
 | Data integrity workstream (started 2026-04-17) | [doc/plans/2026-04-17--data-integrity/](doc/plans/2026-04-17--data-integrity/) |
+| Manual test journey methodology (mandatory for all fixes) | [doc/TEST_JOURNEYS.md](doc/TEST_JOURNEYS.md) |
+
+## Manual Test Journeys
+
+Every bug fix and feature gets a manual test journey before being declared done. Methodology lives in [doc/TEST_JOURNEYS.md](doc/TEST_JOURNEYS.md). Summary:
+
+- Each fix gets a journey with a code (e.g., `1A`, `J-007`).
+- Claude writes the journey, attempts to run it through the harness (`familydiagram-testing` MCP for desktop, `chrome-devtools` for web), captures evidence, marks `READY FOR USER`.
+- Patrick runs it on real hardware and reports observation against the pass criterion. No judgment calls.
+- Journeys live in the workstream tracker (`doc/plans/<date>--<slug>/`) — separate file when complex enough to warrant.
+
+## Plan / Analysis Naming Convention (MANDATORY)
+
+New plans and analyses are date-prefixed so working state sorts as a log and stays greppable by slug.
+
+- Single-file work: `doc/plans/YYYY-MM-DD--slug.md` or `doc/analyses/YYYY-MM-DD--slug.md`
+- Multi-artifact workstream: `doc/plans/YYYY-MM-DD--slug/` folder with `README.md` as entry point + sub-files (e.g. `JOURNEYS.md`, `fixtures/`, `logs/`)
+
+Stable references (specs, asbuilts, FMEA — already date-prefixed) keep their existing topical or dated structure. Only `plans/` and `analyses/` adopt the date-prefix rule going forward; existing flat files migrate when touched.
 
 ## Code / design rules
 

@@ -1,0 +1,12 @@
+=== J-1A-pro-stale-save-preserves-personal ===
+
+Injecting PDP: {'people': [{'id': -1, 'name': 'PdpA_rt123026', 'kind': 'Person'}], 'events': [], 'pair_bonds': []}
+inject_pdp_data: {'success': True, 'injected': {'personCount': 1, 'eventCount': 0, 'pairBondCount': 0}}
+[after-pdp-inject] lastItemId=1 version=2.1.23b1 people=[]
+server pdp.people after inject: []
+pro save (after Personal pdp inject): {'success': True, 'conflicts': 0}
+[after-pro-save] lastItemId=1 version=2.1.23b1 people=[]
+final pdp.people: []
+FAIL: Personal's PDP injection lost when Pro saved
+
+Verdict: FAIL

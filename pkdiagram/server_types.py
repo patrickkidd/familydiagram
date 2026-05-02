@@ -267,7 +267,24 @@ class Diagram:
 
             if response.status_code == 200:
                 self.version = responseData.get("version", self.version + 1)
-                self.data = newData
+                # Latent fix 3a: server's canonical post-write blob (which
+                # may contain server-side post-processing) goes into
+                # `self.data` for display/reopen purposes. Falls back to
+                # `newData` if the server doesn't return canonical.
+                # Note: callers must capture their own
+                # `_lastSavedSnapshot` from their local view — we
+                # explicitly do NOT set it here because `newData` is the
+                # post-merge result (may include other-client items the
+                # local Scene never loaded), not the local view's state.
+                # See doc/plans/2026-05-01--mvp-merge-fix/README.md.
+                if "data" in responseData and responseData["data"]:
+                    canonical = responseData["data"]
+                    if useJson and isinstance(canonical, str):
+                        self.data = base64.b64decode(canonical)
+                    else:
+                        self.data = canonical
+                else:
+                    self.data = newData
                 return True
 
             if response.status_code == 409:

@@ -185,7 +185,6 @@ def _main_impl():
 
             devMenu = PersonalDevMenu(controller)
             devMenu.menuBar.setNativeMenuBar(True)
-            devMenu.menuBar.show()
 
         # Start test bridge server if requested or running in iOS Simulator
         testBridgeServer = None

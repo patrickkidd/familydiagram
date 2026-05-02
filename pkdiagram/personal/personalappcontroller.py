@@ -271,18 +271,36 @@ class PersonalAppController(QObject):
         if not self._diagram or not self.scene:
             return
 
+        # Snapshot baseline for the merge: Personal's Scene view at the
+        # last successful save (or, on first save, what was loaded at
+        # open). NOT the canonical server state, NOT the post-merge bytes
+        # — those may contain other-client items Personal's Scene never
+        # loaded, which would get interpreted as deletes on the next save.
+        # Plan: doc/plans/2026-05-01--mvp-merge-fix/README.md
+        snapshotBytes = getattr(self._diagram, "_lastSavedSnapshot", None) or self._diagram.data
+        openSnapshot = pickle.loads(snapshotBytes) if snapshotBytes else {}
+
+        # Capture Scene state NOW (caller-side) so we can stash it as the
+        # next-save snapshot after Diagram.save returns success.
+        currentSceneBytes = pickle.dumps(asdict(self.scene.diagramData()))
+
         def _do():
             def applyChange(diagramData: DiagramData):
                 sceneDiagramData = self.scene.diagramData()
-                # Scene collections — union merge by ID; local wins on conflict.
-                # See serverfilemanagermodel.py for the symmetric Pro path.
+                # Scene collections — snapshot-diff merge. For each field,
+                # take server's copy unless the user actually edited the
+                # item (snapshot vs local differ), preventing a stale
+                # snapshot from clobbering concurrent edits.
                 for fname in DiagramData.SCENE_COLLECTION_FIELDS:
+                    snapshot_field = openSnapshot.get(fname, [])
+                    local_field = getattr(sceneDiagramData, fname)
                     setattr(
                         diagramData,
                         fname,
-                        DiagramData.merge_scene_collection(
+                        DiagramData.apply_local_changes(
                             getattr(diagramData, fname),
-                            getattr(sceneDiagramData, fname),
+                            snapshot_field,
+                            local_field,
                         ),
                     )
                 diagramData.version = sceneDiagramData.version
@@ -293,9 +311,14 @@ class PersonalAppController(QObject):
                 diagramData.clusterCacheKey = self.clusterModel.cacheKey
                 return diagramData
 
-            self._diagram.save(
+            success = self._diagram.save(
                 self.session.server(), applyChange, lambda d: True, useJson=True
             )
+            if success:
+                # Capture Personal's Scene view as the merge baseline for
+                # the next save. NOT the post-merge bytes (other-client
+                # items would leak in and get treated as deletes later).
+                self._diagram._lastSavedSnapshot = currentSceneBytes
 
         self._withSaveGuard(_do)
 
@@ -1402,9 +1425,26 @@ class PersonalAppController(QObject):
 
         def onSuccess(data):
             if data.get("pdp") and self._diagram:
-                diagramData = self._diagram.getDiagramData()
-                diagramData.pdp = from_dict(PDP, data["pdp"])
-                self._diagram.setDiagramData(diagramData)
+                # Use the optimistic-locking save loop so a concurrent
+                # Pro/Personal save during the import doesn't get clobbered
+                # by a blind setDiagramData. The applyChange overwrites
+                # only the pdp field; everything else passes through from
+                # the server's current state.
+                # Wrapped in _withSaveGuard so it serializes against any
+                # in-flight saveDiagram (Personal auto-save during import).
+                # Plan: doc/plans/2026-05-01--mvp-merge-fix/README.md
+                imported_pdp = from_dict(PDP, data["pdp"])
+
+                def _do():
+                    def applyChange(diagramData: DiagramData):
+                        diagramData.pdp = imported_pdp
+                        return diagramData
+
+                    self._diagram.save(
+                        self.session.server(), applyChange, lambda d: True, useJson=True
+                    )
+
+                self._withSaveGuard(_do)
             self.pdpChanged.emit()
             self.journalImportCompleted.emit(data.get("summary", {}))
             self.clusterModel.detect()

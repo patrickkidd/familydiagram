@@ -151,13 +151,16 @@ def _register_test_routes(app):
 
     @app.route("/test/diagrams/<int:diagram_id>", methods=["PUT"])
     def test_update_diagram(diagram_id):
-        """Accept raw pickle bytes as request body."""
+        """Accept raw pickle bytes as request body. Bumps version so that
+        any client with a stale snapshot will hit a 409 on its next save —
+        exactly as if another real client had written."""
         diagram = Diagram.query.get(diagram_id)
         if not diagram:
             return jsonify({"success": False, "error": "Not found"}), 404
         diagram.data = request.data
+        diagram.version = (diagram.version or 0) + 1
         db.session.commit()
-        return jsonify({"success": True})
+        return jsonify({"success": True, "version": diagram.version})
 
     @app.route("/test/diagrams/seed_pickle", methods=["POST"])
     def test_seed_pickle():

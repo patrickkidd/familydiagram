@@ -7,6 +7,19 @@ For the data structures, see
 data flows through the PDP, see
 [PDP_DATA_FLOW.md](../../../btcopilot/doc/specs/PDP_DATA_FLOW.md).
 
+## File Reference
+
+| File | Contains |
+|------|----------|
+| `btcopilot/schema.py` | `DiagramData`, `PDP`, `Person`, `Event`, `PairBond`, `commit_pdp_items()`, `merge_scene_collection()`, `asdict()`, `from_dict()` |
+| `btcopilot/pdp.py` | `apply_deltas()`, `cleanup_pair_bonds()`, `cumulative()`, `validate_pdp_deltas()` |
+| `btcopilot/pro/models/diagram.py` | Server-side `get_diagram_data()`, `set_diagram_data()`, `update_with_version_check()` |
+| `familydiagram/server_types.py` | Client-side `getDiagramData()`, `setDiagramData()`, `mutate()`, `pushToServer()`, `save()` |
+| `familydiagram/personal/personalappcontroller.py` | Personal app: `saveDiagram()`, `_doAcceptPDPItem()`, `_doRejectPDPItem()`, `_addCommittedItemsToScene()` |
+| `familydiagram/models/serverfilemanagermodel.py` | Pro app: blocking `save()` with `handleDiagramConflict()`, `applyChange` merge logic |
+| `familydiagram/scene/commands.py` | Undo command stack — caches some item ids in `RemoveItems._unmapped` |
+| `familydiagram/scene/scene.py` | `Scene.nextId()`, `itemRegistry` keyed by id, `Scene.diagramData()` snapshot dump |
+
 ## Functional Requirements
 
 ### FR-1: Single Blob, Shared Ownership
@@ -228,6 +241,63 @@ events without a Marriage).
 
 ## Outstanding Issues
 
+### Concurrent Multi-App Edit Corruption (Bidirectional Edits, Deletes, ID Collisions)
+
+**Status as of 2026-05-01**: The current `merge_scene_collection` (`schema.py:437`, "union by id, local wins") protects pure additions but silently corrupts every other concurrent pattern. The "merge" feature creates a false sense of safety.
+
+**What works today** (additive case only):
+- Pro adds a new item, Personal saves anything → Pro's add survives.
+- Personal adds a new item, Pro saves anything → Personal's add survives.
+- Pro edits an item Personal didn't touch (and didn't have in its snapshot) → survives.
+- Personal-owned scalars (`pdp`, `clusters`) pass through Pro's `applyChange` because Pro doesn't write them.
+
+**What corrupts silently:**
+- **Bidirectional edits to the same item** (different fields). Pro edits Person 5's name, Personal edits Person 5's cutoff. Whichever app saves second overwrites the other's field with its stale snapshot.
+- **Deletes**. Either side deletes Person 5; the other side's stale snapshot resurrects them on next save.
+- **`lastItemId` collision**. Both apps share one counter; both can independently allocate id 101 between syncs. `max(server, local)` keeps the counter consistent but does not prevent collision. When both apps save, `merge_scene_collection`'s "local wins" silently overwrites one entity with the other.
+
+**What journeys 1A/1B in `doc/plans/2026-04-17--data-integrity/README.md` cover**: only the additive case (the one that works). They do not exercise edit-on-both-sides, delete-on-one-side, or `lastItemId` collision. They give a false-positive PASS.
+
+**Realistic incidence today**: zero in production, because the Personal app is not yet released. Risk only materializes once Personal ships and a user opens the same diagram in both apps within a short window.
+
+**Latent infrastructure bugs that any sync redesign must address:**
+
+1. **`Diagram.data = newData` after 200** (`server_types.py:270`). Client sets the local snapshot to the bytes it just SENT, not what the server stored. If the server applied any post-processing (e.g. `ensure_chat_defaults` mutates people / bumps `lastItemId`), the client's snapshot is a lie. Any snapshot-based design (delta or dirty-tracking) inherits this.
+2. **QtCore type equality** (`QDateTime`, `QPointF`, `QColor`). Two instances with identical content do not always compare equal (timezone state, etc.). A naive dict-equality diff produces false positives.
+3. **`commit_pdp_items` inferred-item creation is non-idempotent across 409 retries.** `_create_inferred_birth_items`, `_create_inferred_pair_bond_items`, `_repair_dangling_parents` re-execute on each retry. Any retry-heavy design exposes this more often.
+4. **PDP only lives in `DiagramData`, not in `Scene`.** A diff computed over `Scene.diagramData()` is structurally blind to PDP mutations. Personal's delta source must be `DiagramData`, not `Scene`.
+5. **commit_pdp_items runs client-side inside `applyChange`** (`personalappcontroller.py:1011`), not server-side. Replays on every 409 retry.
+
+**ID-keyed state in the Pro app** (relevant if any design renumbers ids client-side):
+
+| State | Location |
+|-------|----------|
+| Item Property values storing ids | `Event.person/spouse/child/relationshipTargets/relationshipTriangles`, `Emotion.event/target/person/layers`, `Person.layers`, `LayerItem.layers/parentId`, `Marriage.custody` — all `Property` instances of type `int` or `list[int]`. Serialized to disk. |
+| `Scene.itemRegistry` | `dict[int, Item]` keyed by id. ~14 read sites in `scene.py`. |
+| `Layer.itemProperties` | `dict[itemId, dict[propName, value]]` per Layer. Read in `layer.py`, `commands.py:160,245`, `property.py`, `scenelayermodel.py`. |
+| `AddItem._calloutParentId` | Cached parent id for callout undo (`commands.py:33`). |
+| Cluster JSON cache | `clusters_{diagramId}.json` — `eventIds` lists persisted to disk by `clustermodel.py`. |
+| Model `_sortedIds` | `peoplemodel.py`, `layeritempropertiesmodel.py`. |
+| `RemoveItems._unmapped["events" / "emotions"]` cached id fields | `personId`, `spouseId`, `childId`, `targetIds`, `triangleIds`, `eventId`, `targetId` — verified dead code (stored, never read). Safe to delete. |
+
+A renumber-on-collision design that misses any item in the first six rows produces silent data loss on next save/reload.
+
+### Proposals Considered (2026-05-01 deliberation)
+
+| Proposal | Approach | Verdict |
+|----------|----------|---------|
+| **Delta-via-applyChange (Scene-level)** | Capture original snapshot before save loop. In `applyChange(serverState)`, diff (snapshot vs current Scene), apply diff to serverState. Server unchanged. | **Insufficient.** A Scene-level diff is blind to PDP mutations. Must compute over `DiagramData`. Also still requires id-collision handling. |
+| **Delta-via-applyChange (DiagramData-level)** | Same, but diff over `DiagramData`. Picks up PDP changes. | Better foundation but still needs id-collision strategy and the latent fixes (snapshot-after-200, QtCore equality). |
+| **Renumber-in-flight on collision** | On 409, walk in-flight ids, detect collisions, renumber locally + patch all id-keyed state. | **Rejected.** Patching surface includes ~10 distinct id-storage sites across Properties, Layer overrides, cluster cache, model lists, undo stack object closures. Topological order required. Missing one site = silent corruption. Estimated 200-400 lines + comprehensive tests. |
+| **Server-side block allocation** | On diagram open, server allocates a block of ids (e.g. 100). Client uses ids from the block. No collision possible. Tiny integer leak (~1100 years per diagram to exhaust 2^31). | Eliminates renumber entirely. Server change ~50 lines, client change ~30 lines. Patrick objected aesthetically to the leak. |
+| **Server-side per-add allocation** | Client uses negative temp ids; server returns mapping on save. | Same patching surface as renumber-in-flight. No improvement. |
+| **Per-app id namespace** | Pro uses ids in [1, 2^30); Personal in [2^30, 2^31). | Rejected — apps share data, should share namespace. |
+| **UUIDs** | Globally unique ids. | Rejected — current id space is integer. |
+| **Per-item dirty tracking (Option B from gap doc)** | Client sends full blob + `dirty_ids` per collection + `deleted_ids`. Merge: take server's copy for non-dirty/non-deleted, take client's for dirty, drop deleted. | Smaller fix (~100 LOC). Does NOT fix `lastItemId` collision (same overwrite hazard). Does NOT do field-level last-write-wins (item-level only). Compatible with existing infrastructure. |
+| **v3 file format overhaul (option Patrick raised 2026-05-01)** | Coordinate with Personal app launch: switch to JSON, design deltas + server-allocated ids from the start, deprecate v1/v2 endpoints. | Largest change. Cleanest result. Justified if Personal launch is the trigger and Pro v3 is a non-compat release. |
+
+**Decision pending.** See `doc/plans/2026-04-17--data-integrity/2026-05-01--merge-correctness-gap.md` for the deliberation history.
+
 ### Chat Response Race Condition
 
 `_sendStatement()` is async. The server responds with updated PDP (from AI
@@ -260,17 +330,6 @@ incoming `diagramData` via `dataclasses.fields()` iteration, skipping fields
 tagged with `metadata={"personal": True}` on `DiagramData`. On 409 retry, the
 server's latest PDP and cluster data are preserved. New Personal-owned fields
 are automatically excluded via `DiagramData.personalFields()`.
-
-## File Reference
-
-| File | Contains |
-|------|----------|
-| `btcopilot/schema.py` | `DiagramData`, `PDP`, `Person`, `Event`, `PairBond`, `commit_pdp_items()`, `asdict()`, `from_dict()` |
-| `btcopilot/pdp.py` | `apply_deltas()`, `cleanup_pair_bonds()`, `cumulative()`, `validate_pdp_deltas()` |
-| `btcopilot/pro/models/diagram.py` | Server-side `get_diagram_data()`, `set_diagram_data()`, `update_with_version_check()` |
-| `familydiagram/server_types.py` | Client-side `getDiagramData()`, `setDiagramData()`, `mutate()`, `pushToServer()`, `save()` |
-| `familydiagram/personal/personalappcontroller.py` | Personal app: `saveDiagram()`, `_doAcceptPDPItem()`, `_doRejectPDPItem()`, `_addCommittedItemsToScene()` |
-| `familydiagram/models/serverfilemanagermodel.py` | Pro app: blocking `save()` with `handleDiagramConflict()` |
 
 ## Historical Context
 
