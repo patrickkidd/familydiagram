@@ -47,10 +47,15 @@ class ServerBlockAllocator:
 
     def _refill(self):
         bdata = pickle.dumps({"count": self._blockSize})
+        # Match Diagram.save's request style: explicit /v1 prefix +
+        # from_root=True. (`from_root=False` would also work and produces
+        # the same URL since util.serverUrl prepends /v1, but consistency
+        # with Diagram.save makes the pattern obvious.)
         response = self._server.blockingRequest(
             "POST",
-            f"/diagrams/{self._diagram.id}/reserve_ids",
+            f"/v1/diagrams/{self._diagram.id}/reserve_ids",
             bdata=bdata,
+            from_root=True,
         )
         body = pickle.loads(response.body)
         self._next = body["start"]

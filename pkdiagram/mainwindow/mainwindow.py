@@ -837,18 +837,13 @@ class MainWindow(QMainWindow):
             f"Open server file from file manager: {diagram.id}, version: {diagram.version}"
         )
         self.fileManager.setEnabled(False)
-        self._isOpeningServerDiagram = diagram  # just to set Scene.readOnly
+        self._isOpeningServerDiagram = diagram  # set Scene.readOnly + drive allocator binding in setDocument
         self.open(filePath=fpath)
         self.documentView.qmlEngine().setServerDiagram(diagram)
-        # Bind server-side id allocator so new items get ids from a
-        # server-reserved block. Prevents lastItemId collisions across
-        # concurrent writers (Pro × Personal). Local .fd files don't bind.
-        # Plan: doc/plans/2026-05-01--mvp-merge-fix/README.md
-        if self.scene and self.session:
-            self.scene.setIdAllocator(
-                ServerBlockAllocator(diagram, self.session.server())
-            )
-        # Document load is now complete for server diagrams
+        # Document load is now complete for server diagrams.
+        # ServerBlockAllocator was bound inside setDocument() — see the
+        # _isOpeningServerDiagram branch there. (Binding here would race
+        # the async open() and could target the wrong Scene instance.)
         self._onDocumentLoadComplete()
         self.updateWindowTitle()
         self._isOpeningServerDiagram = None
@@ -1225,6 +1220,22 @@ class MainWindow(QMainWindow):
                 self.showDiagram()
             if self._isOpeningServerDiagram:
                 self.serverPollTimer.start()
+                # Bind server-side id allocator on the just-created Scene
+                # for server-backed diagrams. Local .fd files don't bind
+                # (no concurrent writer to collide with). Done HERE
+                # rather than in onServerFileClicked because that path
+                # invokes self.open() which is async — self.scene may not
+                # yet point to the new diagram's scene by the time
+                # onServerFileClicked's body finishes. Binding inside
+                # setDocument guarantees the allocator targets the right
+                # Scene instance.
+                # Plan: doc/plans/2026-05-01--mvp-merge-fix/README.md
+                if self.session:
+                    self.scene.setIdAllocator(
+                        ServerBlockAllocator(
+                            self._isOpeningServerDiagram, self.session.server()
+                        )
+                    )
             # For local files, document load is complete now
             # For server diagrams, _onDocumentLoadComplete called after setServerDiagram
             if not self._isOpeningServerDiagram:
