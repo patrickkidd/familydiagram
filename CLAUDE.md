@@ -16,6 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Release process | [doc/RELEASE_PROCESS.md](doc/RELEASE_PROCESS.md) |
 | AI-driven test logs (Personal app) | [doc/test-logs/INDEX.md](doc/test-logs/INDEX.md) |
 | Data integrity workstream (started 2026-04-17) | [doc/plans/2026-04-17--data-integrity/](doc/plans/2026-04-17--data-integrity/) |
+| MVP merge fix workstream (2026-05-01, DONE) — snapshot-diff merge + server block id allocation | [doc/plans/2026-05-01--mvp-merge-fix/](doc/plans/2026-05-01--mvp-merge-fix/) |
 | Manual test journey methodology (mandatory for all fixes) | [doc/TEST_JOURNEYS.md](doc/TEST_JOURNEYS.md) |
 
 ## Manual Test Journeys

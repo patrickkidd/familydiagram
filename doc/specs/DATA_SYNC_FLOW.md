@@ -44,6 +44,18 @@ or retries are exhausted.
    or the caller must provide a validation hook that aborts when they're stale.
 3. A mutation SHOULD be a pure transform on its input — no side effects, no
    network I/O.
+4. **Scene-collection fields use `DiagramData.apply_local_changes`** — snapshot-diff
+   merge (added 2026-05-02). The mutation captures the caller's local Scene view
+   (`_lastSavedSnapshot`) at successful save; on the next save's `applyChange`,
+   `apply_local_changes(server, snapshot, local)` takes the user's actual changes
+   and applies them on top of server's current state. Items the user didn't touch
+   pass through from server, preserving concurrent edits at item level. See
+   [doc/plans/2026-05-01--mvp-merge-fix/](../plans/2026-05-01--mvp-merge-fix/README.md).
+5. **New scene-collection items get ids via server-side block allocation** (Pro app
+   only; Personal allocates server-side via `commit_pdp_items`). On server-diagram
+   open, Pro binds a `ServerBlockAllocator` that pulls non-overlapping id ranges
+   via `POST /v1/diagrams/{id}/reserve_ids`. Eliminates `lastItemId` collision
+   between concurrent writers. Local `.fd` files unchanged.
 
 ### FR-3: Domain Partitioning
 
@@ -241,9 +253,15 @@ events without a Marriage).
 
 ## Outstanding Issues
 
-### Concurrent Multi-App Edit Corruption (Bidirectional Edits, Deletes, ID Collisions)
+### ~~Concurrent Multi-App Edit Corruption~~ — RESOLVED 2026-05-02
 
-**Status as of 2026-05-01**: The current `merge_scene_collection` (`schema.py:437`, "union by id, local wins") protects pure additions but silently corrupts every other concurrent pattern. The "merge" feature creates a false sense of safety.
+**Status as of 2026-05-02:** Fixed by the [2026-05-01--mvp-merge-fix workstream](../plans/2026-05-01--mvp-merge-fix/README.md). `merge_scene_collection` removed; replaced by `apply_local_changes` (snapshot-diff). Server-side block id allocation via `POST /v1/diagrams/{id}/reserve_ids` eliminates `lastItemId` collisions. Verified: 7/8 manual journeys PASS on real hardware (J-6 deferred until Personal exposes `editEvent` UI). 46 unit tests + 3 e2e harness journeys.
+
+The original problem statement and proposals deliberation history is preserved below for context.
+
+---
+
+**Original status (2026-05-01)**: The current `merge_scene_collection` (`schema.py:437`, "union by id, local wins") protects pure additions but silently corrupts every other concurrent pattern. The "merge" feature creates a false sense of safety.
 
 **What works today** (additive case only):
 - Pro adds a new item, Personal saves anything → Pro's add survives.
@@ -296,7 +314,7 @@ A renumber-on-collision design that misses any item in the first six rows produc
 | **Per-item dirty tracking (Option B from gap doc)** | Client sends full blob + `dirty_ids` per collection + `deleted_ids`. Merge: take server's copy for non-dirty/non-deleted, take client's for dirty, drop deleted. | Smaller fix (~100 LOC). Does NOT fix `lastItemId` collision (same overwrite hazard). Does NOT do field-level last-write-wins (item-level only). Compatible with existing infrastructure. |
 | **v3 file format overhaul (option Patrick raised 2026-05-01)** | Coordinate with Personal app launch: switch to JSON, design deltas + server-allocated ids from the start, deprecate v1/v2 endpoints. | Largest change. Cleanest result. Justified if Personal launch is the trigger and Pro v3 is a non-compat release. |
 
-**Decision pending.** See `doc/plans/2026-04-17--data-integrity/2026-05-01--merge-correctness-gap.md` for the deliberation history.
+**Decision (2026-05-02):** Server-side block id allocation + snapshot-diff merge (apply_local_changes) — combination of #4 and a refined version of "Per-item dirty tracking". Implemented and verified; see [doc/plans/2026-05-01--mvp-merge-fix/](../plans/2026-05-01--mvp-merge-fix/README.md). Field-level merge (same-item-different-fields conflicts → second saver wins) accepted as MVP behavior; v3 work item.
 
 ### Chat Response Race Condition
 

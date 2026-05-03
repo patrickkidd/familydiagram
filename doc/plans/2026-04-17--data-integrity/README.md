@@ -1,6 +1,9 @@
 # Data Integrity
 
-**Last updated:** 2026-04-17. **Status of each item is in the table below.**
+**Last updated:** 2026-05-02 (Item 1 marked DONE; superseded by 2026-05-01--mvp-merge-fix workstream).
+**Original date:** 2026-04-17.
+
+**Item 1 (concurrent merge) is COMPLETE** — superseded by the MVP merge fix workstream which implemented snapshot-diff merge + server-side block id allocation, replacing the original "union by id, local wins" `merge_scene_collection`. See [2026-05-01--mvp-merge-fix/](../2026-05-01--mvp-merge-fix/README.md). 7/8 manual journeys PASS, 1 deferred (Personal lacks editEvent UI). Items 2-9 below remain in their original state.
 
 ---
 
@@ -60,7 +63,7 @@ Patrick: edit `Status` column inline. `PASS` / `FAIL` / blank.
 
 | # | Item | Test | Status |
 |---|------|------|:------:|
-| 1 | **Concurrent merge** — `merge_scene_collection` in `schema.py` + use in both `applyChange` callbacks (Pro + Personal) | Open T04-04 in both apps; both add data; both save; reopen each → both sides preserved | PASS |
+| 1 | **Concurrent merge** — `merge_scene_collection` in `schema.py` + use in both `applyChange` callbacks (Pro + Personal) | Open T04-04 in both apps; both add data; both save; reopen each → both sides preserved | DONE (superseded by [2026-05-01--mvp-merge-fix/](../2026-05-01--mvp-merge-fix/README.md): snapshot-diff merge replaces union-by-id-local-wins; block id allocation replaces shared `lastItemId` counter; Item 1's original PASS only validated additive case which had a false-positive — full validation via 7/8 manual journeys PASS in 2026-05-02 campaign) |
 | 2 | **Reader crash guard** — null-check in `Scene.prune` event loop + emotions `and`→`or` | Open Diagram 1924 in Pro → no traceback (may show fewer items, that's fine) | |
 | 3 | **Prune cascade** — when `Scene.prune` removes a pair_bond/person, also remove referencing events | pytest only (synthetic blob) | |
 | 4 | **commit_pdp_items atomic** — snapshot scene/pdp lists at entry; rollback on any exception | pytest only (forced fault via monkeypatch) | |

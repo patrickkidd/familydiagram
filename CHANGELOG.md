@@ -6,6 +6,7 @@ All notable changes to Family Diagram are documented in this file.
 
 ## 2.1.23b1
 
+- Can open the same file in pro and personal apps now, even with multiple users.
 - Fix clearing SARF variables in pro app
 - Defensive fix for new macOS feature "Full Keyboard Access""
 
