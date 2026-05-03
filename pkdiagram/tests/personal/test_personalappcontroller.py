@@ -18,6 +18,7 @@ from pkdiagram import util
 from pkdiagram.server_types import Diagram
 from pkdiagram.pyqt import QNetworkReply
 from PyQt5.QtCore import QByteArray
+from PyQt5.QtWidgets import QMessageBox
 
 from btcopilot.extensions import db
 from btcopilot.schema import DiagramData, PDP, Person, asdict
@@ -763,11 +764,13 @@ def test_onUploadFinished_emits_failed_on_network_error(
     mockReply.errorString.return_value = "Connection refused"
     mockReply.deleteLater = MagicMock()
 
-    personalApp._onUploadFinished(mockReply, "test-key", tmpFile.name)
+    with patch.object(QMessageBox, "critical") as mock_critical:
+        personalApp._onUploadFinished(mockReply, "test-key", tmpFile.name)
 
     assert failed.callCount == 1
     assert "Upload failed" in failed.callArgs[0][0]
     assert not os.path.exists(tmpFile.name)
+    assert mock_critical.call_count == 1
 
 
 def test_onUploadFinished_emits_failed_when_no_upload_url(
@@ -788,11 +791,13 @@ def test_onUploadFinished_emits_failed_when_no_upload_url(
     mockReply.readAll.return_value = QByteArray(json.dumps({}).encode())
     mockReply.deleteLater = MagicMock()
 
-    personalApp._onUploadFinished(mockReply, "test-key", tmpFile.name)
+    with patch.object(QMessageBox, "critical") as mock_critical:
+        personalApp._onUploadFinished(mockReply, "test-key", tmpFile.name)
 
     assert failed.callCount == 1
     assert "no URL" in failed.callArgs[0][0]
     assert not os.path.exists(tmpFile.name)
+    assert mock_critical.call_count == 1
 
 
 def test_onPollFinished_emits_transcriptionReady_on_completed(
@@ -842,11 +847,13 @@ def test_onPollFinished_emits_failed_on_error_status(
     )
     mockReply.deleteLater = MagicMock()
 
-    personalApp._onPollFinished(mockReply, "txn-123", "test-key", tmpFile.name)
+    with patch.object(QMessageBox, "critical") as mock_critical:
+        personalApp._onPollFinished(mockReply, "txn-123", "test-key", tmpFile.name)
 
     assert failed.callCount == 1
     assert "Audio too short" in failed.callArgs[0][0]
     assert not os.path.exists(tmpFile.name)
+    assert mock_critical.call_count == 1
 
 
 def test_onPollFinished_repolls_on_processing_status(
@@ -885,11 +892,13 @@ def test_onTranscriptSubmitted_emits_failed_on_network_error(
     mockReply.errorString.return_value = "Connection refused"
     mockReply.deleteLater = MagicMock()
 
-    personalApp._onTranscriptSubmitted(mockReply, "test-key", tmpFile.name)
+    with patch.object(QMessageBox, "critical") as mock_critical:
+        personalApp._onTranscriptSubmitted(mockReply, "test-key", tmpFile.name)
 
     assert failed.callCount == 1
     assert "failed" in failed.callArgs[0][0].lower()
     assert not os.path.exists(tmpFile.name)
+    assert mock_critical.call_count == 1
 
 
 def test_onTranscriptSubmitted_emits_failed_when_no_id(
@@ -910,11 +919,13 @@ def test_onTranscriptSubmitted_emits_failed_when_no_id(
     mockReply.readAll.return_value = QByteArray(json.dumps({}).encode())
     mockReply.deleteLater = MagicMock()
 
-    personalApp._onTranscriptSubmitted(mockReply, "test-key", tmpFile.name)
+    with patch.object(QMessageBox, "critical") as mock_critical:
+        personalApp._onTranscriptSubmitted(mockReply, "test-key", tmpFile.name)
 
     assert failed.callCount == 1
     assert "No transcript ID" in failed.callArgs[0][0]
     assert not os.path.exists(tmpFile.name)
+    assert mock_critical.call_count == 1
 
 
 def test_cleanupRecording_removes_file(personalApp: PersonalAppController):
