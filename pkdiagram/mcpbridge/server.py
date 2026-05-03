@@ -185,20 +185,26 @@ class TestBridgeServer(QObject):
         log.info("Test Bridge Server stopped")
 
     def _runServer(self):
-        """Run the server (in background thread)."""
+        """Run the server (in background thread). Spawns a thread per
+        client so multiple connections (e.g., MCP host + a direct test
+        driver) can coexist."""
+        import threading
         while self._running:
             try:
                 # Accept connection
                 client, addr = self._socket.accept()
                 log.info(f"Client connected: {addr}")
 
-                try:
-                    self._handleClient(client)
-                except Exception as e:
-                    log.exception(f"Error handling client: {e}")
-                finally:
-                    client.close()
-                    log.info(f"Client disconnected: {addr}")
+                def _serve(client=client, addr=addr):
+                    try:
+                        self._handleClient(client)
+                    except Exception as e:
+                        log.exception(f"Error handling client {addr}: {e}")
+                    finally:
+                        client.close()
+                        log.info(f"Client disconnected: {addr}")
+
+                threading.Thread(target=_serve, daemon=True).start()
 
             except socket.timeout:
                 # Check if still running

@@ -51,13 +51,10 @@ class ServerFileManagerModel(FileManagerModel):
     S_CONFIRM_DELETE_SERVER_FILE = (
         "Are you sure you want to delete this file? This cannot be undone."
     )
-    PREF_DONT_SHOW_SERVER_FILE_UPDATED = "dontShowServerFileUpdated"
-
     DiagramDataRole = FileManagerModel.OwnerRole + 1
 
     serverError = pyqtSignal(int)
     updateFinished = pyqtSignal()
-    reloadDiagramRequested = pyqtSignal(str, Diagram, arguments=["fpath", "diagram"])
 
     # for testing
     indexGETResponse = pyqtSignal(object)
@@ -479,41 +476,6 @@ class ServerFileManagerModel(FileManagerModel):
         else:
             return super().data(index, role)
 
-    def handleDiagramConflict(self, diagram, refreshedData, fpath):
-        if self.prefs and self.prefs.value(self.PREF_DONT_SHOW_SERVER_FILE_UPDATED):
-            updatedDiagram = diagram
-            updatedDiagram.data = refreshedData
-            self.reloadDiagramRequested.emit(fpath, updatedDiagram)
-            return False
-
-        msgBox = QMessageBox()
-        msgBox.setIcon(QMessageBox.Warning)
-        msgBox.setWindowTitle("Diagram Modified by Another User")
-        msgBox.setText(
-            "This diagram was modified by another user while you were editing."
-        )
-        msgBox.setInformativeText("What would you like to do?")
-
-        overwriteBtn = msgBox.addButton(
-            "Overwrite Their Changes", QMessageBox.DestructiveRole
-        )
-        reloadBtn = msgBox.addButton("Reload Their Changes", QMessageBox.AcceptRole)
-        cancelBtn = msgBox.addButton("Cancel", QMessageBox.RejectRole)
-
-        msgBox.setDefaultButton(cancelBtn)
-        msgBox.exec_()
-
-        clickedButton = msgBox.clickedButton()
-
-        if clickedButton == overwriteBtn:
-            return True
-        elif clickedButton == reloadBtn:
-            updatedDiagram = diagram
-            updatedDiagram.data = refreshedData
-            self.reloadDiagramRequested.emit(fpath, updatedDiagram)
-            return False
-        else:
-            return False
 
     def setData(self, index, value, role=Qt.DisplayRole):
         if role == self.ShownRole:
@@ -535,20 +497,32 @@ class ServerFileManagerModel(FileManagerModel):
             dataToSave = value
             fpath = self.localPathForID(diagram.id)
 
+            # Snapshot baseline for the merge: Pro's Scene view at the
+            # last successful save (or, on first save, what was loaded
+            # from server at open — Pro's Scene loads from diagram.data
+            # so they're equivalent). NOT the canonical server state, NOT
+            # the post-merge bytes — those may contain other-client items
+            # that Pro's Scene never loaded, which would get interpreted
+            # as deletes on the next save.
+            # Plan: doc/plans/2026-05-01--mvp-merge-fix/README.md
+            snapshotBytes = getattr(diagram, "_lastSavedSnapshot", None) or diagram.data
+            openSnapshot = pickle.loads(snapshotBytes) if snapshotBytes else {}
+
             def applyChange(diagramData: DiagramData):
                 # Only modify Scene-owned fields (FR-2 in DATA_SYNC_FLOW.md).
                 # Same pattern as PersonalAppController.saveDiagram().
                 localData = pickle.loads(dataToSave)
-                # Scene collections — union merge by ID; local wins on conflict.
-                # On 409 retry, diagramData holds the server's latest state, which
-                # may contain items the other app added since our last sync.
-                # Wholesale-replacing would destroy them.
+                # Scene collections — snapshot-diff merge. For each field,
+                # take server's copy unless the user actually edited the
+                # item (snapshot vs local differ), preventing a stale
+                # snapshot from clobbering concurrent edits.
                 for fname in DiagramData.SCENE_COLLECTION_FIELDS:
                     setattr(
                         diagramData,
                         fname,
-                        DiagramData.merge_scene_collection(
+                        DiagramData.apply_local_changes(
                             getattr(diagramData, fname),
+                            openSnapshot.get(fname, []),
                             localData.get(fname, []),
                         ),
                     )
@@ -586,14 +560,18 @@ class ServerFileManagerModel(FileManagerModel):
                 diagramData.legendData = localData.get("legendData")
                 return diagramData
 
-            def stillValid(refreshedData):
-                return self.handleDiagramConflict(diagram, refreshedData, fpath)
+            stillValid = lambda d: True
 
             success = diagram.save(
                 self.session.server(), applyChange, stillValid, useJson=False
             )
 
             if success:
+                # Capture Pro's Scene view as the merge baseline for the
+                # next save. NOT the merged bytes (which may include
+                # other-client items Pro's Scene never loaded). See
+                # doc/plans/2026-05-01--mvp-merge-fix/README.md.
+                diagram._lastSavedSnapshot = dataToSave
                 log.info(
                     f"Pushed diagram {diagram.id} to server, bytes: {len(diagram.data)}, version: {diagram.version}"
                 )

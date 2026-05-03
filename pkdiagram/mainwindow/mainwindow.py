@@ -51,6 +51,7 @@ from pkdiagram.pyqt import (
 )
 from pkdiagram import version, util
 from pkdiagram.server_types import Diagram, HTTPError
+from pkdiagram.serverblockallocator import ServerBlockAllocator
 from pkdiagram.scene import ItemGarbage, Property, Scene
 from pkdiagram.scene.clipboard import Clipboard, ImportItems
 from pkdiagram.views import AccountDialog
@@ -105,13 +106,14 @@ class MainWindow(QMainWindow):
         self.isInitialized = False
         self.isInitializing = False
         self._blocked = False
-        self._savingServerFile = False
         self._isOpeningDiagram = False
         self._isImportingToFreeDiagram = False
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         if QApplication.platformName() != "offscreen":
             self.setUnifiedTitleAndToolBarOnMac(True)  # crash
+        elif util.IS_MAC:
+            self.menuBar().hide()  # native menu bar unavailable in offscreen mode
 
         #
         _translate = QCoreApplication.translate
@@ -209,12 +211,7 @@ class MainWindow(QMainWindow):
         self.fileManager.localFilesShownChanged[bool].connect(
             self.onLocalFilesShownChanged
         )
-        self.fileManager.serverFileModel.dataChanged.connect(
-            self.onServerFileModelDataChanged
-        )
-        self.fileManager.serverFileModel.reloadDiagramRequested[str, Diagram].connect(
-            self.onServerFileClicked
-        )
+
         self.centralWidgetContent.layout().addWidget(self.fileManager)
         self.prefsDialog = None
         self.documentView.raise_()
@@ -480,36 +477,6 @@ class MainWindow(QMainWindow):
         self.view.sceneToolBar.onItemsVisibilityChanged()
         self.view.adjustToolBars()
 
-    def onServerFileModelDataChanged(self, fromIndex, toIndex, roles):
-        if not self.scene:
-            return
-
-        if self._savingServerFile:
-            return
-
-        # Warn that current loaded file was updated from server
-        diagram = self.scene.serverDiagram()
-        if not diagram:
-            return
-
-        # # Check if alias of scene should be updated.
-        # row = self.serverFileModel.rowForDiagramId(diagram.id)
-        # alias = self.serverFileModel.index(row, 0).data(self.serverFileModel.AliasRole)
-        # if alias and alias != self.scene.alias():
-        #     self.scene.setAlias(alias)
-        #     self.updateWindowTitle()
-
-        if (
-            diagram
-            and self.serverFileModel.DiagramDataRole in roles
-            and not self._isImportingToFreeDiagram
-        ):
-            model = self.fileManager.serverFileModel
-            loadedRow = model.rowForDiagramId(diagram.id)
-            if loadedRow in list(range(fromIndex.row(), toIndex.row() + 1)):
-                updatedDiagram = model.diagramForRow(loadedRow)
-                fpath = model.localPathForID(diagram.id)
-                model.handleDiagramConflict(updatedDiagram, updatedDiagram.data, fpath)
 
     def onShowUndoView(self, on):
         if on:
@@ -705,7 +672,6 @@ class MainWindow(QMainWindow):
 
         # Write to server
         if self.scene.serverDiagram():
-            self._savingServerFile = True
             diagram_id = self.scene.serverDiagram().id
             row = self.serverFileModel.rowForDiagramId(diagram_id)
             if row is None:
@@ -724,7 +690,6 @@ class MainWindow(QMainWindow):
                     "Could not save file to server",
                     self.S_FAILED_TO_SAVE_SERVER_FILE,
                 )
-            self._savingServerFile = False
         else:
             self.document.save(quietly=latent)  # emits 'saved'; calls onDocumentSaved()
         self.scene.stack().setClean()
@@ -872,10 +837,13 @@ class MainWindow(QMainWindow):
             f"Open server file from file manager: {diagram.id}, version: {diagram.version}"
         )
         self.fileManager.setEnabled(False)
-        self._isOpeningServerDiagram = diagram  # just to set Scene.readOnly
+        self._isOpeningServerDiagram = diagram  # set Scene.readOnly + drive allocator binding in setDocument
         self.open(filePath=fpath)
         self.documentView.qmlEngine().setServerDiagram(diagram)
-        # Document load is now complete for server diagrams
+        # Document load is now complete for server diagrams.
+        # ServerBlockAllocator was bound inside setDocument() — see the
+        # _isOpeningServerDiagram branch there. (Binding here would race
+        # the async open() and could target the wrong Scene instance.)
         self._onDocumentLoadComplete()
         self.updateWindowTitle()
         self._isOpeningServerDiagram = None
@@ -1252,6 +1220,22 @@ class MainWindow(QMainWindow):
                 self.showDiagram()
             if self._isOpeningServerDiagram:
                 self.serverPollTimer.start()
+                # Bind server-side id allocator on the just-created Scene
+                # for server-backed diagrams. Local .fd files don't bind
+                # (no concurrent writer to collide with). Done HERE
+                # rather than in onServerFileClicked because that path
+                # invokes self.open() which is async — self.scene may not
+                # yet point to the new diagram's scene by the time
+                # onServerFileClicked's body finishes. Binding inside
+                # setDocument guarantees the allocator targets the right
+                # Scene instance.
+                # Plan: doc/plans/2026-05-01--mvp-merge-fix/README.md
+                if self.session:
+                    self.scene.setIdAllocator(
+                        ServerBlockAllocator(
+                            self._isOpeningServerDiagram, self.session.server()
+                        )
+                    )
             # For local files, document load is complete now
             # For server diagrams, _onDocumentLoadComplete called after setServerDiagram
             if not self._isOpeningServerDiagram:

@@ -171,14 +171,16 @@ Each journey is a robotic checklist. Patrick: write `PASS` or `FAIL: <reason>` n
 
 ### Journey-1B (Item 1: Personal saves first → Pro hits 409 → Pro merges) — Status:
 
-Mirror of 1A with roles swapped: Personal adds a person and saves first; Pro then makes a change that hits 409 and must merge Personal's addition.
+Mirror of 1A with roles swapped: Personal saves first (bumping the version); Pro then adds a person and saves, hitting 409, and Pro's merge must preserve that person.
+
+Personal cannot add people — it is scene-read-only except via PDP commit. The version bump comes from Personal deleting an event (same auto-save trigger as 1A).
 
 #### Pre-flight
 
 > ```bash
 > uv run python /Users/patrick/theapp/familydiagram/doc/plans/2026-04-17--data-integrity/fixtures/seed_journey_1a.py
 > ```
-> Expect: `Seeded: 71 → 71 people, …`
+> Expect: `Seeded: 71 → 71 people, 19 events, …`
 
 #### Steps
 
@@ -190,19 +192,15 @@ Mirror of 1A with roles swapped: Personal adds a person and saves first; Pro the
 
 4. In Personal, open `T04-04-kitchen-sink-both-apps`.
 
-5. In Personal, add a person and set their name to `J1B`.
+5. In Personal, delete any event. Personal auto-saves immediately.
 
-6. In Personal, trigger a save (delete any event — Personal auto-saves).
+6. In Pro, add one male person and set their First Name to `J1B`.
 
-7. In Pro, add one male person to the canvas and set their First Name to `J1B-Pro`.
+7. In Pro, press Cmd+S.
 
-8. In Pro, press Cmd+S.
+8. Close and reopen T04-04 in Pro.
 
-9. Close and reopen T04-04 in Pro.
-
-10. Close and reopen T04-04 in Personal.
-
-11. Verify DB:
+9. Verify DB:
     ```bash
     uv run python - <<PYEOF
     import base64, pickle, subprocess
@@ -210,17 +208,24 @@ Mirror of 1A with roles swapped: Personal adds a person and saves first; Pro the
     out = subprocess.check_output(['docker','exec','fd-postgres','psql','-U','familydiagram','-d','familydiagram','-tAc',"SELECT encode(data,'base64') FROM diagrams WHERE id=1976"]).decode().strip()
     data = pickle.loads(base64.b64decode(out))
     names = [str(p.get('name') or '') for p in data.get('people', [])]
-    print('J1B_present:', any(n.startswith('J1B') and not n.startswith('J1B-Pro') for n in names))
-    print('J1B_Pro_present:', any(n == 'J1B-Pro' for n in names))
+    print('person_present:', any(n.startswith('J1B') for n in names))
     print('people_count:', len(names))
     PYEOF
     ```
 
 #### Pass criterion
 
-1. Both `J1B` and `J1B-Pro` visible on canvas after reopen in both apps.
-2. DB: `J1B_present: True`, `J1B_Pro_present: True`, `people_count: 73`.
+1. `J1B` person visible on Pro's canvas after reopen.
+2. DB: `person_present: True`, `people_count: 72`.
 3. No `Traceback` in either Debug Console.
+
+#### Fail signs
+
+| Observed | Means |
+|----------|-------|
+| `person_present: False` | Pro's merge overwrote its own addition — bug in Pro's `applyChange` |
+| `people_count < 71` | Pro's merge dropped existing people |
+| Traceback in either Debug Console | Bug in merge or save path; copy and report |
 
 ---
 

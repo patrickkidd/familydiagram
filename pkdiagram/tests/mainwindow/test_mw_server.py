@@ -14,7 +14,6 @@ from pkdiagram.scene import Scene, Person
 from pkdiagram.documentview import DocumentController
 from pkdiagram.mainwindow import MainWindow, FileManager
 from pkdiagram.app import AppController
-from pkdiagram.models.serverfilemanagermodel import ServerFileManagerModel
 
 from btcopilot.extensions import db
 from btcopilot.pro.models import Diagram
@@ -210,49 +209,3 @@ def test_server_admin_diagram_access_no_rights(
     assert mw.documentView.sceneModel.readOnly
     assert mw.ui.actionSave_As.isEnabled()
 
-
-@pytest.mark.parametrize("dontShowServerFileUpdated", [True, False])
-def test_current_server_file_updated_elsewhere(
-    qtbot, test_user, create_ac_mw, dontShowServerFileUpdated
-):
-    diagram_id = test_user.free_diagram_id
-    ac, mw = create_ac_mw()
-    util.wait(mw.serverFileModel.updateFinished)
-
-    mw.prefs.setValue(
-        ServerFileManagerModel.PREF_DONT_SHOW_SERVER_FILE_UPDATED,
-        dontShowServerFileUpdated,
-    )
-    _open_server_file_item(mw, 0)
-    assert mw.scene.query1(name="Patrick") == None
-
-    # Simulate save on another machine
-    data = {}
-    scene = Scene()
-    scene.addItems(Person(name="Patrick"))
-    scene.write(data)
-    diagram = Diagram.query.get(diagram_id)
-    diagram.update(data=pickle.dumps(data), _commit=True)
-    inspect(diagram).session.add(diagram)
-    inspect(diagram).session.commit()
-
-    # Simulate periodic poll on this machine
-    mw.serverFileModel.update()
-    if dontShowServerFileUpdated:
-        util.wait(mw.serverFileModel.updateFinished)
-    else:
-
-        def clickReloadButton():
-            widget = QApplication.activeModalWidget()
-            if isinstance(widget, QMessageBox):
-                for button in widget.buttons():
-                    if button.text() == "Reload Their Changes":
-                        qtbot.mouseClick(button, Qt.LeftButton)
-                        return True
-            return False
-
-        qtbot.qWaitForMessageBox(
-            lambda: util.wait(mw.serverFileModel.updateFinished),
-            handleClick=clickReloadButton,
-        )
-    assert mw.scene.query1(name="Patrick")

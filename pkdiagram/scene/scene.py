@@ -1916,7 +1916,25 @@ class Scene(QGraphicsScene, Item):
     def onPersonUnsnapped(self, person):
         self.removeItem(self.snapItem)
 
+    def setIdAllocator(self, allocator):
+        """
+        Inject a callable returning the next id. None falls back to the
+        local lastItemId counter (used for local .fd files with no concurrent
+        writers). For server-backed diagrams, the Pro app binds a
+        ServerBlockAllocator that pulls ids from a server-reserved block to
+        prevent client-side collisions.
+
+        Plan: familydiagram/doc/plans/2026-05-01--mvp-merge-fix/README.md
+        """
+        self._idAllocator = allocator
+
     def nextId(self):
+        allocator = getattr(self, "_idAllocator", None)
+        if allocator is not None:
+            new_id = allocator()
+            if new_id > self.lastItemId():
+                self.setLastItemId(new_id)
+            return new_id
         self.setLastItemId(self.lastItemId() + 1)
         return self.lastItemId()
 
