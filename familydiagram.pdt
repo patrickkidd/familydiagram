@@ -1652,6 +1652,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content]]
+name = "serverblockallocator.py"
+included = true
+is_directory = false
+
+[[Application.Package.Content]]
 name = "slugify.py"
 included = true
 is_directory = false
@@ -2112,6 +2117,11 @@ is_directory = false
 
 [[Application.Package.Content.Content.Content]]
 name = "test_event_triangles.py"
+included = false
+is_directory = false
+
+[[Application.Package.Content.Content.Content]]
+name = "test_id_allocator.py"
 included = false
 is_directory = false
 

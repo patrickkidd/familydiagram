@@ -112,8 +112,6 @@ class MainWindow(QMainWindow):
         self.ui.setupUi(self)
         if QApplication.platformName() != "offscreen":
             self.setUnifiedTitleAndToolBarOnMac(True)  # crash
-        elif util.IS_MAC:
-            self.menuBar().hide()  # native menu bar unavailable in offscreen mode
 
         #
         _translate = QCoreApplication.translate

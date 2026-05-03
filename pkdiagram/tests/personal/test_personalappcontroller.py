@@ -493,13 +493,24 @@ def test_startRecording_emits_recordingFailed_on_error(
     personalApp: PersonalAppController,
 ):
     """startRecording emits recordingFailed if an exception occurs."""
+    from pkdiagram.pyqt import QMessageBox
+
     failed = util.Condition(personalApp.recordingFailed)
 
-    with patch("tempfile.NamedTemporaryFile", side_effect=OSError("disk full")):
+    # DiscussView.qml's onRecordingFailed handler calls util.criticalBox
+    # which pops a modal QMessageBox. Patch it so emit doesn't deadlock.
+    with (
+        patch(
+            "pkdiagram.personal.personalappcontroller.tempfile.NamedTemporaryFile",
+            side_effect=OSError("disk full"),
+        ),
+        patch.object(QMessageBox, "critical") as mock_critical,
+    ):
         personalApp.startRecording()
 
     assert failed.callCount == 1
     assert "disk full" in failed.callArgs[0][0]
+    assert mock_critical.call_count == 1
 
 
 def test_stopRecording_stops_recorder_and_transcribes(
@@ -534,27 +545,39 @@ def test_stopRecording_emits_failed_when_no_file(
     personalApp: PersonalAppController,
 ):
     """stopRecording emits transcriptionFailed if recording file is missing."""
+    from pkdiagram.pyqt import QMessageBox
+
     failed = util.Condition(personalApp.transcriptionFailed)
     personalApp._recordingFilePath = "/nonexistent/path.wav"
 
-    with patch.object(personalApp._audioRecorder, "stop"):
+    with (
+        patch.object(personalApp._audioRecorder, "stop"),
+        patch.object(QMessageBox, "critical") as mock_critical,
+    ):
         personalApp.stopRecording()
 
     assert failed.callCount == 1
     assert "not found" in failed.callArgs[0][0]
+    assert mock_critical.call_count == 1
 
 
 def test_stopRecording_emits_failed_when_empty_path(
     personalApp: PersonalAppController,
 ):
     """stopRecording emits transcriptionFailed if _recordingFilePath is empty."""
+    from pkdiagram.pyqt import QMessageBox
+
     failed = util.Condition(personalApp.transcriptionFailed)
     personalApp._recordingFilePath = ""
 
-    with patch.object(personalApp._audioRecorder, "stop"):
+    with (
+        patch.object(personalApp._audioRecorder, "stop"),
+        patch.object(QMessageBox, "critical") as mock_critical,
+    ):
         personalApp.stopRecording()
 
     assert failed.callCount == 1
+    assert mock_critical.call_count == 1
 
 
 def test_cancelRecording_stops_and_cleans_up(
@@ -672,6 +695,7 @@ def test_transcribeAudio_emits_failed_without_api_key(
 ):
     """_transcribeAudio emits transcriptionFailed if no API key is configured."""
     import tempfile as _tempfile
+    from pkdiagram.pyqt import QMessageBox
 
     tmpFile = _tempfile.NamedTemporaryFile(
         suffix=".wav", delete=False, prefix="fd_voice_"
@@ -681,25 +705,44 @@ def test_transcribeAudio_emits_failed_without_api_key(
 
     failed = util.Condition(personalApp.transcriptionFailed)
 
-    with patch.object(personalApp, "_getAssemblyAIKey", return_value=""):
+    def fakeRequest(verb, path, success=None, error=None, **kwargs):
+        success({"api_key": ""})
+        return MagicMock()
+
+    with (
+        patch.dict(os.environ, {"ASSEMBLYAI_API_KEY": ""}, clear=False),
+        patch.object(
+            personalApp.session.server(),
+            "nonBlockingRequest",
+            side_effect=fakeRequest,
+        ),
+        patch.object(QMessageBox, "critical") as mock_critical,
+    ):
         personalApp._transcribeAudio(tmpFile.name)
 
     assert failed.callCount == 1
-    assert "API key" in failed.callArgs[0][0]
+    assert "AssemblyAI" in failed.callArgs[0][0]
     assert not os.path.exists(tmpFile.name), "Should cleanup on failure"
+    assert mock_critical.call_count == 1
 
 
 def test_transcribeAudio_emits_failed_on_file_read_error(
     personalApp: PersonalAppController,
 ):
     """_transcribeAudio emits transcriptionFailed if audio file can't be read."""
+    from pkdiagram.pyqt import QMessageBox
+
     failed = util.Condition(personalApp.transcriptionFailed)
 
-    with patch.object(personalApp, "_getAssemblyAIKey", return_value="test-key"):
+    with (
+        patch.dict(os.environ, {"ASSEMBLYAI_API_KEY": "test-key"}, clear=False),
+        patch.object(QMessageBox, "critical") as mock_critical,
+    ):
         personalApp._transcribeAudio("/nonexistent/audio.wav")
 
     assert failed.callCount == 1
     assert "Failed to read recording" in failed.callArgs[0][0]
+    assert mock_critical.call_count == 1
 
 
 def test_onUploadFinished_emits_failed_on_network_error(
@@ -893,29 +936,6 @@ def test_cleanupRecording_handles_missing_file(personalApp: PersonalAppControlle
     # Should not raise
     personalApp._cleanupRecording("/nonexistent/file.wav")
     personalApp._cleanupRecording("")
-
-
-def test_getAssemblyAIKey_from_env(personalApp: PersonalAppController):
-    """_getAssemblyAIKey returns key from environment variable."""
-    with patch.dict(os.environ, {"ASSEMBLYAI_API_KEY": "env-key-123"}):
-        assert personalApp._getAssemblyAIKey() == "env-key-123"
-
-
-def test_getAssemblyAIKey_from_settings(personalApp: PersonalAppController):
-    """_getAssemblyAIKey falls back to settings when env var is not set."""
-    with (
-        patch.dict(os.environ, {}, clear=False),
-        patch.object(
-            personalApp._settings,
-            "value",
-            side_effect=lambda key, default="": (
-                "settings-key-456" if key == "assemblyaiApiKey" else default
-            ),
-        ),
-    ):
-        # Remove env var if present
-        os.environ.pop("ASSEMBLYAI_API_KEY", None)
-        assert personalApp._getAssemblyAIKey() == "settings-key-456"
 
 
 def test_importJournalNotes_triggers_cluster_detection(
