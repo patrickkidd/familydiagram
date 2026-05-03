@@ -764,7 +764,6 @@ class PersonalAppController(QObject):
             _log.info(
                 f"Loaded personal diagram: {self._diagram.id}, version: {self._diagram.version}"
             )
-            assert self.scene is None
             scene = Scene()
             try:
                 scene.read(pickle.loads(rawData))
@@ -1022,10 +1021,10 @@ class PersonalAppController(QObject):
 
         def applyChange(diagramData: DiagramData):
             _log.info(f"Applying accept PDP item change for id: {id}")
-            # Scene's lastItemId includes internal layers; server's may not
-            diagramData.lastItemId = max(
-                diagramData.lastItemId, self.scene.lastItemId()
-            )
+            if self.scene is not None:
+                diagramData.lastItemId = max(
+                    diagramData.lastItemId, self.scene.lastItemId()
+                )
             # Capture IDs before commit to identify what was added
             prevPeopleIds = {p["id"] for p in diagramData.people}
             prevEventIds = {e["id"] for e in diagramData.events}
@@ -1062,6 +1061,8 @@ class PersonalAppController(QObject):
         return success
 
     def _addCommittedItemsToScene(self, committedItems: dict):
+        if self.scene is None:
+            return
         if (
             not committedItems["people"]
             and not committedItems["events"]
@@ -1290,10 +1291,10 @@ class PersonalAppController(QObject):
             }
 
             def applyChange(diagramData: DiagramData):
-                # Scene's lastItemId includes internal layers; server's may not
-                diagramData.lastItemId = max(
-                    diagramData.lastItemId, self.scene.lastItemId()
-                )
+                if self.scene is not None:
+                    diagramData.lastItemId = max(
+                        diagramData.lastItemId, self.scene.lastItemId()
+                    )
                 prevPeopleIds = {p["id"] for p in diagramData.people}
                 prevEventIds = {e["id"] for e in diagramData.events}
                 prevPairBondIds = {pb["id"] for pb in diagramData.pair_bonds}
