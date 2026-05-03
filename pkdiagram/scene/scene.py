@@ -628,6 +628,83 @@ class Scene(QGraphicsScene, Item):
         self.itemAdded.emit(item)
         return item
 
+    def _dropIrrecoverableEvents(self, itemChunks):
+        """Identify Events whose primary person refs failed to resolve and
+        remove them from the load batch — plus any Emotions that point at
+        those events. Returns the dropped item objects.
+
+        A diagram saved with dangling person ids — typically left by a
+        pre-2026-05 cascade-delete bug — will crash _do_addItem when it
+        dereferences a None person. Dropping here lets the rest of the
+        diagram load. The full chunk is logged so the data can be
+        reconstructed on request from the user.
+        """
+        droppedEvents = []
+        for item, chunk in itemChunks:
+            if not isinstance(item, Event):
+                continue
+            kind = item.kind()
+            specified = {
+                "person": chunk.get("person"),
+                "spouse": chunk.get("spouse"),
+                "child": chunk.get("child"),
+            }
+            resolved = {
+                "person": item._person,
+                "spouse": item._spouse,
+                "child": item._child,
+            }
+            missing = [
+                role
+                for role, sid in specified.items()
+                if sid is not None and resolved[role] is None
+            ]
+            reasons = []
+            if resolved["person"] is None:
+                reasons.append(f"person={specified['person']}")
+            if kind in (EventKind.Birth, EventKind.Adopted):
+                if resolved["child"] is None:
+                    reasons.append(f"child={specified['child']}")
+            elif kind.isPairBond():
+                if resolved["spouse"] is None:
+                    reasons.append(f"spouse={specified['spouse']}")
+            elif kind == EventKind.Shift:
+                if (
+                    item.relationship() is not None
+                    and not item._relationshipTargets
+                ):
+                    targetIds = chunk.get("relationshipTargets") or []
+                    reasons.append(
+                        f"relationship={item.relationship().value} "
+                        f"with no resolved targets (specified={targetIds})"
+                    )
+            if reasons:
+                log.warning(
+                    "Dropping irrecoverable Event id=%s kind=%s; reasons=%s; "
+                    "missing-roles=%s; chunk=%s",
+                    chunk.get("id"),
+                    kind.value,
+                    reasons,
+                    missing,
+                    chunk,
+                )
+                droppedEvents.append(item)
+
+        if not droppedEvents:
+            return []
+
+        droppedSet = set(droppedEvents)
+        droppedEmotions = []
+        for item, chunk in itemChunks:
+            if isinstance(item, Emotion) and item._event in droppedSet:
+                log.warning(
+                    "Dropping Emotion id=%s referencing dropped Event id=%s",
+                    chunk.get("id"),
+                    item._event.id if item._event else None,
+                )
+                droppedEmotions.append(item)
+        return droppedEvents + droppedEmotions
+
     def _do_removeItem(self, item):
 
         def _removeFromGraphicsScene(item):
@@ -1217,6 +1294,9 @@ class Scene(QGraphicsScene, Item):
                 person.updateEvents()
             for marriage in self._marriages:
                 marriage.updateEvents()
+            droppedEvents = self._dropIrrecoverableEvents(itemChunks)
+            if droppedEvents:
+                items = [x for x in items if x not in droppedEvents]
             with self.macro(
                 "Adding items during read file", undo=False, batchAddRemove=True
             ):
@@ -1356,8 +1436,54 @@ class Scene(QGraphicsScene, Item):
         self.write(data, selectionOnly=selectionOnly)
         return data
 
+    def _reportDanglingRefs(self, data):
+        """Log a structured warning if outgoing scene chunks reference person
+        ids that aren't in the people list. Warn-only — does NOT mutate data.
+
+        Reader resilience drops bad events on load, so in steady-state this
+        should never fire. When it does, it indicates a writer bug somewhere
+        upstream (cascade-delete that didn't fire, server merge that
+        re-introduced stale ids, etc.) — surface it loudly so we can hunt the
+        root cause.
+        """
+        peopleIds = {
+            p.get("id") for p in data.get("people", []) if p.get("id") is not None
+        }
+        if not peopleIds:
+            return
+        bad = []
+        for e in data.get("events", []):
+            danglingRoles = []
+            for role in ("person", "spouse", "child"):
+                rid = e.get(role)
+                if rid is not None and rid not in peopleIds:
+                    danglingRoles.append((role, rid))
+            for role in ("relationshipTargets", "relationshipTriangles"):
+                badIds = [
+                    rid for rid in (e.get(role) or []) if rid not in peopleIds
+                ]
+                if badIds:
+                    danglingRoles.append((role, badIds))
+            if danglingRoles:
+                bad.append(
+                    {
+                        "eventId": e.get("id"),
+                        "kind": e.get("kind"),
+                        "danglingRoles": danglingRoles,
+                    }
+                )
+        if bad:
+            log.warning(
+                "Outgoing scene has dangling person refs in %d event(s); "
+                "writer bug somewhere upstream. eventIds=%s details=%s",
+                len(bad),
+                [b["eventId"] for b in bad],
+                bad,
+            )
+
     def diagramData(self) -> DiagramData:
         data = self.data()
+        self._reportDanglingRefs(data)
         return DiagramData(
             people=data.get("people", []),
             events=data.get("events", []),

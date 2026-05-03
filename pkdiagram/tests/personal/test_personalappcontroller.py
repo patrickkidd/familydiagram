@@ -468,6 +468,51 @@ def test_clearDiagramData_batch_removal(test_user, personalApp: PersonalAppContr
     assert batchCalls == [True, False], f"Expected batch mode on/off, got {batchCalls}"
 
 
+def test_clearDiagramData_works_when_scene_is_None(
+    test_user, personalApp: PersonalAppController
+):
+    """When the diagram blob is corrupt enough that Scene.read raises and
+    `setScene` was never called, clearDiagramData must still run the
+    server-side blob mutation. Without this, the iPhone is wedged: the user
+    has no in-app recovery and the bad blob never gets rewritten.
+    """
+    initial_diagram_data = DiagramData(pdp=PDP())
+    personalApp._diagram = Diagram(
+        id=1,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(initial_diagram_data)),
+    )
+    personalApp.scene = None
+
+    saveCall = {"called": False, "applyChange": None}
+
+    def fakeSave(server, applyChange, stillValid, **kwargs):
+        saveCall["called"] = True
+        saveCall["applyChange"] = applyChange
+        return True
+
+    with patch.object(personalApp._diagram, "save", side_effect=fakeSave):
+        personalApp.clearDiagramData(True)
+
+    assert saveCall["called"], "save() must run even when scene is None"
+
+    probeData = DiagramData(
+        people=[{"id": 1}, {"id": 2}, {"id": 3}],
+        events=[{"id": 100, "kind": "shift"}],
+        pair_bonds=[{"id": 200}],
+        emotions=[{"id": 300}],
+        pdp=PDP(),
+    )
+    saveCall["applyChange"](probeData)
+    assert probeData.events == []
+    assert probeData.pair_bonds == []
+    assert probeData.emotions == []
+    assert {p["id"] for p in probeData.people} == {1, 2}
+    assert probeData.pdp is None
+
+
 # ── Voice Recording & Transcription Tests ──
 
 

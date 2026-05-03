@@ -147,12 +147,40 @@ class Event(Item):
         self._person = byId(chunk.get("person")) if chunk.get("person") else None
         self._spouse = byId(chunk.get("spouse")) if chunk.get("spouse") else None
         self._child = byId(chunk.get("child")) if chunk.get("child") else None
+        targetIds = chunk.get("relationshipTargets", []) or []
+        triangleIds = chunk.get("relationshipTriangles", []) or []
         self._relationshipTargets = [
-            byId(id) for id in chunk.get("relationshipTargets", [])
+            p for p in (byId(i) for i in targetIds) if p is not None
         ]
         self._relationshipTriangles = [
-            byId(id) for id in chunk.get("relationshipTriangles", [])
+            p for p in (byId(i) for i in triangleIds) if p is not None
         ]
+        droppedTargetIds = [
+            i for i in targetIds if byId(i) is None
+        ]
+        droppedTriangleIds = [
+            i for i in triangleIds if byId(i) is None
+        ]
+        if droppedTargetIds or droppedTriangleIds:
+            _log.warning(
+                "Event %s has dangling person refs; dropping ids "
+                "(relationshipTargets=%s, relationshipTriangles=%s, "
+                "person=%s, spouse=%s, child=%s)",
+                chunk.get("id"),
+                droppedTargetIds,
+                droppedTriangleIds,
+                chunk.get("person"),
+                chunk.get("spouse"),
+                chunk.get("child"),
+            )
+            # Rewrite the property values so the next save doesn't
+            # re-persist the dropped ids.
+            self.prop("relationshipTargets").set(
+                [p.id for p in self._relationshipTargets], notify=False
+            )
+            self.prop("relationshipTriangles").set(
+                [p.id for p in self._relationshipTriangles], notify=False
+            )
         for attr, value in chunk.get("dynamicProperties", {}).items():
             prop = self.addDynamicProperty(attr)
             if prop:  # avoid duplicates
@@ -457,17 +485,25 @@ class Event(Item):
         ids = self.prop("relationshipTargets").get()
         if ids:
             results = self.scene().find(ids=ids, types=Person)
-            assert set(ids) != set(
-                x.id for x in results
-            ), f"Some relationshipTargets in Event {self.id} are invalid: {ids}"
+            missing = set(ids) - {x.id for x in results}
+            if missing:
+                _log.warning(
+                    "Event %s has dangling relationshipTargets ids %s; dropping",
+                    self.id,
+                    sorted(missing),
+                )
             self._relationshipTargets = results
 
         ids = self.prop("relationshipTriangles").get()
         if ids:
             results = self.scene().find(ids=ids, types=Person)
-            assert set(ids) != set(
-                x.id for x in results
-            ), f"Some relationshipTriangles in Event {self.id} are invalid: {ids}"
+            missing = set(ids) - {x.id for x in results}
+            if missing:
+                _log.warning(
+                    "Event %s has dangling relationshipTriangles ids %s; dropping",
+                    self.id,
+                    sorted(missing),
+                )
             self._relationshipTriangles = results
 
         if self._person and self._spouse:

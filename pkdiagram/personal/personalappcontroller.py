@@ -1368,27 +1368,31 @@ class PersonalAppController(QObject):
 
     @pyqtSlot(bool)
     def clearDiagramData(self, clearPeople: bool):
-        if not self._diagram or not self.scene:
+        if not self._diagram:
             return
 
         def _do():
-            _log.info(f"Clearing diagram data (clearPeople={clearPeople})")
+            _log.info(
+                f"Clearing diagram data (clearPeople={clearPeople}, "
+                f"scene-loaded={self.scene is not None})"
+            )
 
-            self.scene.setBatchAddingRemovingItems(True)
-            try:
-                for event in list(self.scene.events()):
-                    self.scene.removeItem(event)
+            if self.scene is not None:
+                self.scene.setBatchAddingRemovingItems(True)
+                try:
+                    for event in list(self.scene.events()):
+                        self.scene.removeItem(event)
 
-                if clearPeople:
-                    for emotion in list(self.scene.emotions()):
-                        self.scene.removeItem(emotion)
-                    for marriage in list(self.scene.marriages()):
-                        self.scene.removeItem(marriage)
-                    for person in list(self.scene.people()):
-                        if person.id not in (1, 2):
-                            self.scene.removeItem(person)
-            finally:
-                self.scene.setBatchAddingRemovingItems(False)
+                    if clearPeople:
+                        for emotion in list(self.scene.emotions()):
+                            self.scene.removeItem(emotion)
+                        for marriage in list(self.scene.marriages()):
+                            self.scene.removeItem(marriage)
+                        for person in list(self.scene.people()):
+                            if person.id not in (1, 2):
+                                self.scene.removeItem(person)
+                finally:
+                    self.scene.setBatchAddingRemovingItems(False)
 
             def applyChange(diagramData: DiagramData):
                 diagramData.events = []

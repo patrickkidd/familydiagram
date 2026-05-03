@@ -257,9 +257,10 @@ def test_enum_property_undo(scene, attr, setter, value):
     assert getattr(event, attr)() is None
 
 
-@pytest.mark.skip(reason="Validation code needs to be added for importing journal notes in personal app")
 def test_read_filters_invalid_relationshipTargets(scene, caplog):
-    """Test that invalid person IDs in relationshipTargets are filtered and logged."""
+    """Bad ids in relationshipTargets are filtered out, the valid target
+    is preserved, and a structured warning identifies the dropped id."""
+    import logging
     from pkdiagram.scene import Scene
 
     person = scene.addItem(Person())
@@ -269,42 +270,41 @@ def test_read_filters_invalid_relationshipTargets(scene, caplog):
         Event(
             EventKind.Shift,
             person,
-            dateTime=util.Date(2020, 1, 1),  # Need dateTime to avoid pruning
+            dateTime=util.Date(2020, 1, 1),
             relationship=RelationshipKind.Distance,
             relationshipTargets=[target],
         )
     )
     assert event.relationshipTargets() == [target]
 
-    # Save the scene
     data = scene.data()
-
-    # Corrupt the data by adding a non-existent person ID to relationshipTargets
     for eventChunk in data["events"]:
         if eventChunk["id"] == event.id:
-            eventChunk["relationshipTargets"].append(99999)  # Non-existent ID
+            eventChunk["relationshipTargets"].append(99999)
             break
 
-    # Load into a new scene - should not crash
     newScene = Scene()
-    newScene.read(data)
+    with caplog.at_level(logging.WARNING):
+        newScene.read(data)
 
-    # Verify error was logged
-    assert "invalid relationshipTarget IDs" in caplog.text
+    assert "dangling" in caplog.text.lower()
     assert "99999" in caplog.text
 
-    # Verify the invalid ID was filtered out
     loadedEvent = newScene.find(id=event.id)
     assert len(loadedEvent.relationshipTargets()) == 1
-    loadedTarget = loadedEvent.relationshipTargets()[0]
-    assert loadedTarget.id == target.id
+    assert loadedEvent.relationshipTargets()[0].id == target.id
+
+    resaved = newScene.data()
+    resavedEvent = next(e for e in resaved["events"] if e["id"] == event.id)
+    assert 99999 not in resavedEvent["relationshipTargets"]
 
     newScene.deinit()
 
 
-@pytest.mark.skip(reason="Validation code needs to be added for importing journal notes in personal app")
 def test_read_filters_invalid_relationshipTriangles(scene, caplog):
-    """Test that invalid person IDs in relationshipTriangles are filtered and logged."""
+    """Bad ids in relationshipTriangles are filtered out, the valid triangle
+    is preserved, and a structured warning identifies the dropped id."""
+    import logging
     from pkdiagram.scene import Scene
 
     person = scene.addItem(Person())
@@ -315,7 +315,7 @@ def test_read_filters_invalid_relationshipTriangles(scene, caplog):
         Event(
             EventKind.Shift,
             person,
-            dateTime=util.Date(2020, 1, 1),  # Need dateTime to avoid pruning
+            dateTime=util.Date(2020, 1, 1),
             relationship=RelationshipKind.Inside,
             relationshipTargets=[target],
             relationshipTriangles=[triangle],
@@ -323,29 +323,166 @@ def test_read_filters_invalid_relationshipTriangles(scene, caplog):
     )
     assert event.relationshipTriangles() == [triangle]
 
-    # Save the scene
     data = scene.data()
-
-    # Corrupt the data by adding a non-existent person ID to relationshipTriangles
     for eventChunk in data["events"]:
         if eventChunk["id"] == event.id:
-            eventChunk["relationshipTriangles"].append(88888)  # Non-existent ID
+            eventChunk["relationshipTriangles"].append(88888)
             break
 
-    # Load into a new scene - should not crash
     newScene = Scene()
-    newScene.read(data)
+    with caplog.at_level(logging.WARNING):
+        newScene.read(data)
 
-    # Verify error was logged
-    assert "invalid relationshipTriangle IDs" in caplog.text
+    assert "dangling" in caplog.text.lower()
     assert "88888" in caplog.text
 
-    # Verify the invalid ID was filtered out
     loadedEvent = newScene.find(id=event.id)
     assert len(loadedEvent.relationshipTriangles()) == 1
-    loadedTriangle = loadedEvent.relationshipTriangles()[0]
-    assert loadedTriangle.id == triangle.id
+    assert loadedEvent.relationshipTriangles()[0].id == triangle.id
 
     newScene.deinit()
+
+
+def test_read_drops_shift_with_unresolvable_person(scene, caplog):
+    """Shift event whose person id resolves to nothing is dropped on load
+    rather than crashing _do_addItem on `person.updateEvents()`."""
+    import logging
+    from pkdiagram.scene import Scene
+
+    person = scene.addItem(Person())
+    target = scene.addItem(Person())
+    event = scene.addItem(
+        Event(
+            EventKind.Shift,
+            person,
+            dateTime=util.Date(2020, 1, 1),
+            relationship=RelationshipKind.Distance,
+            relationshipTargets=[target],
+        )
+    )
+
+    data = scene.data()
+    for eventChunk in data["events"]:
+        if eventChunk["id"] == event.id:
+            eventChunk["person"] = 77777
+            break
+
+    newScene = Scene()
+    with caplog.at_level(logging.WARNING):
+        newScene.read(data)
+
+    assert "irrecoverable" in caplog.text.lower()
+    assert newScene.find(id=event.id) is None
+    assert newScene.find(id=person.id) is not None
+    assert newScene.find(id=target.id) is not None
+
+    newScene.deinit()
+
+
+def test_read_drops_birth_with_unresolvable_child(scene, caplog):
+    """Birth event whose child id resolves to nothing is dropped — otherwise
+    _do_addItem crashes on `item.child().onEventAdded()`."""
+    import logging
+    from pkdiagram.scene import Scene
+
+    parentA = scene.addItem(Person())
+    parentB = scene.addItem(Person())
+    child = scene.addItem(Person())
+    from pkdiagram.scene import Marriage
+
+    marriage = scene.addItem(Marriage(personA=parentA, personB=parentB))
+    event = scene.addItem(
+        Event(
+            EventKind.Birth,
+            person=parentA,
+            spouse=parentB,
+            child=child,
+            dateTime=util.Date(2020, 1, 1),
+        )
+    )
+
+    data = scene.data()
+    for eventChunk in data["events"]:
+        if eventChunk["id"] == event.id:
+            eventChunk["child"] = 66666
+            break
+
+    newScene = Scene()
+    with caplog.at_level(logging.WARNING):
+        newScene.read(data)
+
+    assert "irrecoverable" in caplog.text.lower()
+    assert newScene.find(id=event.id) is None
+    assert newScene.find(id=parentA.id) is not None
+
+    newScene.deinit()
+
+
+def test_read_drops_shift_with_no_resolved_targets(scene, caplog):
+    """Shift with `relationship` set but every relationshipTarget id is
+    dangling becomes a meaningless event — drop it."""
+    import logging
+    from pkdiagram.scene import Scene
+
+    person = scene.addItem(Person())
+    target = scene.addItem(Person())
+    event = scene.addItem(
+        Event(
+            EventKind.Shift,
+            person,
+            dateTime=util.Date(2020, 1, 1),
+            relationship=RelationshipKind.Distance,
+            relationshipTargets=[target],
+        )
+    )
+
+    data = scene.data()
+    for eventChunk in data["events"]:
+        if eventChunk["id"] == event.id:
+            eventChunk["relationshipTargets"] = [55555]
+            break
+
+    newScene = Scene()
+    with caplog.at_level(logging.WARNING):
+        newScene.read(data)
+
+    assert newScene.find(id=event.id) is None
+    assert "irrecoverable" in caplog.text.lower()
+
+    newScene.deinit()
+
+
+def test_diagramData_warns_on_outgoing_dangling_refs(scene, caplog):
+    """Writer-side defense: if outgoing scene chunks reference person ids
+    that aren't in the people list, a structured warning fires so the bug
+    surfaces in telemetry. No data mutation."""
+    import logging
+    from btcopilot.schema import DiagramData
+
+    person = scene.addItem(Person())
+    target = scene.addItem(Person())
+    scene.addItem(
+        Event(
+            EventKind.Shift,
+            person,
+            dateTime=util.Date(2020, 1, 1),
+            relationship=RelationshipKind.Distance,
+            relationshipTargets=[target],
+        )
+    )
+
+    data = scene.data()
+    targetId = target.id
+    data["people"] = [p for p in data["people"] if p.get("id") != targetId]
+
+    with caplog.at_level(logging.WARNING):
+
+        class _Probe(scene.__class__):
+            pass
+
+        scene._reportDanglingRefs(data)
+
+    assert "dangling" in caplog.text.lower()
+    assert str(targetId) in caplog.text
 
 
