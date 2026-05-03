@@ -109,21 +109,44 @@ When a fix has multiple code paths, **always split into separate journeys, never
 
 ## Idempotency
 
-A journey must be re-runnable without manual reset. Achieve this with **unique-per-run tags**, not by requiring the user to clean up state between runs.
+A journey must be re-runnable without manual reset. Achieve this with a **single per-journey reset command** that wipes prior state and re-seeds the known fixture. Claude does the substitution / scripting work upfront — Patrick should only need to copy-paste, click, and type literal strings.
 
-### The unique-tag pattern (preferred)
+### The reset-script pattern (preferred)
 
-At the start of each journey, generate a unique tag and use it in all test artifact names:
+Each workstream provides one or more fixture scripts that are **copy-paste-able as a single blockquote**. Patrick should not need to set environment variables, do string substitution, or chain multi-step setup.
 
-```bash
-export RUN_TAG="$(date +%H%M%S)"
-echo "RUN_TAG=$RUN_TAG"
-```
+Each journey starts with a single command:
 
-Then every test artifact (person name, file name, chat message text) embeds the tag — e.g., `J1A_Pro_$RUN_TAG`. The journey verifies that the tagged artifact persisted. Prior runs' tagged artifacts may accumulate harmlessly; they cannot cause false positives.
+> ```bash
+> cd <repo> && uv run --env-file ../.env python doc/plans/<workstream>/fixtures/reset_<scenario>.py
+> ```
 
-❌ Avoid: "T04-04 in baseline state — no J1A-* people present from prior runs" (summary, requires manual cleanup)  
-✅ Use: "Add person named `J1A_Pro_$RUN_TAG`" + "Verify a person with that exact name exists in the persisted DB blob after reopen"
+The script:
+- Connects to the real PostgreSQL via `docker exec fd-postgres psql ...`
+- Finds or creates the test diagram (idempotent — run as many times as needed)
+- Resets its blob to the known baseline (specific people, events, flags)
+- Bumps version (so any in-flight client save will hit a 409 and refresh)
+- Prints the diagram name to open in Pro/Personal
+
+Test artifact names in journey steps are **literal hardcoded strings** scoped by journey code (e.g., `J1A_Personal_edit`, `J3_Pro_add`). Cross-run pollution is prevented by the reset, not by tag uniqueness.
+
+❌ Avoid: `Add person named "A_PE_$TAG"` — forces Patrick to substitute every time he types  
+✅ Use: `Add person named "J1A_Personal_edit"` after running `python fixtures/reset_baseline.py`
+
+### Verification scripts
+
+Pair each reset script with a `verify.py` that prints the diagram's current state in human-readable form (lists of people with id+name+key fields, list of events). The journey's "Verify" step is a single blockquote running this script. The pass criterion compares specific lines of the output against expected values stated in the journey.
+
+❌ Avoid: pseudocode SQL pipelines that won't run as-pasted (e.g., `psql -tAc | python -c "..."` — `-tAc` produces `|`-delimited output that breaks the pipeline if the data contains `|`).  
+✅ Use: a single `python fixtures/verify.py` that prints clean labeled output.
+
+### Fixture script implementation rules
+
+When Claude writes the fixture script:
+1. **Construct the test diagram blob via the actual Scene/Person/Event API** so it round-trips through `Scene.read` cleanly. Hand-crafted dicts often miss fields the reader needs and cause silent loads of empty scenes.
+2. **`util.WINDOW_BG`** must be set before instantiating Scene items — `QmlUtil` normally sets this; in a fixture script set it directly: `from PyQt5.QtGui import QColor; util.WINDOW_BG = QColor("white")`.
+3. **`QApplication`** must exist before any Scene; use `QT_QPA_PLATFORM=offscreen` env var.
+4. The script's stdout should end with a one-liner Patrick acts on, e.g., `In Pro and Personal, open the diagram named: <NAME>`.
 
 ### One-shot journeys
 

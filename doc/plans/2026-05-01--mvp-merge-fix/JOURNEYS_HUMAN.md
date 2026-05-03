@@ -1,170 +1,197 @@
 # MVP Merge Fix — Journeys for Patrick
 
-This is the human-readable companion to [JOURNEYS.md](JOURNEYS.md) (which is for Claude/MCP). Methodology: [doc/TEST_JOURNEYS.md](../../TEST_JOURNEYS.md). Plan: [README.md](README.md).
+Copy-paste-able. Each journey starts with one reset command, uses literal names (no env vars), and ends with one verify command. Methodology: [doc/TEST_JOURNEYS.md](../../TEST_JOURNEYS.md). Plan: [README.md](README.md).
 
-For each journey: read the **Setup**, do the **Steps**, check the **Pass Criterion**, report `PASS` or `FAIL: <one-line reason>` in the Status column at the bottom. No judgment calls — observe vs. the stated criterion.
-
----
-
-## One-time setup before any journey
-
-1. Pro app and Personal app builds are current after the fix (not stale binaries).
-   ```bash
-   cd /Users/patrick/theapp/familydiagram && uv run --env-file ../.env make
-   ```
-2. Flask dev server is running on 8888 (or use the harness ephemeral server).
-3. Open VSCode with debug targets "Pro" and "Personal" available.
-4. Pick a unique short tag for this batch of runs (e.g., your initials + date — `pk0502`). You'll embed it in test artifact names so prior-run artifacts can't cause false positives.
-
-For each journey below, REPLACE `$TAG` with your chosen tag (e.g., `pk0502`).
+For each journey: run the **Setup** command, do the **Steps**, run the **Verify** command, compare to **Pass criterion**, report `PASS` or `FAIL: <one-line reason>` in the Status table at the bottom.
 
 ---
 
-## J-1A — Pro held open, Personal edits a person, Pro saves a different person
+## One-time prerequisites
 
-**Tests:** Pro's stale snapshot does not clobber Personal's edits to a different item.
+1. Pro app build is current after the fix:
+   > ```bash
+   > cd /Users/patrick/theapp/familydiagram && PATH="/Users/patrick/dev/lib/Qt/5.15.2/clang_64/bin:$PATH" uv run --env-file ../.env make
+   > ```
+2. Flask dev server running on 8888 + Docker fd-postgres up. (Verified per existing CLAUDE.md.)
+3. VSCode debug targets "Pro" and "Personal" available.
 
-**Setup:**
+## Between every journey
 
-Open the same diagram in both apps (a fresh server diagram with at least 3 people named A, B, C).
+**Quit both Pro and Personal entirely (Cmd+Q in each, not just close the diagram).** Then run the journey's reset command, then re-launch both apps via VSCode.
 
-If you don't have one, create it:
-1. Launch Pro. Click `New Diagram`. Add three Male people. Name them `A`, `B`, `C`. Save (Cmd+S).
-2. Note the diagram name in the file manager.
-3. The diagram is now on the server. Both apps will use this one.
+Why: each app holds an in-memory `_lastSavedSnapshot` and a Scene instance from the previous journey. Closing only the diagram window doesn't reliably purge these. The next save would merge stale state back into the freshly-reset server diagram, polluting the test.
+
+---
+
+## J-1A — Pro held open, Personal commits a PDP item, Pro saves a different change
+
+**Tests:** Pro's stale snapshot does not clobber the new person Personal committed.
+
+**Note on Personal's UI:** Personal is chat-first — it doesn't expose a person list or properties drawer. Personal's user-driven server saves go through `acceptPDPItem` (commit a pending PDP item to canonical) or `deleteEvent` (delete an event). The fixture pre-injects a PDP item named `J_PDP_pending` so Personal has something to Accept without needing live AI extraction.
+
+**Setup** — copy and paste:
+> ```bash
+> cd /Users/patrick/theapp/familydiagram && uv run --env-file ../.env python doc/plans/2026-05-01--mvp-merge-fix/fixtures/reset_baseline.py
+> ```
+> Expected output ends with: `In Pro and Personal, open the diagram named: MVP_Merge_Fix`
 
 **Steps:**
 
-1. In Pro, double-click the diagram to open it. Don't close Pro after.
-2. In Personal, open the same diagram from its file list. Don't close Personal after.
-3. In Personal, tap person `A` to open the person properties drawer.
-4. Change A's name to `A_PE_$TAG`. Personal auto-saves on edit — wait 2 seconds for the save to complete.
-5. In Pro (which still has the stale view of A), tap person `B`.
-6. Change B's name to `B_PR_$TAG` in the Pro properties drawer.
-7. Press Cmd+S in Pro.
-8. Close and re-open the diagram in BOTH apps (so they both refetch from server).
+1. In Pro, double-click `MVP_Merge_Fix` in the file manager. Don't close Pro.
+2. In Personal, open `MVP_Merge_Fix` from its file list. The PDP sheet should show one pending person named `J_PDP_pending`. Don't close Personal.
+3. In Personal, tap Accept on the pending `J_PDP_pending` PDP item. Personal auto-saves; wait until the title bar's "*" indicator clears (typically <1s).
+4. In Pro (still has the stale view — doesn't know `J_PDP_pending` was committed), click person `B`. Change B's name via the properties drawer to `J1A_Pro_edit`. Press Cmd+S.
+5. Close and re-open `MVP_Merge_Fix` in BOTH apps.
 
-**Pass criterion:**
+**Verify** — copy and paste:
+> ```bash
+> cd /Users/patrick/theapp/familydiagram && uv run --env-file ../.env python doc/plans/2026-05-01--mvp-merge-fix/fixtures/verify.py
+> ```
 
-After step 8, BOTH apps display:
-- Person A's name = `A_PE_$TAG` (Personal's edit survived Pro's save)
-- Person B's name = `B_PR_$TAG` (Pro's edit applied)
+**Pass criterion:** Verify output shows BOTH:
+- One person with `name='J_PDP_pending'` in the People list (Personal's PDP commit survived Pro's save; the PDP section should be empty)
+- One person with `name='J1A_Pro_edit'` (Pro's edit to person B applied)
 
 **Fail signs:**
 
 | Observation | What it means |
 |-------------|---------------|
-| A's name reverted to `A` | Pro's stale snapshot clobbered Personal's edit. **The bug is not fixed.** |
-| B's name unchanged | Pro's edit didn't save at all. Different bug. |
-| Either app shows a traceback in its VSCode Debug Console | Bug in merge or save path. Copy the traceback into the report. |
+| No `J_PDP_pending` person; PDP section still shows it pending | Pro's stale snapshot clobbered Personal's commit. **Bug not fixed.** |
+| `J1A_Pro_edit` missing | Pro's edit didn't save. Different bug. |
+| Either app shows a traceback in its VSCode Debug Console | Bug in merge or save path. Copy the traceback. |
 
 ---
 
-## J-1B — Personal held open, Pro edits, Personal auto-saves
+## J-1B — Personal held open, Pro edits, Personal then commits PDP
 
-**Mirror of J-1A** with roles swapped. Personal has the stale view; Pro saves first; Personal's auto-save must not clobber Pro's edit.
+**Mirror of J-1A:** Pro saves first; Personal then commits a PDP item with a stale view of Pro's edit. Personal's commit must NOT clobber Pro's edit.
 
-**Setup:** Same as J-1A (same diagram, A/B/C exist, both apps closed).
+**Setup** — copy and paste:
+> ```bash
+> cd /Users/patrick/theapp/familydiagram && uv run --env-file ../.env python doc/plans/2026-05-01--mvp-merge-fix/fixtures/reset_baseline.py
+> ```
 
 **Steps:**
 
-1. In Personal, open the diagram. Don't close.
-2. In Pro, open the same diagram. Don't close.
-3. In Pro, click person `C`. Change C's name to `C_PR_$TAG`. Press Cmd+S.
-4. In Personal (still has stale view of C), tap person `A`. Change A's name to `A_PE_$TAG`. Personal auto-saves — wait 2 seconds.
-5. Close and re-open the diagram in BOTH apps.
+1. In Personal, open `MVP_Merge_Fix`. The PDP sheet shows `J_PDP_pending`. Don't close.
+2. In Pro, open `MVP_Merge_Fix`. Don't close.
+3. In Pro, click person `C`. Change C's name to `J1B_Pro_edit`. Press Cmd+S.
+4. In Personal (still has stale view — doesn't know C was renamed), tap Accept on the `J_PDP_pending` PDP item. Wait until "*" clears.
+5. Close and re-open `MVP_Merge_Fix` in BOTH apps.
 
-**Pass criterion:** BOTH apps display:
-- Person C's name = `C_PR_$TAG`
-- Person A's name = `A_PE_$TAG`
+**Verify:**
+> ```bash
+> cd /Users/patrick/theapp/familydiagram && uv run --env-file ../.env python doc/plans/2026-05-01--mvp-merge-fix/fixtures/verify.py
+> ```
+
+**Pass criterion:** Verify shows BOTH:
+- `name='J1B_Pro_edit'` (Pro's edit survived Personal's stale-view commit)
+- `name='J_PDP_pending'` in People (Personal's PDP commit applied; PDP section empty)
 
 **Fail signs:** Same shape as J-1A.
 
 ---
 
-## J-2A — Personal deletes an event, Pro saves a different change
+## J-2A — Personal deletes the event, Pro saves a different change
 
 **Tests:** Deletes survive the other side's stale-snapshot save.
 
-**Setup:** Pro and Personal both open the same diagram. Diagram must contain at least one event (e.g., a Birth event on person A). If none, create one in Pro: tap person A → Add Event → Birth → save.
+**Setup** — copy and paste:
+> ```bash
+> cd /Users/patrick/theapp/familydiagram && uv run --env-file ../.env python doc/plans/2026-05-01--mvp-merge-fix/fixtures/reset_baseline.py
+> ```
 
 **Steps:**
 
-1. Both apps already have the diagram open from setup.
-2. In Personal, find the Birth event on the timeline. Tap to open. Tap delete. Personal auto-saves — wait 2 seconds.
-3. In Pro (stale view — still has the event), click person `B`. Change name to `B_PR_$TAG`. Press Cmd+S.
-4. Close and re-open the diagram in BOTH apps.
+1. In Pro, open `MVP_Merge_Fix`. Click person `A` to select. Add a Birth event for A (Person properties → Add Event → kind: Birth → Save). Press Cmd+S. Close `MVP_Merge_Fix` in Pro (do NOT close the Pro app).
+2. In Pro, re-open `MVP_Merge_Fix`. Don't close. (Pro now has the Birth event in its view.)
+3. In Personal, open `MVP_Merge_Fix`. Don't close. (Personal also has the Birth event.)
+4. In Personal, find the Birth event on the timeline. Tap to open it. Tap delete. Wait until "*" clears.
+5. In Pro (still has the event in its stale view), click person `B`. Change name to `J2A_Pro_edit`. Press Cmd+S.
+6. Close and re-open `MVP_Merge_Fix` in BOTH apps.
 
-**Pass criterion:** After step 4, BOTH apps show:
-- The Birth event is GONE from the timeline.
-- Person B's name = `B_PR_$TAG`.
+**Verify:**
+> ```bash
+> cd /Users/patrick/theapp/familydiagram && uv run --env-file ../.env python doc/plans/2026-05-01--mvp-merge-fix/fixtures/verify.py
+> ```
+
+**Pass criterion:** Verify shows:
+- One person with `name='J2A_Pro_edit'`
+- The "Events:" section is empty (no Birth event)
 
 **Fail signs:**
 
 | Observation | What it means |
 |-------------|---------------|
-| Birth event reappears | Pro's stale snapshot resurrected the deleted event. **Bug not fixed.** |
-| Person B's name unchanged | Pro's edit didn't save. |
+| Birth event reappears under "Events:" | Pro's stale snapshot resurrected the deleted event. **Bug not fixed.** |
+| `J2A_Pro_edit` missing | Pro's edit didn't save. |
 
 ---
 
 ## J-2B — Pro deletes a person, Personal auto-saves later
 
-**Mirror of J-2A.** Pro deletes; Personal's stale-view auto-save must not resurrect.
+**Mirror of J-2A.**
 
-**Setup:** Pro and Personal both open the diagram with persons A, B, C.
+**Setup** — copy and paste:
+> ```bash
+> cd /Users/patrick/theapp/familydiagram && uv run --env-file ../.env python doc/plans/2026-05-01--mvp-merge-fix/fixtures/reset_baseline.py
+> ```
 
 **Steps:**
 
-1. Both apps open from setup.
-2. In Pro, click person `C`. Press Delete (or use the toolbar delete). Press Cmd+S.
-3. In Personal (stale view — still shows C), do anything that triggers an auto-save. The simplest: tap any event and delete it. Wait 2 seconds.
-4. Close and re-open the diagram in BOTH apps.
+1. In Pro, open `MVP_Merge_Fix`. Add a Birth event for person `A` (Person properties → Add Event → kind: Birth → Save). Press Cmd+S. Close `MVP_Merge_Fix` in Pro (do NOT close the Pro app).
+2. In Personal, open `MVP_Merge_Fix`. Don't close. (Personal now has the Birth event.)
+3. In Pro, re-open `MVP_Merge_Fix`. Don't close.
+4. In Pro, click person `C`. Press Delete. Press Cmd+S.
+5. In Personal, tap the Birth event on the timeline. Tap delete. Wait until "*" clears. (Personal's internal Scene still holds person C from when the diagram was loaded; deleting the event triggers Personal's save with that stale Scene state, exercising the merge.)
+6. Close and re-open `MVP_Merge_Fix` in BOTH apps.
 
-**Pass criterion:** Person C is GONE in both apps after step 4.
+**Verify:**
+> ```bash
+> cd /Users/patrick/theapp/familydiagram && uv run --env-file ../.env python doc/plans/2026-05-01--mvp-merge-fix/fixtures/verify.py
+> ```
 
-**Fail signs:** If C reappears, Personal's stale snapshot resurrected the deleted person.
+**Pass criterion:** Verify shows:
+- No person with `name='C'` (Pro's deletion survived Personal's auto-save)
+- The "Events:" section is empty
+
+**Fail signs:** If person `C` reappears, Personal's stale snapshot resurrected the deleted person.
 
 ---
 
-## J-3 — Both apps add new items concurrently, no id collision
+## J-3 — Both apps add new persons concurrently, no id collision
 
-**Tests:** Pro's server-side block allocation prevents `lastItemId` collisions when both apps allocate new items at the same time.
+**Tests:** Server-side block allocation prevents `lastItemId` collisions when Pro adds via toolbar AND Personal commits via PDP.
 
-**Setup:** Pro and Personal both open the same diagram. Note Pro's last person id (if you can see it; otherwise just note that the diagram has N people).
+**Setup** — copy and paste:
+> ```bash
+> cd /Users/patrick/theapp/familydiagram && uv run --env-file ../.env python doc/plans/2026-05-01--mvp-merge-fix/fixtures/reset_baseline.py
+> ```
 
 **Steps:**
 
-1. Both apps open from setup.
-2. In Pro, add a new male person. Name them `Pro_$TAG`. Press Cmd+S.
-3. In Personal, do a PDP commit that creates a new person. Easiest: send a chat message that mentions a new person, then accept the resulting PDP item with name `Pe_$TAG`. Personal auto-saves.
-4. Close and re-open the diagram in BOTH apps.
+1. In Pro, open `MVP_Merge_Fix`. Don't close.
+2. In Personal, open `MVP_Merge_Fix`. PDP sheet shows `J_PDP_pending`. Don't close.
+3. In Pro, click the male person toolbar button, then click on empty canvas to drop a new male person. Use the properties drawer to name them `J3_Pro_add`. Press Cmd+S.
+4. In Personal, tap Accept on the `J_PDP_pending` PDP item. Wait until "*" clears.
+5. Close and re-open `MVP_Merge_Fix` in BOTH apps.
 
-**Pass criterion:** After step 4, BOTH apps show two new people: `Pro_$TAG` and `Pe_$TAG`. Their ids must be different (verify by clicking each and looking at the id field if visible, or by inspecting the DB).
+**Verify:**
+> ```bash
+> cd /Users/patrick/theapp/familydiagram && uv run --env-file ../.env python doc/plans/2026-05-01--mvp-merge-fix/fixtures/verify.py
+> ```
 
-**Optional DB verification:**
-```bash
-docker exec fd-postgres psql -U familydiagram -d familydiagram -tAc \
-  "SELECT id, encode(data,'base64') FROM diagrams WHERE name LIKE '%MVP%' ORDER BY updated_at DESC LIMIT 1;" \
-  | uv run python -c "
-import sys, base64, pickle
-import PyQt5.sip
-diagram_id, blob_b64 = sys.stdin.read().split('|')
-data = pickle.loads(base64.b64decode(blob_b64.strip()))
-people = {p['id']: p['name'] for p in data['people']}
-tag = '$TAG'
-matched = {id: name for id, name in people.items() if tag in (name or '')}
-print('Matched:', matched)
-print('Distinct ids:', len(matched) == len(set(matched.keys())))
-"
-```
+**Pass criterion:** Verify shows:
+- One person with `name='J3_Pro_add'`
+- One person with `name='J_PDP_pending'`
+- The two `id=` values for those persons are DIFFERENT
 
 **Fail signs:**
 
 | Observation | What it means |
 |-------------|---------------|
-| Only one of `Pro_$TAG` / `Pe_$TAG` appears | Merge dropped one. |
-| Both appear but with the SAME id | Block allocation broken — collision occurred. |
+| `J3_Pro_add` and `J_PDP_pending` share the same id | Block allocation broken — collision occurred. |
+| One of the names missing | Merge dropped one. |
 | Pro raises a traceback during person-add | Allocator binding broken. |
 
 ---
@@ -173,81 +200,109 @@ print('Distinct ids:', len(matched) == len(set(matched.keys())))
 
 **Tests:** Pro's `ServerBlockAllocator` correctly requests a second block when the first is exhausted.
 
-**Setup:**
+**Setup** — copy and paste:
+> ```bash
+> cd /Users/patrick/theapp/familydiagram && uv run --env-file ../.env python doc/plans/2026-05-01--mvp-merge-fix/fixtures/reset_baseline.py
+> ```
 
-Set the block size very small for this run so you don't have to add 100 people:
-```bash
-export FAMILYDIAGRAM_BLOCK_SIZE=3
-```
-Then launch Pro from this shell. Pro and Personal both open the same diagram.
+Then, in your shell, set the block size to 3 BEFORE launching Pro:
+> ```bash
+> export FAMILYDIAGRAM_BLOCK_SIZE=3
+> ```
+> Then launch Pro from this shell (or set the var in your VSCode "Pro" launch config).
 
 **Steps:**
 
-1. Open the diagram in Pro.
-2. Add 4 male people, naming them `J4_1_$TAG` through `J4_4_$TAG`. Press Cmd+S after each.
-3. Close and re-open the diagram in Pro.
+1. In Pro, open `MVP_Merge_Fix`.
+2. Add 4 male people via the toolbar. Name them `J4_one`, `J4_two`, `J4_three`, `J4_four`. Press Cmd+S after each.
+3. Close and re-open `MVP_Merge_Fix` in Pro.
 
-**Pass criterion:** All 4 people are present after re-open. None of their ids collide with each other.
+**Verify:**
+> ```bash
+> cd /Users/patrick/theapp/familydiagram && uv run --env-file ../.env python doc/plans/2026-05-01--mvp-merge-fix/fixtures/verify.py
+> ```
+
+**Pass criterion:** Verify shows all 4 people: `J4_one`, `J4_two`, `J4_three`, `J4_four` with 4 DISTINCT id values.
 
 **Fail signs:**
 
 | Observation | What it means |
 |-------------|---------------|
-| Pro raises a traceback on person 4 | Allocator's refill logic broken. |
-| Person 4 missing after re-open | Refill returned a duplicate id; merge dropped it. |
-| Server log shows only one `POST /reserve_ids` request | Refill didn't fire — allocator counter not advancing. |
+| Pro raises a traceback on the 4th add | Allocator refill broken. |
+| Any name from J4_* missing after re-open | Refill returned a duplicate id; merge dropped it. |
+| Two J4_* names with the same id | Refill returned an overlapping range. |
+
+After this journey, **unset the env var** so other journeys use the default block size:
+> ```bash
+> unset FAMILYDIAGRAM_BLOCK_SIZE
+> ```
 
 ---
 
-## J-5 — Local `.fd` file open (no server, no block allocation)
+## J-5 — Pro opens a local `.fd` file (no server, no allocator binding)
 
 **Tests:** Local file open is unchanged. No allocator binding, no server traffic for ids.
 
-**Setup:** A local `.fd` file on disk. Use any existing one or create a fresh diagram via File → New, then save it locally (NOT to the server).
+**Setup:** No reset needed (no server diagram involved). You need any existing `.fd` file. If you don't have one handy, create one in Pro: File → New, add a male person named `J5_setup`, File → Save As → save to `~/Documents/J5_local.fd`.
 
 **Steps:**
 
 1. Quit Pro entirely.
 2. Launch Pro fresh. Don't log in to a server account.
 3. Open the local `.fd` file via File → Open.
-4. Add a new male person. Name them `Local_$TAG`. Save (Cmd+S writes to the local file, not the server).
+4. Add a new male person. Name them `J5_local_add`. Press Cmd+S.
 5. Quit and re-launch Pro. Open the same local file.
 
-**Pass criterion:** `Local_$TAG` is present after re-open. No traceback. No HTTP request to any server during the session (verify in the Debug Console — should be silent).
+**Pass criterion:** `J5_local_add` is present after re-open. No traceback in Debug Console. No HTTP requests to `/v1/diagrams/.../reserve_ids` in Debug Console (because no server is involved).
 
 **Fail signs:**
 
 | Observation | What it means |
 |-------------|---------------|
-| Pro tries to make an HTTP request | Allocator was bound to a local-file Scene (it shouldn't be). |
-| Person not present after re-open | Local file save broken (regression unrelated to this PR). |
+| `J5_local_add` missing after re-open | Local file save broken (regression unrelated to this PR). |
+| Pro tries to make a `reserve_ids` HTTP request | Allocator was bound to a local-file Scene (it shouldn't be). |
 
 ---
 
-## J-6 — Same item edited on both sides (item-level last-write-wins, **documented MVP behavior**)
+## J-6 — Same event edited on both sides (item-level last-write-wins, **documented MVP behavior**)
 
-**Tests:** When Pro and Personal both edit the SAME item but DIFFERENT fields, item-level last-write-wins applies. **One side's edits are lost.** This is accepted MVP behavior — field-level merge is deferred to v3. Run this journey to confirm the documented behavior.
+**Tests:** When Pro and Personal both edit the SAME item (different fields), item-level last-write-wins applies — the second-saver's whole item dict overwrites the first. **One side's edits are lost.** Accepted MVP behavior; field-level merge is v3.
 
-**Setup:** Pro and Personal both open the same diagram. Person A exists with name `A` and cutoff `False`.
+**Note on Personal's editable surface:** Personal can't edit canonical persons via UI — only events (`editEvent`/`deleteEvent`) and PDP items. So J-6 uses a Birth event as the shared item: Pro adds it; Personal edits the date; Pro (stale view) edits the description; one side's edit wins.
+
+**Setup** — copy and paste:
+> ```bash
+> cd /Users/patrick/theapp/familydiagram && uv run --env-file ../.env python doc/plans/2026-05-01--mvp-merge-fix/fixtures/reset_baseline.py
+> ```
 
 **Steps:**
 
-1. In Personal, tap person A. Toggle the `cutoff` checkbox to True. Personal auto-saves — wait 2 seconds.
-2. In Pro (stale view — still sees cutoff=False locally), click person A. Change name to `A_PR_$TAG`. Press Cmd+S.
-3. Close and re-open the diagram in BOTH apps.
+1. In Pro, open `MVP_Merge_Fix`. Click person `A`. Add a Birth event for A (Person properties → Add Event → kind: Birth → date `1990-01-01` → description blank → Save). Press Cmd+S. Close `MVP_Merge_Fix` in Pro.
+2. In Pro, re-open `MVP_Merge_Fix`. Don't close.
+3. In Personal, open `MVP_Merge_Fix`. The Birth event appears in Personal's timeline. Don't close.
+4. In Personal, tap the Birth event. Edit the date to `1991-06-15`. Save the event form. Wait until "*" clears.
+5. In Pro (still sees the event with date 1990-01-01 and blank description), tap the same Birth event. Edit the description to `J6_Pro_edit`. Save the event form. Press Cmd+S.
+6. Close and re-open `MVP_Merge_Fix` in BOTH apps.
 
-**Pass criterion (documented behavior):** After step 3, BOTH apps show:
-- Person A's name = `A_PR_$TAG`
-- Person A's cutoff = **`False`** (Personal's cutoff edit lost — Pro saved last with stale snapshot of A)
+**Verify:**
+> ```bash
+> cd /Users/patrick/theapp/familydiagram && uv run --env-file ../.env python doc/plans/2026-05-01--mvp-merge-fix/fixtures/verify.py
+> ```
+
+**Pass criterion (documented behavior):** Verify's "Events:" section shows ONE Birth event. Open the diagram in Pro and inspect:
+- Description = `J6_Pro_edit` (Pro's edit)
+- Date = `1990-01-01` (Pro's stale value; Personal's date edit was LOST)
+
+This is item-level LWW: Pro saved last with the stale event dict, replacing Personal's date change.
 
 **Fail signs:**
 
 | Observation | What it means |
 |-------------|---------------|
-| cutoff is `True` after step 3 | Field-level merge somehow happened (unexpected — investigate as a "good" surprise). |
-| Person A's name unchanged | Pro's save didn't apply at all. Different bug. |
+| Date is `1991-06-15` AND description is `J6_Pro_edit` | Field-level merge happened (unexpected — investigate as good surprise). |
+| Description not `J6_Pro_edit` | Pro's edit didn't save. Different bug. |
 
-**Note:** This is the cost of accepting last-write-wins per item. Documented in plan README under "Out of scope". If you ever need field-level merge, schedule a follow-up.
+**Note:** This documents the MVP cost of accepting item-level LWW. Field-level merge is v3.
 
 ---
 
@@ -257,14 +312,14 @@ Replace `PENDING` with `PASS` or `FAIL: <one-line reason>` after running each.
 
 | Journey | Status |
 |---------|--------|
-| J-1A | PENDING |
-| J-1B | PENDING |
-| J-2A | PENDING |
-| J-2B | PENDING |
-| J-3  | PENDING |
-| J-4  | PENDING |
-| J-5  | PENDING |
-| J-6  | PENDING (expected: see documented behavior in pass criterion) |
+| J-1A | PASS (2026-05-02) |
+| J-1B | PASS (2026-05-02) |
+| J-2A | PASS (2026-05-02) |
+| J-2B | PASS (2026-05-02) |
+| J-3  | PASS (2026-05-02) — Pro id=7, Personal id=106, no collision |
+| J-4  | PASS (2026-05-02) — refill happened ~3x; final lastItemId=14 well past initial block end of 8 |
+| J-5  | PASS (2026-05-02) |
+| J-6  | DEFERRED — Personal UI doesn't expose `editEvent` yet (slot exists but no QML surface). Covered by unit test `test_same_item_both_sides_edited_local_wins`. Re-enable as a manual journey once Personal exposes event editing. |
 
 ---
 
@@ -274,6 +329,6 @@ Reply with the journey code(s) and result(s). Examples:
 
 > "J-1A: PASS. J-1B: PASS. J-3: FAIL — both new people had the same id."
 >
-> "J-2A: traceback at step 2 — `<paste>`"
+> "J-2A: traceback at step 3 — `<paste>`"
 
 If a journey was ambiguous to follow, also report that — Claude rewrites the journey, not just the fix.
