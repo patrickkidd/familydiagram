@@ -867,11 +867,33 @@ class DocumentController(QObject):
             self.view.onRedo()
 
     def onArrangeSelection(self):
-        from dataclasses import asdict
-        from pkdiagram.server_types import HTTPError
-        from btcopilot.arrange import Diagram, Person, Rect, Point
+        """Auto-arrange selected people via the deterministic Bowen layout algorithm.
 
-        diagram = Diagram()
+        The algorithm runs locally (no server roundtrip) — algorithm code lives in
+        btcopilot.arrange.layout. Dev workflow + decision log:
+        familydiagram/doc/plans/2026-05-02--auto-arrange-layout.md
+
+        The previous Gemini-LLM-based implementation is preserved on the server at
+        btcopilot/btcopilot/pro/routes.py (commented out) for future-improvement
+        reference per the algorithm spec which explicitly lists LLM coordinate
+        assignment under "What Does NOT Work (Empirically Refuted)".
+        """
+        from btcopilot.arrange.layout import layout
+
+        # Build the per-person dict expected by btcopilot.arrange.layout.
+        # Size 1-5 maps to the algorithm's pixel scale; we derive from boundingRect width.
+        SIZE_PX = {1: 8, 2: 16, 3: 40, 4: 80, 5: 125}
+        DEFAULT_SIZE = 5
+
+        def _size_for(width):
+            best, best_diff = DEFAULT_SIZE, float("inf")
+            for sz, px in SIZE_PX.items():
+                diff = abs(width - px)
+                if diff < best_diff:
+                    best, best_diff = sz, diff
+            return best
+
+        people_input = []
         for person in self.scene.people():
             parents = person.parents()
             parent_a = parents.people[0].id if parents else None
@@ -883,66 +905,38 @@ class DocumentController(QObject):
                 if birthDT and birthDT.isValid()
                 else None
             )
-            diagram.people.append(
-                Person(
-                    id=person.id,
-                    center=Point(x=person.scenePos().x(), y=person.scenePos().y()),
-                    isMovable=person.isSelected(),
-                    boundingRect=Rect(
-                        x=boundingRect.x(),
-                        y=boundingRect.y(),
-                        width=boundingRect.width(),
-                        height=boundingRect.height(),
-                    ),
-                    partners=[
+            people_input.append(
+                {
+                    "id": person.id,
+                    "name": person.name() or "",
+                    "gender": person.gender() or "",
+                    "size": _size_for(boundingRect.width()),
+                    "partners": [
                         x.id
                         for marriage in person.marriages
                         for x in marriage.people
                         if x != person
                     ],
-                    parent_a=parent_a,
-                    parent_b=parent_b,
-                    birthDateTime=birthDateTime,
-                )
+                    "parent_a": parent_a,
+                    "parent_b": parent_b,
+                    "birth_date": birthDateTime,
+                }
             )
 
-        def _onSuccess(data: dict):
-            idToNewPos = {
-                entry["id"]: Point(x=entry["center"]["x"], y=entry["center"]["y"])
-                for entry in data.get("people", [])
-            }
-            scenePeopleById = {person.id: person for person in self.scene.people()}
-            with self.scene.macro("Arrange selection"):
-                for id, newPos in idToNewPos.items():
-                    person = scenePeopleById.get(id)
-                    if person and person.isSelected():
-                        # log.info(
-                        #     f"    Moving person {person.id} from {person.itemPos()} to {newPos}"
-                        # )
-                        person.setItemPos(QPointF(newPos.x, newPos.y), undo=True)
-                        person.setPos(
-                            QPointF(newPos.x, newPos.y)
-                        )  # reflect on diagram now
+        try:
+            positions = layout(people_input)
+        except Exception as e:
+            log.error(f"Auto-Arrange failed: {e}", exc_info=True)
+            QMessageBox.warning(None, "Auto-Arrange Failed", str(e))
+            return
 
-        def _onError():
-            try:
-                self.dv.session.server().checkHTTPReply(reply)
-            except HTTPError as e:
-                log.error(f"Auto-Arrange request failed {e.status_code}")
-                QMessageBox.warning(
-                    None,
-                    "Auto-Arrange Failed",
-                    str(e),
-                )
-
-        reply = self.dv.session.server().nonBlockingRequest(
-            "POST",
-            "/arrange",
-            data=asdict(diagram),
-            headers={"Content-Type": "application/json"},
-            success=_onSuccess,
-            error=_onError,
-        )
+        scenePeopleById = {person.id: person for person in self.scene.people()}
+        with self.scene.macro("Arrange selection"):
+            for pid, (x, y) in positions.items():
+                person = scenePeopleById.get(pid)
+                if person and person.isSelected():
+                    person.setItemPos(QPointF(x, y), undo=True)
+                    person.setPos(QPointF(x, y))
 
     def onDelete(self):
         fw = QApplication.focusWidget()

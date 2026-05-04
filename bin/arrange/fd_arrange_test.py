@@ -2,7 +2,7 @@
 Auto-arrange test harness.
 
 For each clinical case:
-1. Copy .fd to /tmp/arranged/
+1. Copy .fd to ~/Desktop/fd_algorithm/
 2. Clear all person positions
 3. Apply layout algorithm
 4. Write positions back to .fd (for opening in pro app)
@@ -14,6 +14,10 @@ Usage:
 Options:
     --count N     Process first N cases (default: all)
     --case NAME   Process only the case matching NAME (substring match)
+
+Correction workflow:
+    Copy specific cases from ~/Desktop/fd_algorithm/ to ~/Desktop/fd_corrections/,
+    edit positions in the Pro app, then run fd_compare.py to see what moved.
 """
 
 import argparse
@@ -27,13 +31,14 @@ import PyQt5.sip  # Required for unpickling QtCore objects
 from PyQt5.QtCore import QPointF
 
 sys.path.insert(0, os.path.dirname(__file__))
-from fd_layout import layout
+from btcopilot.arrange.layout import layout
 from fd_render_html import render_html
 
 CASES_DIR = os.path.expanduser(
     "~/Library/Mobile Documents/iCloud~com~vedanamedia~familydiagram/Documents/Clinic Cases"
 )
-OUT_FD_DIR = "/tmp/arranged"
+OUT_FD_DIR = os.path.expanduser("~/Desktop/fd_algorithm")
+CORR_DIR = os.path.expanduser("~/Desktop/fd_corrections")
 OUT_HTML_DIR = "/tmp/arranged_html"
 TMP_DIR = "/tmp/fd_arrange_tmp"
 
@@ -172,6 +177,7 @@ def main():
     args = parser.parse_args()
 
     os.makedirs(OUT_FD_DIR, exist_ok=True)
+    os.makedirs(CORR_DIR, exist_ok=True)
     os.makedirs(OUT_HTML_DIR, exist_ok=True)
     os.makedirs(TMP_DIR, exist_ok=True)
 
@@ -210,9 +216,13 @@ def main():
 </body>
 </html>""")
 
+    # Sync corrections folder from algorithm snapshot so Patrick starts fresh each iteration.
+    shutil.copytree(OUT_FD_DIR, CORR_DIR, dirs_exist_ok=True)
+
     print(f"\nHTML renderings: {OUT_HTML_DIR}/index.html")
-    print(f"Arranged .fd files: {OUT_FD_DIR}/")
-    print(f"\nTo view in pro app: open any .fd file from {OUT_FD_DIR}/")
+    print(f"Algorithm snapshot: {OUT_FD_DIR}/")
+    print(f"Corrections folder synced: {CORR_DIR}/")
+    print(f"\nEdit cases in fd_corrections/, then run fd_compare.py")
 
 
 if __name__ == "__main__":
