@@ -4,6 +4,11 @@ All notable changes to Family Diagram are documented in this file.
 
 ## 2.1.23
 
+## 2.1.23b2
+
+- Improved auto-arrange layout for diagrams with multiple family clusters.
+- Fixed a load failure on some older diagrams.
+
 ## 2.1.23b1
 
 - Can open the same file in pro and personal apps now, even with multiple users.
@@ -17,7 +22,7 @@ All notable changes to Family Diagram are documented in this file.
 - Prune duplicate pairbonds
 
 ## 2.1.21
-
+``
 ## 2.1.21b1
 
 - Attempt to fix person notes not clearing when closing a diagram.
