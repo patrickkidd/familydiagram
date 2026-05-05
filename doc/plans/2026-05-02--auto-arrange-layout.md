@@ -1,11 +1,17 @@
 # Auto-Arrange Layout — Workstream Plan
 
-**Status**: In progress  
-**File under development**: `familydiagram/bin/fd_layout.py` (untracked — not yet committed)  
-**Algorithm spec**: [btcopilot/doc/FAMILY_DIAGRAM_LAYOUT_ALGORITHM.md](../../btcopilot/doc/FAMILY_DIAGRAM_LAYOUT_ALGORITHM.md)  
-**Test harness**: `familydiagram/bin/fd_arrange_test.py` → writes to `/tmp/arranged/` (ephemeral, lost on reboot)  
-**Collision checker**: `/tmp/real_collisions.py` (ephemeral — see snippet below)  
-**Ground truth**: 49 clinic case `.fd` files in `~/Library/Mobile Documents/iCloud~com~vedanamedia~familydiagram/Documents/Clinic Cases/`
+**🛑 READ THIS DOC IN FULL BEFORE MAKING ANY CHANGE TO `btcopilot.arrange`.**  
+Twenty-six logged decisions (D-1..D-26) explain what was tried and rejected. Many obvious-looking changes have already failed and are documented here. The watchdog protocol at the bottom of this doc tells you when to spawn a sub-agent to break out of rabbit holes — invoke it proactively, not after Patrick gets frustrated. This is the single source of truth for the auto-arrange workstream.
+
+**Status**: Shipped (initial wire-up 2026-05-04) — see "Shipped State" section near bottom for what's live and what's deferred.
+
+
+**Algorithm code**: `btcopilot/btcopilot/arrange/{layout,refine}.py` — production, imported by Pro app's `DocumentController.onArrangeSelection`  
+**Algorithm spec (language-agnostic)**: [btcopilot/doc/FAMILY_DIAGRAM_LAYOUT_ALGORITHM.md](../../btcopilot/doc/FAMILY_DIAGRAM_LAYOUT_ALGORITHM.md)  
+**Dev tools**: `familydiagram/bin/arrange/` — `fd_arrange_test.py`, `fd_fitness.py`, `fd_compare.py`, `README.md`  
+**Test harness**: `uv run python familydiagram/bin/arrange/fd_arrange_test.py` → syncs `~/Desktop/fd_algorithm/` and `~/Desktop/fd_corrections/`  
+**Fitness oracle**: `uv run python familydiagram/bin/arrange/fd_fitness.py` → objective regression detection vs GT  
+**Ground truth**: 49 clinic case `.fd` files in `~/Library/Mobile Documents/iCloud~com~vedanamedia~familydiagram/Documents/Clinic Cases/` (PHI — never copy or commit)
 
 ---
 
@@ -23,7 +29,7 @@ The reference practitioner is Patrick. The 49 GT clinic cases are the ground tru
 ## Review Flow
 
 Every iteration:
-1. Run `uv run python familydiagram/bin/fd_arrange_test.py` → regenerates `/tmp/arranged/`
+1. Run `uv run python familydiagram/bin/arrange/fd_arrange_test.py` → regenerates `~/Desktop/fd_algorithm/` and `~/Desktop/fd_corrections/`
 2. Run collision checker (see below) → `REAL (>buffer)` must be 0
 3. Patrick opens files from `/tmp/arranged/` in the Pro app and reports specific diagrams that look off
 4. Diagnose, fix, repeat
@@ -34,7 +40,7 @@ Patrick's feedback loop is the authoritative quality signal. Collision count is 
 
 ## Current Algorithm State
 
-### Constants (`fd_layout.py` lines 19–26)
+### Constants (`btcopilot/btcopilot/arrange/layout.py` near top)
 
 | Constant | Value | Notes |
 |----------|-------|-------|
@@ -113,6 +119,8 @@ Key finding: **wideness is not from couple spacing** (ours is already tighter th
 | D-24 | Re-tuned LABEL_OVERLAP_TOLERANCE 100 → 80 after adding new moves | New moves changed the optimum because they enable tighter compaction independently of the tolerance. TOL=80 now beats TOL=100 (894 vs 939). Real collisions also dropped 2 → 1 | TOL=100 was best with 3 moves but became sub-optimal with 5 moves |
 | D-25 | Added symbol-symbol overlap check to refine quality function | Discovered 2026-05-03: refine's `_quality()` only checked label-symbol overlaps and accepted moves that physically stacked person symbols on top of each other. Cluster-compress at scales 0.4-0.5 was creating these overlaps undetected. Added `_has_symbol_overlap()` returning float('inf') hard reject. Aggregate fitness rose 884 → 1138 because compressing moves were no longer cheating; this reflects the true ceiling | Without this, refine's "improvements" were destroying readability — a metric/visual mismatch |
 | D-26 | Built and rejected the Strict Bowen Grid alternative | Built `fd_grid.py` + `fd_grid_test.py` as a defensive pivot: canonical layout grammar with strict generational rows, fixed couple/sibling spacing, no recursive subtree estimation. Two variants: in-laws-on-row-0 vs in-laws-inherit-partner-row. Patrick visual review on 14 A-D cases: "that was so bad I don't see any use for it." Files deleted | Current algorithm is acceptable; grid grammar's hard rules produced layouts that lost too much practical readability |
+| D-28 | Made `_compact` parent-aware: cap pull so no subtree member is dragged past its parent-couple midpoint. Closes the D-27 residual on the Belgards-class bug — root cause was compact yanking correctly-placed children into adjacent whitespace, not refine failing to recenter them. Layout pipeline placement step puts Belgards children correctly under their parents (verified by tracing first-write order); subsequent `_compact` pulled them ~1200 px left to consolidate with an unrelated sibling cluster. With the cap, children remain anchored above their parents' midpoint. | Aggregate fitness 1138 → 974 (-14%) on the 49 GT cases; 1 viol/3 coll vs baseline 1 viol/1 coll. Belgards-style bug fully fixed structurally — children land within ~300 px of Patrick's manual reference (down from 1450 px residual under D-27 alone), confirming the bug class is closed. Patrick visual review on 4 affected GT cases (collision-1, collision-2, dist-regress-1, dist-regress-2) — all kept; 2 cases were qualitatively improved despite the position-delta metric flagging them as regressed (validates "GT is loose, not strict ground truth"). Side fix shipped to compat.py: empty-string `Event.symptom`/`anxiety`/`functioning`/`relationship` now coerced to None during legacy-version load (was a latent load-failure bug uncovered by Hela Baer fd_arrange_test round-trip). Unit tests: `btcopilot/btcopilot/tests/test_arrange_layout.py`, `familydiagram/pkdiagram/tests/scene/test_compat.py::test_empty_string_variable_fields_normalized_to_none`. | The cap is a hard rule ("never pull past parent midpoint"); a softer rule could potentially recover 5 cases that regressed 50–130 px on aggregate metric. Patrick visual review showed those regressions are not perceptible blockers, so deferred. |
+| D-27 | Added alignment penalty to refine quality function: `quality = bbox_width + 0.3 * sum(\|couple_center - children_center\|)` over each pair_bond with shared children | Bug from extracted-from-chat diagram (Personal-app→Pro-app pipeline, server diagram id 1924, snapshotted at /tmp/diagram-1924-snapshot-20260504-075951.pkl): two child subtrees placed far off-axis from their parents (one subtree off by +444 px, another by +1484 px). Patrick fixed manually in dup id 2002 by horizontal drag only. Instrumentation showed Phase 4 `_recenter_children_move` proposed correct deltas but every one was rejected by the strict `<` gating against `_quality = _bbox_width()` because recentering frequently leaves bbox identical or grows it slightly (children moving INTO populated area, sometimes past existing right-edge anchors). Adding the alignment term unblocks bbox-neutral and small-bbox-cost recenter moves while keeping bbox dominant for larger trade-offs. Weight=0.3 picked from sweep of {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1.0, 2.0, 5.0}: best aggregate fitness (1127.3 vs 1137.9 baseline = -10.6 px), 10 cases improved by >5 px vs 7 worse, worst single-case GT regression +75 px. Higher weights overshoot (regress simple cases without further fixing 1924's bug). Comparison artifact: server diagrams 1924 (bug) / 2002 (manual fix) / 2003 (algo with this fix). | Higher weights (>=0.5) regress aggregate fitness without proportionally improving the residual. Lower weights leave Stinson-class moves blocked. The fix is partial — the +1484 case (subtree id-887/888/889) still gets only ~+47 px shift because `_recenter_children_move` proposes only +1199 (couple positions during iteration differ from final), and accepting +1199 grows bbox by ~660. Full fix requires either (a) bigger slide-step set after recenter, (b) iterating recenter until convergence using final couple positions, or (c) higher alignment weight gated on cluster-isolated subtrees. Deferred to future iteration. |
 
 ---
 
@@ -368,9 +376,11 @@ Per-case status:
 - 1 invariant violation (Case B residual), 1 real collision
 
 Files (all untracked):
-- `familydiagram/bin/fd_layout.py` — added LABEL_OVERLAP_TOLERANCE, _is_descendant cyclic skip, refine() integration
-- `familydiagram/bin/fd_refine.py` — NEW — 5-phase iterative refinement layer
-- `familydiagram/bin/fd_fitness.py` — NEW — GT-comparison fitness function
+- `btcopilot/btcopilot/arrange/layout.py` — added LABEL_OVERLAP_TOLERANCE, _is_descendant cyclic skip, refine() integration, defensive self-parent skip
+- `btcopilot/btcopilot/arrange/refine.py` — NEW — 5-phase iterative refinement layer
+- `familydiagram/bin/arrange/fd_fitness.py` — NEW — GT-comparison fitness function (dev tool)
+- `familydiagram/pkdiagram/documentview/documentcontroller.py` — `onArrangeSelection` calls `btcopilot.arrange.layout.layout()` directly (no HTTP roundtrip)
+- `btcopilot/btcopilot/pro/routes.py` — old LLM `/arrange` endpoint commented out (preserved for reference)
 - `familydiagram/bin/fd_arrange_test.py` — modified to sync `~/Desktop/fd_algorithm/` + `fd_corrections/`
 
 Files changed (all untracked):

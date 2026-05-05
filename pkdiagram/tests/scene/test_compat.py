@@ -1078,3 +1078,53 @@ def test_inferred_parent_size_minimum():
 
     compat.update_data(data)
     assert data == expected
+
+
+def test_empty_string_variable_fields_normalized_to_none():
+    """Empty-string Event.symptom/anxiety/functioning/relationship are coerced to None.
+    Without this, Event() construction fails with "'' is not a valid VariableShift" on
+    legacy diagrams that stored unset fields as empty strings instead of None."""
+    data = {
+        "version": "2.1.15",
+        "events": [
+            {
+                "id": 1,
+                "kind": EventKind.Shift.value,
+                "symptom": "",
+                "anxiety": "",
+                "functioning": "",
+                "relationship": "",
+            },
+            {
+                "id": 2,
+                "kind": EventKind.Shift.value,
+                "symptom": "up",
+                "anxiety": None,
+                "functioning": "down",
+                "relationship": RelationshipKind.Conflict.value,
+            },
+        ],
+    }
+    expected = {
+        "version": "2.1.15",
+        "events": [
+            {
+                "id": 1,
+                "kind": EventKind.Shift.value,
+                "symptom": None,
+                "anxiety": None,
+                "functioning": None,
+                "relationship": None,
+            },
+            {
+                "id": 2,
+                "kind": EventKind.Shift.value,
+                "symptom": "up",
+                "anxiety": None,
+                "functioning": "down",
+                "relationship": RelationshipKind.Conflict.value,
+            },
+        ],
+    }
+    compat.update_data(data)
+    assert data == expected

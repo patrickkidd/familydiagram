@@ -797,15 +797,18 @@ def update_data(data):
             for attr in ("anxiety", "symptom", "functioning"):
                 if attr in event_chunk:
                     value = event_chunk[attr]
-                    if isinstance(value, VariableShift):
+                    if value == "":
+                        event_chunk[attr] = None
+                    elif isinstance(value, VariableShift):
                         event_chunk[attr] = value.value
                     elif value is not None and not isinstance(value, str):
-                        # Handle any other non-string type
                         event_chunk[attr] = str(value)
 
             if "relationship" in event_chunk:
                 value = event_chunk["relationship"]
-                if isinstance(value, RelationshipKind):
+                if value == "":
+                    event_chunk["relationship"] = None
+                elif isinstance(value, RelationshipKind):
                     event_chunk["relationship"] = value.value
                 elif value is not None and not isinstance(value, str):
                     event_chunk["relationship"] = str(value)

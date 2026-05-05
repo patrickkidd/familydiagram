@@ -18,7 +18,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Data integrity workstream (started 2026-04-17) | [doc/plans/2026-04-17--data-integrity/](doc/plans/2026-04-17--data-integrity/) |
 | MVP merge fix workstream (2026-05-01, DONE) — snapshot-diff merge + server block id allocation | [doc/plans/2026-05-01--mvp-merge-fix/](doc/plans/2026-05-01--mvp-merge-fix/) |
 | Dangling-refs resilience workstream (2026-05-02) — load-time drop of broken Events + clearDiagramData scene-None fix | [doc/plans/2026-05-02--dangling-refs-resilience/](doc/plans/2026-05-02--dangling-refs-resilience/) |
-| Auto-arrange layout workstream — fd_layout.py algorithm, decision log, GT calibration, watchdog protocol | [doc/plans/2026-05-02--auto-arrange-layout.md](doc/plans/2026-05-02--auto-arrange-layout.md) |
+| **Auto-arrange algorithm — READ FIRST before any change to `btcopilot.arrange`**. Workstream history, decision log D-1..D-26, MVP context, GT calibration data, painter analogy, tried-and-rejected approaches, watchdog protocol, dev workflow. Algorithm code lives in `btcopilot/btcopilot/arrange/{layout,refine}.py`; dev/training tools in `familydiagram/bin/arrange/` (with own README). | [doc/plans/2026-05-02--auto-arrange-layout.md](doc/plans/2026-05-02--auto-arrange-layout.md) |
 | Manual test journey methodology (mandatory for all fixes) | [doc/TEST_JOURNEYS.md](doc/TEST_JOURNEYS.md) |
 
 ## Manual Test Journeys
@@ -118,6 +118,16 @@ Position fields: `itemPos` (current format) or `nonLayerPos` (older format) — 
 - **Configurations**: pyrightconfig.json configures Pyright/Pylance
 - **Always run linting**: Check for type errors and imports before committing code
 - **Always run black formatter**: `uv run black <filename>`
+
+## Auto-Arrange (MANDATORY trigger)
+
+**Trigger keywords (in user prompts)**: `auto-arrange`, `auto arrange`, `arrange selection`, `arrange algorithm`, `btcopilot.arrange`, `arrange/layout`, `arrange/refine`, `fd_layout`, `fd_refine`, `fd_fitness`, `fd_arrange_test`, `bin/arrange`, `Bowen layout`.
+
+**Trigger files**: `pkdiagram/documentview/documentcontroller.py` (`onArrangeSelection`), `bin/arrange/*`. Algorithm itself lives in the btcopilot repo at `btcopilot/btcopilot/arrange/{layout,refine}.py`.
+
+**When triggered**: BEFORE any change, read [doc/plans/2026-05-02--auto-arrange-layout.md](doc/plans/2026-05-02--auto-arrange-layout.md) in full. Decision log D-1..D-26 documents what was tried, kept, rejected, and why; many obvious approaches have already failed there. Watchdog protocol at the bottom of that doc tells you when to spawn a sub-agent to escape rabbit holes — invoke proactively, not after Patrick gets frustrated. Dev workflow + PHI safety in [bin/arrange/README.md](bin/arrange/README.md).
+
+**Process**: read plan doc → run `uv run python familydiagram/bin/arrange/fd_fitness.py` baseline → make change → re-run fitness + refresh `~/Desktop/fd_algorithm/` → ask Patrick for visual review → append decision-log entry.
 
 ## MCP Testing with familydiagram-testing Server
 
