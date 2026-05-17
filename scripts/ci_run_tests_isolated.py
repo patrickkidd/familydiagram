@@ -87,17 +87,18 @@ DESELECT = {
 #     loop (the Windows crash). No whole-file Windows quarantine.
 WINDOWS_SKIP_FILES = set()
 
-# (b) Per-test: real Windows-specific failures (path separator, tempfile
-#     reopen-by-name permission, timing).
+# (b) Per-test Windows-specific failures. Fixed in-tree:
+#       test_appconfig::test_write_new  -> use a plain tmp_path (no
+#         NamedTemporaryFile reopen-by-name, which Windows forbids).
+#       test_filemanager::test_local_onFileStatusChanged -> normalize path
+#         separators in the assertion (Qt '/' vs os.path '\').
+#       test_util::test_Condition_lambda_condition -> explicit in-test
+#         skipif(win32) (genuine zero-interval-QTimer platform behavior).
+#     Still under investigation (kept deselected, not masked as fixed):
 WINDOWS_DESELECT = {
-    "pkdiagram/tests/test_util.py": [
-        "pkdiagram/tests/test_util.py::test_Condition_lambda_condition",
-    ],
-    "pkdiagram/tests/test_appconfig.py": [
-        "pkdiagram/tests/test_appconfig.py::test_write_new",
-    ],
     "pkdiagram/tests/views/test_filemanager.py": [
-        "pkdiagram/tests/views/test_filemanager.py::test_local_onFileStatusChanged",
+        # serverFileList shows 3 vs expected 2 on a clean Windows runner —
+        # server-state/ordering, not a path issue. Needs a Windows repro.
         "pkdiagram/tests/views/test_filemanager.py::test_diagrams_get_others_diagrams",
     ],
 }

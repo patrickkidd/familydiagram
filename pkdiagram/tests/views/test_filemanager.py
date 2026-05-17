@@ -98,7 +98,11 @@ def test_local_onFileStatusChanged(tmp_path, create_fm):
         localFileModel.onFileStatusChanged(
             QUrl.fromLocalFile(fpath), CUtil.FileIsCurrent
         )
-    assert updateFileEntry.call_args[1]["path"] == fpath
+    # Qt yields '/'-separated paths; os.path.join yields '\' on Windows.
+    # They denote the same file — compare normalized.
+    assert os.path.normpath(updateFileEntry.call_args[1]["path"]) == os.path.normpath(
+        fpath
+    )
     assert updateFileEntry.call_args[1]["status"] == CUtil.FileIsCurrent
     assert updateFileEntry.call_args[1]["modified"] == os.stat(fpath).st_mtime
 
