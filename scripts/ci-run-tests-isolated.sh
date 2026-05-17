@@ -63,8 +63,13 @@ run_one() {
     *test_analytics.py) unset FD_DISABLE_ANALYTICS ;;
     *) export FD_DISABLE_ANALYTICS=1 ;;
   esac
+  # Per-test timeout (thread method: dumps stacks + fails the test if the hang
+  # is Python-level) so one slow/hung test fails individually instead of
+  # consuming the file's RUNTO budget. RUNTO remains the hard backstop for
+  # native (uninterruptible) hangs.
   out="$(RUNTO "$TIMEOUT" \
-        "$PY" -m pytest "$f" $(quarantine_args "$f") -q --tb=short -p no:cacheprovider 2>&1)"
+        "$PY" -m pytest "$f" $(quarantine_args "$f") -q --tb=short \
+        -p no:cacheprovider --timeout=120 --timeout-method=thread 2>&1)"
   rc=$?
   if [ "$rc" -eq 0 ]; then
     echo "PASS $f"
