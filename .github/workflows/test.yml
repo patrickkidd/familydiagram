@@ -143,14 +143,18 @@ jobs:
           cd _pkdiagram
           sip-install --qmake C:\Qt\5.15.2\msvc2019_64\bin\qmake.exe --build-dir build
           cd ..
-          rem Python 3.8+ ignores PATH for an extension module's dependent DLLs;
-          rem put the Qt DLLs _pkdiagram links against next to the installed .pyd
-          rem (the module's own directory is always searched).
+          rem _pkdiagram is built against Qt 5.15.2 but the test process also
+          rem loads PyQt5's own bundled Qt 5.15.2. Shipping a 2nd Qt copy next
+          rem to the .pyd loads two Qt builds -> 0xC0000005. Instead, resolve
+          rem _pkdiagram's Qt deps to PyQt5's bundled Qt (same as macOS rpath).
+          rem Py3.8+ needs os.add_dll_directory; a sitecustomize.py runs at
+          rem interpreter startup, before conftest imports _pkdiagram.
           for /f "delims=" %%i in ('python -c "import sysconfig;print(sysconfig.get_paths()['purelib'])"') do set SP=%%i
           echo site-packages: %SP%
-          copy /Y C:\Qt\5.15.2\msvc2019_64\bin\Qt5Core.dll "%SP%\"
-          copy /Y C:\Qt\5.15.2\msvc2019_64\bin\Qt5Gui.dll "%SP%\"
-          copy /Y C:\Qt\5.15.2\msvc2019_64\bin\Qt5Widgets.dll "%SP%\"
+          > "%SP%\sitecustomize.py" echo import os
+          >>"%SP%\sitecustomize.py" echo _qt = os.path.join(os.path.dirname(__file__), 'PyQt5', 'Qt5', 'bin')
+          >>"%SP%\sitecustomize.py" echo if os.name == 'nt' and os.path.isdir(_qt): os.add_dll_directory(_qt)
+          python -c "import _pkdiagram, sitecustomize; print('sitecustomize OK')"
           pyuic5 pkdiagram\mainwindow\mainwindow.ui -o pkdiagram\mainwindow\mainwindow_form.py
           pyuic5 pkdiagram\mainwindow\preferences.ui -o pkdiagram\mainwindow\preferences_form.py
           pyuic5 pkdiagram\mainwindow\welcome.ui -o pkdiagram\mainwindow\welcome_form.py
