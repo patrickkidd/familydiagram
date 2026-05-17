@@ -2,9 +2,15 @@ name: Test
 
 # Phased rollout (branch ci/familydiagram-tests):
 #   1. workflow_dispatch only, macOS smoke subset   (done — env proven)
-#   2. macOS full suite                             <-- current
+#   2. macOS full suite, per-file isolation         <-- current
 #   3. add Windows
 #   4. add pull_request trigger (becomes a PR check)
+#
+# The suite has a pre-existing test-isolation defect: a single shared pytest
+# process leaks Qt resources that accumulate and deadlock ~5-8% in (native
+# hang). Every file passes alone, so CI runs one process per file via
+# scripts/ci-run-tests-isolated.sh. Root-fixing the leak is a separate
+# test-suite workstream tracked outside this CI branch.
 on:
   workflow_dispatch:
 
@@ -17,10 +23,10 @@ jobs:
       TWINE_USERNAME: "${{ secrets.TWINE_USERNAME }}"
       TWINE_PASSWORD: "${{ secrets.TWINE_PASSWORD }}"
       QT_QPA_PLATFORM: offscreen
-      # Analytics requires a non-None Datadog key at construction; tests don't
-      # send telemetry. Provide a dummy key and hard-disable network analytics.
-      FD_BUILD_DATADOG_API_KEY: "ci-disabled"
-      FD_DISABLE_ANALYTICS: "1"
+      # Analytics raises if its Datadog key is None at construction. A dummy
+      # non-None key satisfies the ctor; the analytics tests mock their own
+      # network. Do NOT set FD_DISABLE_ANALYTICS — it breaks test_analytics.py.
+      FD_BUILD_DATADOG_API_KEY: "ci-dummy-key"
 
     steps:
       - uses: actions/checkout@v4
@@ -37,7 +43,6 @@ jobs:
           python -m venv .venv
           .venv/bin/pip install --upgrade pip
           .venv/bin/pip install -e ".[test]" --extra-index-url=$TWINE_REPOSITORY_URL
-          .venv/bin/pip install pytest-timeout
 
       - name: brew install qt@5
         run: brew install qt@5
@@ -69,7 +74,5 @@ jobs:
         run: |
           .venv/bin/python -m pytest -vv pkdiagram/tests/test_version.py
 
-      - name: Full test suite
-        run: |
-          .venv/bin/python -m pytest pkdiagram/tests -ra --tb=short \
-            --timeout=180 --timeout-method=signal
+      - name: Full test suite (one process per file)
+        run: bash scripts/ci-run-tests-isolated.sh
