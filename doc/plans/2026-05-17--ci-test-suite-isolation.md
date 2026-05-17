@@ -1,7 +1,7 @@
 # familydiagram unit tests as a CI / PR check
 
 Branch: `ci/familydiagram-tests`. Workflow: `.github/workflows/test.yml`.
-Harness: `scripts/ci-run-tests-isolated.sh`.
+Harness: `scripts/ci_run_tests_isolated.py`.
 
 ## What works
 
@@ -28,15 +28,16 @@ test leaks state that fails `test_server_filter_owner` (passes in isolation).
 
 ## CI strategy (sidesteps the defect; deterministic)
 
-`scripts/ci-run-tests-isolated.sh` runs **one pytest process per test file**
-(fresh process resets accumulation), under a portable per-file timeout
-(`timeout`/`gtimeout`, else a `perl alarm` fallback — macOS runners have no
-GNU `timeout`). Analytics is disabled per-file except `test_analytics.py`
-(which asserts the analytics path and mocks its own network); enabled
-analytics with a dummy key stalls app init headless and was the cause of all
-server/license/app-init failures and several "timeouts".
+`scripts/ci_run_tests_isolated.py` runs **one pytest process per test file**
+(fresh process resets accumulation), under a hard per-file subprocess timeout
+with cross-platform process-tree kill (works on macOS and Windows; no
+bash/perl/GNU-timeout dependency). Analytics is disabled per-file except
+`test_analytics.py` (which asserts the analytics path and mocks its own
+network); enabled analytics with a dummy key stalls app init headless and was
+the cause of all server/license/app-init failures and several "timeouts".
 
-Result: 112 files, all green except one quarantined test.
+Result: macOS green (109/112 files; quarantine below). Windows job added,
+same harness, iterating.
 
 ## Quarantined (tracked for root-fix, not silenced silently)
 

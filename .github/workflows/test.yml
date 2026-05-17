@@ -1,18 +1,17 @@
 name: Test
 
-# Phased rollout (branch ci/familydiagram-tests):
-#   1. workflow_dispatch only, macOS smoke subset   (done — env proven)
-#   2. macOS full suite, per-file isolation         <-- current
-#   3. add Windows
-#   4. add pull_request trigger (becomes a PR check)
+# familydiagram unit tests as a PR check, on the deployment targets
+# (macOS + Windows).
 #
-# The suite has a pre-existing test-isolation defect: a single shared pytest
-# process leaks Qt resources that accumulate and deadlock ~5-8% in (native
-# hang). Every file passes alone, so CI runs one process per file via
-# scripts/ci-run-tests-isolated.sh. Root-fixing the leak is a separate
-# test-suite workstream tracked outside this CI branch.
+# Pre-existing test-isolation defect: a single shared pytest process leaks Qt
+# resources that accumulate and deadlock ~5-8% in (native hang). Every file
+# passes alone, so CI runs one process per file via
+# scripts/ci_run_tests_isolated.py (cross-platform). Root-fixing the leak,
+# plus the CI-only server/license/session tests it quarantines, is tracked in
+# doc/plans/2026-05-17--ci-test-suite-isolation.md.
 on:
   workflow_dispatch:
+  pull_request:
 
 jobs:
   test-macos:
@@ -24,8 +23,7 @@ jobs:
       TWINE_PASSWORD: "${{ secrets.TWINE_PASSWORD }}"
       QT_QPA_PLATFORM: offscreen
       # Analytics raises if its Datadog key is None at construction. A dummy
-      # non-None key satisfies the ctor; the analytics tests mock their own
-      # network. Do NOT set FD_DISABLE_ANALYTICS — it breaks test_analytics.py.
+      # non-None key satisfies the ctor; analytics tests mock their own net.
       FD_BUILD_DATADOG_API_KEY: "ci-dummy-key"
 
     steps:
@@ -72,8 +70,75 @@ jobs:
         run: .venv/bin/python bin/update_build_info.py
 
       - name: Smoke test (fast env gate)
-        run: |
-          .venv/bin/python -m pytest -vv pkdiagram/tests/test_version.py
+        run: .venv/bin/python -m pytest -vv pkdiagram/tests/test_version.py
 
       - name: Full test suite (one process per file)
-        run: bash scripts/ci-run-tests-isolated.sh
+        run: .venv/bin/python scripts/ci_run_tests_isolated.py
+
+  test-windows:
+    runs-on: windows-2022
+    timeout-minutes: 120
+    env:
+      TWINE_REPOSITORY_URL: "${{ secrets.TWINE_REPOSITORY_URL }}"
+      TWINE_USERNAME: "${{ secrets.TWINE_USERNAME }}"
+      TWINE_PASSWORD: "${{ secrets.TWINE_PASSWORD }}"
+      QT_QPA_PLATFORM: offscreen
+      FD_BUILD_DATADOG_API_KEY: "ci-dummy-key"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11.6
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Set up virtual env + deps
+        shell: cmd
+        run: |
+          python -m venv .venv
+          .venv\Scripts\pip install --upgrade pip
+          .venv\Scripts\pip install -e ".[test]" --extra-index-url=%TWINE_REPOSITORY_URL%
+          .venv\Scripts\pip install pytest-timeout
+
+      - name: Install Qt 5.15.2 (msvc2019_64)
+        shell: cmd
+        run: |
+          call .venv\Scripts\activate.bat
+          pip install aqtinstall
+          aqt install-qt windows desktop 5.15.2 win64_msvc2019_64 --outputdir C:\Qt --archives qtbase qtdeclarative qtgraphicaleffects qtimageformats qtquickcontrols qtquickcontrols2 qttools qtwinextras qtmultimedia
+
+      - name: Setup MSVC dev environment (x64)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build _pkdiagram (SIP C++ extension) + Qt UI forms
+        shell: cmd
+        run: |
+          call .venv\Scripts\activate.bat
+          set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
+          qmake --version
+          cd _pkdiagram
+          sip-install --qmake C:\Qt\5.15.2\msvc2019_64\bin\qmake.exe --verbose
+          cd ..
+          pyuic5 pkdiagram\mainwindow\mainwindow.ui -o pkdiagram\mainwindow\mainwindow_form.py
+          pyuic5 pkdiagram\mainwindow\preferences.ui -o pkdiagram\mainwindow\preferences_form.py
+          pyuic5 pkdiagram\mainwindow\welcome.ui -o pkdiagram\mainwindow\welcome_form.py
+          python -c "from _pkdiagram import CUtil; print('CUtil OK', CUtil.operatingSystem())"
+
+      - name: Write build config
+        shell: cmd
+        run: .venv\Scripts\python bin\update_build_info.py
+
+      - name: Smoke test (fast env gate)
+        shell: cmd
+        run: .venv\Scripts\python -m pytest -vv pkdiagram\tests\test_version.py
+
+      - name: Full test suite (one process per file)
+        shell: cmd
+        run: |
+          set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
+          .venv\Scripts\python scripts\ci_run_tests_isolated.py
