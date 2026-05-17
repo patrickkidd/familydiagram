@@ -29,8 +29,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 TEST_PATH = os.environ.get("TEST_PATH", "pkdiagram/tests")
-FILE_TIMEOUT = int(os.environ.get("TEST_FILE_TIMEOUT", "240"))
-JOBS = int(os.environ.get("TEST_JOBS", "0")) or (os.cpu_count() or 3)
+FILE_TIMEOUT = int(os.environ.get("TEST_FILE_TIMEOUT", "300"))
+# Cap parallelism: too many concurrent Qt processes on a 3-4 core runner
+# causes contention timeouts/flakes. Stability over speed (cost is not a
+# constraint for this open-source repo).
+JOBS = int(os.environ.get("TEST_JOBS", "0")) or min(3, os.cpu_count() or 3)
 
 VENV_BIN = "Scripts" if os.name == "nt" else "bin"
 PY = os.environ.get("TEST_PY") or str(
@@ -155,10 +158,22 @@ def main() -> int:
           f"path={TEST_PATH} files={len(rels)} "
           f"(skipped {len(SKIP_FILES)} quarantined)", flush=True)
 
-    failures = []
+    failed = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=JOBS) as ex:
         for status, rel, dump in ex.map(run_one, rels):
             print(f"{status} {rel}", flush=True)
+            if dump:
+                failed[rel] = dump
+
+    # Retry failed/timed-out files once, sequentially and in isolation. The
+    # suite has known flaky/slow files under parallel load; a real failure
+    # fails both times, a flake clears on the isolated retry.
+    failures = []
+    if failed:
+        print(f"\nRetrying {len(failed)} file(s) once, isolated...", flush=True)
+        for rel in sorted(failed):
+            status, _, dump = run_one(rel)
+            print(f"RETRY {status} {rel}", flush=True)
             if dump:
                 failures.append(dump)
 

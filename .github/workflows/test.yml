@@ -139,6 +139,14 @@ jobs:
           cd _pkdiagram
           sip-install --qmake C:\Qt\5.15.2\msvc2019_64\bin\qmake.exe --build-dir build
           cd ..
+          rem Python 3.8+ ignores PATH for an extension module's dependent DLLs;
+          rem put the Qt DLLs _pkdiagram links against next to the installed .pyd
+          rem (the module's own directory is always searched).
+          for /f "delims=" %%i in ('python -c "import sysconfig;print(sysconfig.get_paths()['purelib'])"') do set SP=%%i
+          echo site-packages: %SP%
+          copy /Y C:\Qt\5.15.2\msvc2019_64\bin\Qt5Core.dll "%SP%\"
+          copy /Y C:\Qt\5.15.2\msvc2019_64\bin\Qt5Gui.dll "%SP%\"
+          copy /Y C:\Qt\5.15.2\msvc2019_64\bin\Qt5Widgets.dll "%SP%\"
           pyuic5 pkdiagram\mainwindow\mainwindow.ui -o pkdiagram\mainwindow\mainwindow_form.py
           pyuic5 pkdiagram\mainwindow\preferences.ui -o pkdiagram\mainwindow\preferences_form.py
           pyuic5 pkdiagram\mainwindow\welcome.ui -o pkdiagram\mainwindow\welcome_form.py
