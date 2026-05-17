@@ -1047,6 +1047,9 @@ class PersonalAppController(QObject):
 
         def applyChange(diagramData: DiagramData):
             _log.info(f"Applying accept PDP item change for id: {id}")
+            if not diagramData.pdp:
+                _log.warning("No PDP data available")
+                return diagramData
             if self.scene is not None:
                 diagramData.lastItemId = max(
                     diagramData.lastItemId, self.scene.lastItemId()
@@ -1324,6 +1327,9 @@ class PersonalAppController(QObject):
             drained = {}
 
             def applyChange(diagramData: DiagramData):
+                if not diagramData.pdp:
+                    _log.warning("No PDP data available")
+                    return diagramData
                 if self.scene is not None:
                     diagramData.lastItemId = max(
                         diagramData.lastItemId, self.scene.lastItemId()
