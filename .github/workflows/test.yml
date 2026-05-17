@@ -12,6 +12,13 @@ name: Test
 on:
   workflow_dispatch:
   pull_request:
+  push:
+    branches: [master]
+
+# A new push to the same PR/branch cancels the superseded in-progress run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test-macos:
@@ -103,7 +110,15 @@ jobs:
           .venv\Scripts\pip install -e ".[test]" --extra-index-url=%TWINE_REPOSITORY_URL%
           .venv\Scripts\pip install pytest-timeout
 
+      - name: Cache Qt 5.15.2 (msvc2019_64)
+        id: cache-qt
+        uses: actions/cache@v4
+        with:
+          path: C:\Qt
+          key: qt-5.15.2-win64_msvc2019_64-v1
+
       - name: Install Qt 5.15.2 (msvc2019_64)
+        if: steps.cache-qt.outputs.cache-hit != 'true'
         shell: cmd
         run: |
           call .venv\Scripts\activate.bat
@@ -122,7 +137,7 @@ jobs:
           set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
           qmake --version
           cd _pkdiagram
-          sip-install --qmake C:\Qt\5.15.2\msvc2019_64\bin\qmake.exe --verbose
+          sip-install --qmake C:\Qt\5.15.2\msvc2019_64\bin\qmake.exe --build-dir build
           cd ..
           pyuic5 pkdiagram\mainwindow\mainwindow.ui -o pkdiagram\mainwindow\mainwindow_form.py
           pyuic5 pkdiagram\mainwindow\preferences.ui -o pkdiagram\mainwindow\preferences_form.py
