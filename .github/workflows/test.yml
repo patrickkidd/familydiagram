@@ -37,6 +37,7 @@ jobs:
           python -m venv .venv
           .venv/bin/pip install --upgrade pip
           .venv/bin/pip install -e ".[test]" --extra-index-url=$TWINE_REPOSITORY_URL
+          .venv/bin/pip install pytest-timeout
 
       - name: brew install qt@5
         run: brew install qt@5
@@ -70,4 +71,5 @@ jobs:
 
       - name: Full test suite
         run: |
-          .venv/bin/python -m pytest pkdiagram/tests -ra --tb=short
+          .venv/bin/python -m pytest pkdiagram/tests -ra --tb=short \
+            --timeout=180 --timeout-method=signal
