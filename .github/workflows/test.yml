@@ -1,72 +1,66 @@
-# This workflow will install Python dependencies, run tests and lint with a single version of Python
-# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
-
 name: Test
 
+# Phased rollout (branch ci/familydiagram-tests):
+#   1. workflow_dispatch only, macOS smoke subset   <-- current
+#   2. macOS full suite
+#   3. add Windows
+#   4. add pull_request trigger (becomes a PR check)
 on:
   workflow_dispatch:
 
-
 jobs:
-  test:
-
-    runs-on: macos-12
+  test-macos:
+    runs-on: macos-15-intel
     env:
       TWINE_REPOSITORY_URL: "${{ secrets.TWINE_REPOSITORY_URL }}"
       TWINE_USERNAME: "${{ secrets.TWINE_USERNAME }}"
       TWINE_PASSWORD: "${{ secrets.TWINE_PASSWORD }}"
+      QT_QPA_PLATFORM: offscreen
 
     steps:
-    - name: Checkout patrickkidd/famildiagram
-      uses: actions/checkout@v2
-      with:
-        submodules: true
+      - uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.11.6
-        # architecture: 'x64'
-        # cache: 'pipenv'
-    - run: |
-        pip install pipenv
-        mkdir .venv
-        pipenv install --dev --verbose --skip-lock
-        pipenv run which sip-install
-  
-    # It is faster to install homebrew than to restore from cache
-    - name: brew install qt@5 create-dmg
-      run: |
-        brew install qt@5 create-dmg
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11.6
+          cache: pip
+          cache-dependency-path: pyproject.toml
 
-    ## Build
-    
-    - name: sip-install for _pkdiagram
-      run: |
-        export PATH="/usr/local/opt/qt@5/bin:${PATH}"
-        which qmake
-        pipenv run cmake .
-        pipenv run make
+      - name: Set up virtual env + deps
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install --upgrade pip
+          .venv/bin/pip install -e ".[test]" --extra-index-url=$TWINE_REPOSITORY_URL
 
-        export PYQT5_DIR="/Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.11/site-packages/PyQt5/Qt5"
-        install_name_tool -add_rpath $PYQT5_DIR/lib /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.11/site-packages/_pkdiagram.cpython-310-darwin.so
-        install_name_tool -change /usr/local/opt/qt@5/lib/QtCore.framework/Versions/5/QtCore @rpath/QtCore.framework/Versions/5/QtCore /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.11/site-packages/_pkdiagram.cpython-310-darwin.so
-        install_name_tool -change /usr/local/opt/qt@5/lib/QtGui.framework/Versions/5/QtGui @rpath/QtGui.framework/Versions/5/QtGui /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.11/site-packages/_pkdiagram.cpython-310-darwin.so
-        install_name_tool -change /usr/local/opt/qt@5/lib/QtWidgets.framework/Versions/5/QtWidgets @rpath/QtWidgets.framework/Versions/5/QtWidgets /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.11/site-packages/_pkdiagram.cpython-310-darwin.so
-        otool -L /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.11/site-packages/_pkdiagram.cpython-310-darwin.so
+      - name: brew install qt@5
+        run: brew install qt@5
 
-    - name: Write build config
-      run: |
-        pipenv run python bin/update_build_info.py
-    
-    - name: Test with pytest
-      if: ${{ ! inputs.debug_enabled }}
-      run: |
-        pipenv run pytest -svv tests
+      - name: Build _pkdiagram (SIP C++ extension) + Qt UI forms
+        run: |
+          source .venv/bin/activate
+          export PATH="/usr/local/opt/qt@5/bin:$PATH"
+          which qmake
+          rm -f CMakeCache.txt
+          rm -rf CMakeFiles
+          cmake . -DCMAKE_PREFIX_PATH=/usr/local/opt/qt@5
+          make
+          SO=$(ls .venv/lib/python3.11/site-packages/_pkdiagram.cpython-*-darwin.so)
+          echo "Built extension: $SO"
+          PYQT5_DIR="$(pwd)/.venv/lib/python3.11/site-packages/PyQt5/Qt5"
+          install_name_tool -add_rpath "$PYQT5_DIR/lib" "$SO"
+          for fw in QtCore QtGui QtWidgets; do
+            install_name_tool -change \
+              "/usr/local/opt/qt@5/lib/$fw.framework/Versions/5/$fw" \
+              "@rpath/$fw.framework/Versions/5/$fw" "$SO"
+          done
+          otool -L "$SO"
 
-    # # Will provide an SSH command in the logs that you can use to access the runner.
-    # - name: Setup tmate session
-    #   uses: mxschmitt/action-tmate@v3
-    #   # if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
-    #   if: ${{ inputs.debug_enabled }}
+      - name: Write build config
+        run: .venv/bin/python bin/update_build_info.py
 
+      - name: Smoke test (extension import + Qt offscreen + btcopilot)
+        run: |
+          .venv/bin/python -m pytest -svv \
+            pkdiagram/tests/test_version.py \
+            pkdiagram/tests/scene/test_scene.py
