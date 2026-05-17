@@ -1,8 +1,8 @@
 name: Test
 
 # Phased rollout (branch ci/familydiagram-tests):
-#   1. workflow_dispatch only, macOS smoke subset   <-- current
-#   2. macOS full suite
+#   1. workflow_dispatch only, macOS smoke subset   (done — env proven)
+#   2. macOS full suite                             <-- current
 #   3. add Windows
 #   4. add pull_request trigger (becomes a PR check)
 on:
@@ -11,6 +11,7 @@ on:
 jobs:
   test-macos:
     runs-on: macos-15-intel
+    timeout-minutes: 90
     env:
       TWINE_REPOSITORY_URL: "${{ secrets.TWINE_REPOSITORY_URL }}"
       TWINE_USERNAME: "${{ secrets.TWINE_USERNAME }}"
@@ -59,8 +60,10 @@ jobs:
       - name: Write build config
         run: .venv/bin/python bin/update_build_info.py
 
-      - name: Smoke test (extension import + Qt offscreen + btcopilot)
+      - name: Smoke test (fast env gate)
         run: |
-          .venv/bin/python -m pytest -svv \
-            pkdiagram/tests/test_version.py \
-            pkdiagram/tests/scene/test_scene.py
+          .venv/bin/python -m pytest -vv pkdiagram/tests/test_version.py
+
+      - name: Full test suite
+        run: |
+          .venv/bin/python -m pytest pkdiagram/tests -ra --tb=short
