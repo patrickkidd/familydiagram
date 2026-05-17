@@ -25,19 +25,31 @@ fi
 
 RESULTS_DIR="$(mktemp -d)"
 trap 'rm -rf "$RESULTS_DIR"' EXIT
+
+# macOS runners have no GNU `timeout`. Prefer timeout/gtimeout if present,
+# else fall back to a perl alarm wrapper (SIGALRM default-terminates the
+# child — kills even a native Qt hang since pytest installs no SIGALRM handler).
+if command -v timeout >/dev/null 2>&1; then
+  RUNTO() { timeout "$1" "${@:2}"; }
+elif command -v gtimeout >/dev/null 2>&1; then
+  RUNTO() { gtimeout "$1" "${@:2}"; }
+else
+  RUNTO() { perl -e 'alarm shift; exec @ARGV' "$@"; }
+fi
 export PY TIMEOUT RESULTS_DIR
+export -f RUNTO
 
 run_one() {
   f="$1"
   safe="$(echo "$f" | tr '/.' '__')"
-  out="$(QT_QPA_PLATFORM=offscreen timeout "$TIMEOUT" \
+  out="$(QT_QPA_PLATFORM=offscreen RUNTO "$TIMEOUT" \
         "$PY" -m pytest "$f" -q --tb=short -p no:cacheprovider 2>&1)"
   rc=$?
   if [ "$rc" -eq 0 ]; then
     echo "PASS $f"
   elif [ "$rc" -eq 5 ]; then
     echo "PASS $f (no tests collected)"
-  elif [ "$rc" -eq 124 ]; then
+  elif [ "$rc" -eq 124 ] || [ "$rc" -eq 142 ]; then
     echo "TIMEOUT $f"
     { echo "### TIMEOUT after ${TIMEOUT}s: $f"; echo "$out" | tail -20; } \
       > "$RESULTS_DIR/$safe.fail"
