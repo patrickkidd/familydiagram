@@ -57,3 +57,28 @@ same harness, iterating.
 3. Phase 3: add Windows job (deployment target).
 4. Phase 4: add `pull_request` trigger → becomes the PR check; set branch
    protection.
+
+## Windows (added 2026-05-17)
+
+Windows job: aqtinstall Qt 5.15.2 (cached) + MSVC; `_pkdiagram` fixes —
+link `shell32` (ShellExecuteW), `PYTHONUTF8` (cp1252 crash on SARF unicode),
+and a startup `.pth` (`scripts/win_qt_dll_pth.py`) pointing at PyQt5's
+bundled Qt (Windows analog of the macOS rpath; no 2nd Qt on test PATH).
+
+OS-aware quarantine (Windows only; these pass on macOS), tracked as a
+Windows test-stabilization workstream:
+
+- **12 whole files**: native `0xC0000005` in the conftest modal-dismiss
+  path — `clickYesAfter` dismisses a `QMessageBox` via `QTimer` and the
+  Yes-handler runs `scene.removeSelection` (deleting `QGraphicsItem`s)
+  inside the modal's nested event loop; Windows Qt crashes on that
+  reentrant deletion. **High leverage: one conftest fix (defer
+  removeSelection out of the modal loop, or drive the dialog without a
+  nested exec) likely unblocks all 12.**
+- **Per-test**: `test_util::test_Condition_lambda_condition` (timing),
+  `test_appconfig::test_write_new` (NamedTemporaryFile reopen-by-name
+  PermissionError — Windows), `test_filemanager::test_local_onFileStatusChanged`
+  (`/` vs `\` path separator), `test_filemanager::test_diagrams_get_others_diagrams`.
+
+These are pre-existing Windows defects (would affect anyone running the
+suite on Windows), not CI plumbing and not introduced by this branch.

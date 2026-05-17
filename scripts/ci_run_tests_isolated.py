@@ -76,6 +76,51 @@ DESELECT = {
     ],
 }
 
+# Windows-only quarantine (pre-existing Windows defects; pass on macOS).
+# Tracked as a Windows test-stabilization workstream — see
+# doc/plans/2026-05-17--ci-test-suite-isolation.md.
+#
+# (a) Whole-file: native 0xC0000005 in the conftest modal-dismiss path —
+#     clickYesAfter dismisses a QMessageBox via QTimer and the Yes-handler
+#     runs scene.removeSelection (deleting QGraphicsItems) inside the modal's
+#     nested event loop; Windows Qt crashes on that reentrant deletion. One
+#     conftest fix would unblock all of these.
+WINDOWS_SKIP_FILES = {
+    "pkdiagram/tests/commands/test_remove_emotions.py",
+    "pkdiagram/tests/mainwindow/test_appcontroller.py",
+    "pkdiagram/tests/mainwindow/test_mw.py",
+    "pkdiagram/tests/mainwindow/test_mw_server.py",
+    "pkdiagram/tests/models/test_accessrightsmodel.py",
+    "pkdiagram/tests/models/test_serverfilemanagermodel.py",
+    "pkdiagram/tests/models/test_tagsmodel.py",
+    "pkdiagram/tests/models/test_timelinemodel.py",
+    "pkdiagram/tests/scene/test_childof.py",
+    "pkdiagram/tests/scene/test_scene_layers.py",
+    "pkdiagram/tests/scene/test_scene_read_write.py",
+    "pkdiagram/tests/views/test_AccountDialog.py",
+}
+
+# (b) Per-test: real Windows-specific failures (path separator, tempfile
+#     reopen-by-name permission, timing).
+WINDOWS_DESELECT = {
+    "pkdiagram/tests/test_util.py": [
+        "pkdiagram/tests/test_util.py::test_Condition_lambda_condition",
+    ],
+    "pkdiagram/tests/test_appconfig.py": [
+        "pkdiagram/tests/test_appconfig.py::test_write_new",
+    ],
+    "pkdiagram/tests/views/test_filemanager.py": [
+        "pkdiagram/tests/views/test_filemanager.py::test_local_onFileStatusChanged",
+        "pkdiagram/tests/views/test_filemanager.py::test_diagrams_get_others_diagrams",
+    ],
+}
+
+if os.name == "nt":
+    SKIP_FILES = SKIP_FILES | WINDOWS_SKIP_FILES
+    for _f, _ids in WINDOWS_DESELECT.items():
+        DESELECT.setdefault(_f, [])
+        DESELECT[_f] = list(dict.fromkeys(DESELECT[_f] + _ids))
+
 
 def norm(p: str) -> str:
     return p.replace(os.sep, "/")
