@@ -125,3 +125,21 @@ deselects are unrelated pre-existing issues, not modal crashes:
 - Windows: `test_filemanager::test_diagrams_get_others_diagrams`
   (server-state count 3 vs 2; under investigation).
 - `test_AccountDialog::test_register` (native hang, not a modal).
+
+### Correction (same day): 3 files are SESSION class, not modal
+
+CI proved the conftest modal root-fix eliminated the Windows 12-file crash
+entirely (those files now pass on both platforms — quarantine removed).
+
+But `test_mw_account_init` / `test_mw_eventform` / `test_mw_licensing` still
+fail on a clean runner for a DIFFERENT, pre-existing reason: faulthandler
+shows the crash/error is in the `create_ac_mw` fixture →
+`session.init` → `AppController.onSessionChanged` →
+`MainWindow.openFreeLicenseDiagram` (no `QMessageBox` in the stack). They
+pass on a dev machine with real session/license state. This is the same
+server/license/**session** class as the macOS DESELECT list, not the modal
+crash. Re-quarantined (both platforms) with this accurate cause; reclaiming
+them needs a mocked authenticated session (tracked workstream).
+
+**Net outcome of the conftest root-fix:** Windows whole-file quarantine
+went 12 → 0; total whole-file quarantine 15 → 3 (all 3 the session class).
