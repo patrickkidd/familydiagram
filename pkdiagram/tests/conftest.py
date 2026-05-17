@@ -900,7 +900,11 @@ class PKQtBot(QtBot):
                     okButton = widget.button(QMessageBox.Ok)
                     widget.buttonClicked[QAbstractButton].connect(msgBoxAccepted)
                     msgBoxAccepted()
-                    self.mouseClick(okButton, Qt.LeftButton)
+                    # Programmatic click, not synthetic mouse events: a static
+                    # QMessageBox runs its own nested modal loop, and injecting
+                    # OS-level mouse events into it crashes Qt on Windows
+                    # (0xC0000005). QAbstractButton.click() is reentrancy-safe.
+                    okButton.click()
                     msgBoxAccepted.timer.stop()
 
         msgBoxAccepted.timer = QTimer(QApplication.instance())
@@ -957,7 +961,9 @@ class PKQtBot(QtBot):
                     raise ValueError(
                         f"Button {button} not found in {widget} with text '{widget.text()}'"
                     )
-                self.mouseClick(buttonWidget, Qt.LeftButton)
+                # Programmatic click (see note above): synthetic mouse events
+                # into a static QMessageBox's nested modal loop crash Windows.
+                buttonWidget.click()
                 return True
             else:
                 widget.hide()
