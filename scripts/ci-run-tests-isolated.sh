@@ -58,11 +58,12 @@ run_one() {
   # stall app init headless (server/license UI never enables; some files hang).
   # Disable it everywhere except test_analytics.py, which asserts that path
   # and mocks its own network.
+  export QT_QPA_PLATFORM=offscreen
   case "$f" in
-    *test_analytics.py) DA="" ;;
-    *) DA="FD_DISABLE_ANALYTICS=1" ;;
+    *test_analytics.py) unset FD_DISABLE_ANALYTICS ;;
+    *) export FD_DISABLE_ANALYTICS=1 ;;
   esac
-  out="$(env $DA QT_QPA_PLATFORM=offscreen RUNTO "$TIMEOUT" \
+  out="$(RUNTO "$TIMEOUT" \
         "$PY" -m pytest "$f" $(quarantine_args "$f") -q --tb=short -p no:cacheprovider 2>&1)"
   rc=$?
   if [ "$rc" -eq 0 ]; then
