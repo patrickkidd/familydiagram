@@ -91,6 +91,10 @@ jobs:
       TWINE_PASSWORD: "${{ secrets.TWINE_PASSWORD }}"
       QT_QPA_PLATFORM: offscreen
       FD_BUILD_DATADOG_API_KEY: "ci-dummy-key"
+      # Windows defaults stdio/locale to cp1252; conftest fixtures load SARF
+      # markdown with unicode (→ ≠) and crash on encode. UTF-8 mode fixes it.
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
 
     steps:
       - uses: actions/checkout@v4
