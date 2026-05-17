@@ -17,6 +17,10 @@ jobs:
       TWINE_USERNAME: "${{ secrets.TWINE_USERNAME }}"
       TWINE_PASSWORD: "${{ secrets.TWINE_PASSWORD }}"
       QT_QPA_PLATFORM: offscreen
+      # Analytics requires a non-None Datadog key at construction; tests don't
+      # send telemetry. Provide a dummy key and hard-disable network analytics.
+      FD_BUILD_DATADOG_API_KEY: "ci-disabled"
+      FD_DISABLE_ANALYTICS: "1"
 
     steps:
       - uses: actions/checkout@v4
