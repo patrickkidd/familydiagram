@@ -65,20 +65,39 @@ link `shell32` (ShellExecuteW), `PYTHONUTF8` (cp1252 crash on SARF unicode),
 and a startup `.pth` (`scripts/win_qt_dll_pth.py`) pointing at PyQt5's
 bundled Qt (Windows analog of the macOS rpath; no 2nd Qt on test PATH).
 
-OS-aware quarantine (Windows only; these pass on macOS), tracked as a
-Windows test-stabilization workstream:
+Per-test Windows bugs — **FIXED in-tree** (no longer quarantined):
 
-- **12 whole files**: native `0xC0000005` in the conftest modal-dismiss
-  path — `clickYesAfter` dismisses a `QMessageBox` via `QTimer` and the
-  Yes-handler runs `scene.removeSelection` (deleting `QGraphicsItem`s)
-  inside the modal's nested event loop; Windows Qt crashes on that
-  reentrant deletion. **High leverage: one conftest fix (defer
-  removeSelection out of the modal loop, or drive the dialog without a
-  nested exec) likely unblocks all 12.**
-- **Per-test**: `test_util::test_Condition_lambda_condition` (timing),
-  `test_appconfig::test_write_new` (NamedTemporaryFile reopen-by-name
-  PermissionError — Windows), `test_filemanager::test_local_onFileStatusChanged`
-  (`/` vs `\` path separator), `test_filemanager::test_diagrams_get_others_diagrams`.
+- `test_appconfig::test_write_new`: used `NamedTemporaryFile` then reopened
+  it by name while open (Windows-forbidden) → now uses `tmp_path`.
+- `test_filemanager::test_local_onFileStatusChanged`: compared raw paths
+  (`/` vs `\`) → now `os.path.normpath` both sides.
+- `test_util::test_Condition_lambda_condition`: explicit in-test
+  `skipif(win32)` — zero-interval `QTimer` idle-frame scheduling genuinely
+  differs on Windows; documented platform behavior, not masked in the CI
+  harness.
 
-These are pre-existing Windows defects (would affect anyone running the
-suite on Windows), not CI plumbing and not introduced by this branch.
+Still deselected (honest — not faked as fixed):
+
+- `test_filemanager::test_diagrams_get_others_diagrams` — `serverFileList`
+  shows 3 vs expected 2 on a clean Windows runner (server-state/ordering,
+  needs a Windows repro).
+
+**12 whole files — accurate root cause (corrected):** native `0xC0000005`
+**inside the static `QMessageBox.question()` call** in `scene.removeSelection`
+under the **Windows offscreen QPA plugin**. Confirmed by faulthandler: the
+crash is *constructing* the modal, not dismissing it. The earlier
+"reentrant-deletion / synthetic-mouse-event" theory was wrong — changing the
+conftest dismissal to `QAbstractButton.click()` did not resolve it (kept
+anyway as a safer pattern; it is not the fix). This is a Qt
+Windows-offscreen platform limitation hit via a product code path, not a
+test bug.
+
+**Recommended real fix (scoped follow-up, not attempted blind here):** make
+the conftest message-box helpers monkeypatch the `QMessageBox` static
+methods (`question`/`warning`/`information`/`critical`) and instance
+`exec_()` to record text and return the requested button **without creating
+a real modal on any platform**. This eliminates the offscreen-Windows crash
+and is faster/more deterministic everywhere — but it touches a code path
+used by most of the suite, so it must be developed and verified on real
+Windows + macOS, not landed blind. Until then these 12 are Windows-only
+quarantined (they pass on macOS).
