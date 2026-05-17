@@ -109,6 +109,20 @@ committed items (positive IDs). When a PDP item is accepted,
 `pdp.*` to the top-level `people`/`events`/`pair_bonds` lists, and remaps all
 references.
 
+### Re-extraction cursor signal (FD-319)
+
+Accept commits items locally then saves the blob (above). Separately,
+`_doAcceptPDPItem` / `acceptAllPDPItems` fire a best-effort
+`POST /personal/discussions/<id>/commit-pdp` with `{item_ids, full_accept}`
+(`PersonalAppController._postCommitPdp`). `full_accept` = the staged PDP is
+fully drained after this accept. The server advances the re-extraction cursor
+(`discussions.extracted_through_order`) only on `full_accept`, so the next
+extract treats already-accepted conversation as context-only. Failure is safe:
+the cursor simply doesn't advance and the next extract re-windows, with the
+server-side committed-duplicate guard absorbing any repeat. The cursor never
+advances until this client call ships (legacy behaviour preserved). Concurrency
+hardening of extract/accept is tracked in FD-331.
+
 ## Version Tracking
 
 Each diagram has a `version` integer. The server increments it atomically on

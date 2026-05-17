@@ -277,7 +277,9 @@ class PersonalAppController(QObject):
         # — those may contain other-client items Personal's Scene never
         # loaded, which would get interpreted as deletes on the next save.
         # Plan: doc/plans/2026-05-01--mvp-merge-fix/README.md
-        snapshotBytes = getattr(self._diagram, "_lastSavedSnapshot", None) or self._diagram.data
+        snapshotBytes = (
+            getattr(self._diagram, "_lastSavedSnapshot", None) or self._diagram.data
+        )
         openSnapshot = pickle.loads(snapshotBytes) if snapshotBytes else {}
 
         # Capture Scene state NOW (caller-side) so we can stash it as the
@@ -306,7 +308,9 @@ class PersonalAppController(QObject):
                 diagramData.version = sceneDiagramData.version
                 diagramData.versionCompat = sceneDiagramData.versionCompat
                 diagramData.name = sceneDiagramData.name
-                diagramData.lastItemId = max(diagramData.lastItemId, sceneDiagramData.lastItemId)
+                diagramData.lastItemId = max(
+                    diagramData.lastItemId, sceneDiagramData.lastItemId
+                )
                 diagramData.clusters = self.clusterModel.clusters
                 diagramData.clusterCacheKey = self.clusterModel.cacheKey
                 return diagramData
@@ -1014,10 +1018,32 @@ class PersonalAppController(QObject):
 
         return self._withSaveGuard(_do)
 
+    def _postCommitPdp(self, itemIds: list[int], fullAccept: bool):
+        """Tell the backend which staged items were accepted so the
+        re-extraction cursor advances on a full accept. Best-effort: a failure
+        only means the cursor doesn't advance (next extract re-windows; the
+        server-side committed-duplicate guard absorbs the repeat)."""
+        if not self._currentDiscussion or not itemIds:
+            return
+
+        def onError():
+            _log.warning(f"commit-pdp cursor advance failed: {reply.errorString()}")
+
+        reply = self.session.server().nonBlockingRequest(
+            "POST",
+            f"/personal/discussions/{self._currentDiscussion.id}/commit-pdp",
+            data={"item_ids": itemIds, "full_accept": fullAccept},
+            error=onError,
+            success=lambda: None,
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            from_root=True,
+        )
+
     def _doAcceptPDPItem(self, id: int) -> bool:
         _log.info(f"Accepting PDP item with id: {id}")
 
         committedItems = {"people": [], "events": [], "pair_bonds": [], "emotions": []}
+        drained = {}
 
         def applyChange(diagramData: DiagramData):
             _log.info(f"Applying accept PDP item change for id: {id}")
@@ -1042,6 +1068,11 @@ class PersonalAppController(QObject):
             committedItems["pair_bonds"] = [
                 pb for pb in diagramData.pair_bonds if pb["id"] not in prevPairBondIds
             ]
+            drained["v"] = not (
+                diagramData.pdp.people
+                or diagramData.pdp.events
+                or diagramData.pdp.pair_bonds
+            )
 
             return diagramData
 
@@ -1055,6 +1086,7 @@ class PersonalAppController(QObject):
         if success:
             self._addCommittedItemsToScene(committedItems)
             self.pdpChanged.emit()
+            self._postCommitPdp([id], drained.get("v", False))
         else:
             _log.warning(f"Failed to accept PDP item after retries")
 
@@ -1289,6 +1321,7 @@ class PersonalAppController(QObject):
                 "pair_bonds": [],
                 "emotions": [],
             }
+            drained = {}
 
             def applyChange(diagramData: DiagramData):
                 if self.scene is not None:
@@ -1312,6 +1345,11 @@ class PersonalAppController(QObject):
                     for pb in diagramData.pair_bonds
                     if pb["id"] not in prevPairBondIds
                 ]
+                drained["v"] = not (
+                    diagramData.pdp.people
+                    or diagramData.pdp.events
+                    or diagramData.pdp.pair_bonds
+                )
 
                 return diagramData
 
@@ -1323,6 +1361,7 @@ class PersonalAppController(QObject):
                 self._addCommittedItemsToScene(committedItems)
                 self.pdpChanged.emit()
                 self.clusterModel.detect()
+                self._postCommitPdp(allIds, drained.get("v", True))
             else:
                 _log.warning("Failed to accept all PDP items after retries")
 

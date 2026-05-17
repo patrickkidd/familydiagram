@@ -354,6 +354,68 @@ def test_acceptAllPDPItems_adds_to_scene(test_user, personalApp: PersonalAppCont
             assert "pair_bonds" in args
 
 
+def test_acceptPDPItem_posts_commit_pdp_partial(
+    test_user, discussion, personalApp: PersonalAppController
+):
+    """Accepting one of several staged items POSTs commit-pdp with that id and
+    full_accept False (cursor must not advance)."""
+    initial = DiagramData(
+        pdp=PDP(people=[Person(id=-1, name="A"), Person(id=-2, name="B")])
+    )
+    personalApp._diagram = Diagram(
+        id=1,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(initial)),
+    )
+    personalApp._currentDiscussion = discussion
+    server = MagicMock()
+    with (
+        patch.object(personalApp, "_addCommittedItemsToScene"),
+        patch.object(personalApp._diagram, "save", return_value=True),
+        patch.object(personalApp.session, "server", return_value=server),
+    ):
+        personalApp._doAcceptPDPItem(-1)
+
+    server.nonBlockingRequest.assert_called_once()
+    args, kwargs = server.nonBlockingRequest.call_args
+    assert args[0] == "POST"
+    assert args[1] == f"/personal/discussions/{discussion.id}/commit-pdp"
+    assert kwargs["data"] == {"item_ids": [-1], "full_accept": False}
+
+
+def test_acceptAllPDPItems_posts_commit_pdp_full(
+    test_user, discussion, personalApp: PersonalAppController
+):
+    """Accept-all POSTs commit-pdp with every id and full_accept True so the
+    re-extraction cursor advances."""
+    initial = DiagramData(
+        pdp=PDP(people=[Person(id=-1, name="A"), Person(id=-2, name="B")])
+    )
+    personalApp._diagram = Diagram(
+        id=1,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(initial)),
+    )
+    personalApp._currentDiscussion = discussion
+    server = MagicMock()
+    with (
+        patch.object(personalApp, "_addCommittedItemsToScene"),
+        patch.object(personalApp._diagram, "save", return_value=True),
+        patch.object(personalApp.session, "server", return_value=server),
+    ):
+        personalApp.acceptAllPDPItems()
+
+    server.nonBlockingRequest.assert_called_once()
+    args, kwargs = server.nonBlockingRequest.call_args
+    assert args[1] == f"/personal/discussions/{discussion.id}/commit-pdp"
+    assert set(kwargs["data"]["item_ids"]) == {-1, -2}
+    assert kwargs["data"]["full_accept"] is True
+
+
 def test_acceptPDPItem_triggers_cluster_detection(
     test_user, personalApp: PersonalAppController
 ):
