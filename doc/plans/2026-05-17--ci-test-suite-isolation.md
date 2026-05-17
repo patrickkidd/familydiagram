@@ -101,3 +101,27 @@ and is faster/more deterministic everywhere — but it touches a code path
 used by most of the suite, so it must be developed and verified on real
 Windows + macOS, not landed blind. Until then these 12 are Windows-only
 quarantined (they pass on macOS).
+
+## RESOLUTION (2026-05-17, later) — modal crash root-fixed
+
+The macOS 3-file whole-file quarantine and the Windows 12-file quarantine
+shared ONE root cause: tests caused a real modal `QMessageBox` to be
+constructed (static `question/warning/...` or instance `exec_()`), which
+crashes Qt under the offscreen QPA on Windows (0xC0000005) and aborted those
+files on macOS too.
+
+Fixed in `pkdiagram/tests/conftest.py`: the message-box helpers now
+monkeypatch `QMessageBox` static methods and `exec_/exec` so **no real modal
+is ever constructed on any platform**. A single shared responder with a
+stack of expected answers preserves the nested `clickXAfter(...)` idiom and
+all text/`contains` assertions. Verified: all formerly-quarantined files
+pass on macOS; Windows validated in CI.
+
+Whole-file quarantine removed entirely (macOS and Windows). Remaining
+deselects are unrelated pre-existing issues, not modal crashes:
+
+- macOS: server/license/session tests needing an authenticated session or
+  saved local state absent on a clean runner (documented above).
+- Windows: `test_filemanager::test_diagrams_get_others_diagrams`
+  (server-state count 3 vs 2; under investigation).
+- `test_AccountDialog::test_register` (native hang, not a modal).

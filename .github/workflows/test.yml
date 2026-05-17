@@ -11,6 +11,15 @@ name: Test
 # doc/plans/2026-05-17--ci-test-suite-isolation.md.
 on:
   workflow_dispatch:
+    inputs:
+      test_path:
+        description: "Subset to run (default pkdiagram/tests). Speeds targeted debugging."
+        required: false
+        default: ""
+      only:
+        description: "Run only one job: macos | windows | both"
+        required: false
+        default: "both"
   pull_request:
   push:
     branches: [master]
@@ -22,6 +31,7 @@ concurrency:
 
 jobs:
   test-macos:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == 'both' || inputs.only == 'macos' }}
     runs-on: macos-15-intel
     timeout-minutes: 90
     env:
@@ -80,9 +90,12 @@ jobs:
         run: .venv/bin/python -m pytest -vv pkdiagram/tests/test_version.py
 
       - name: Full test suite (one process per file)
+        env:
+          TEST_PATH: ${{ inputs.test_path }}
         run: .venv/bin/python scripts/ci_run_tests_isolated.py
 
   test-windows:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == 'both' || inputs.only == 'windows' }}
     runs-on: windows-2022
     timeout-minutes: 120
     env:
@@ -161,4 +174,6 @@ jobs:
         shell: cmd
         # No aqtinstall Qt on PATH at test time: the .pth makes _pkdiagram use
         # PyQt5's bundled Qt. A second Qt on PATH reintroduced 0xC0000005.
+        env:
+          TEST_PATH: ${{ inputs.test_path }}
         run: .venv\Scripts\python scripts\ci_run_tests_isolated.py

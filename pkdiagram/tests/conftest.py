@@ -873,103 +873,156 @@ class PKQtBot(QtBot):
                 count += 1
         assert count == 0
 
-    def qWaitForMessageBox(self, action, contains=None, handleClick=None):
-        from PyQt5.QtWidgets import QAbstractButton
+    # --- Message-box handling ---------------------------------------------
+    #
+    # Tests never construct a real modal QMessageBox. The static helpers
+    # (question/information/warning/critical) and instance exec_()/exec() are
+    # monkeypatched so dialogs are answered programmatically. Rationale:
+    # constructing a static QMessageBox under the offscreen QPA crashes Qt on
+    # Windows (0xC0000005), and a real nested modal loop is slow/flaky
+    # everywhere. A single shared responder with a stack of expected answers
+    # supports nested clickXAfter(...) idioms (each box answered by the
+    # innermost active expectation).
 
-        msgBoxAccepted = util.Condition()
+    class _MBCall:
+        def __init__(self, title, text, informative, detailed, buttons):
+            self.windowTitle = title or ""
+            self.text = text or ""
+            self.informativeText = informative or ""
+            self.detailedText = detailed or ""
+            self.standardButtons = int(buttons)
 
-        def acceptMessageBox():
-            # def isWindowUp():
-            #     return bool(QApplication.activeModalWidget())
-            # self.waitUntil(isWindowUp, 2000)
-            widget = QApplication.activeModalWidget()
-            if widget:
-                if contains:
-                    assert contains in widget.text()
-                if handleClick:
-                    try:
-                        ok = handleClick()
-                    except Exception as _e:
-                        ok = False
-                        e = _e
-                    msgBoxAccepted()
-                    msgBoxAccepted.timer.stop()
-                    if not ok:
-                        raise e
-                elif isinstance(widget, QMessageBox):
-                    okButton = widget.button(QMessageBox.Ok)
-                    widget.buttonClicked[QAbstractButton].connect(msgBoxAccepted)
-                    msgBoxAccepted()
-                    # Programmatic click, not synthetic mouse events: a static
-                    # QMessageBox runs its own nested modal loop, and injecting
-                    # OS-level mouse events into it crashes Qt on Windows
-                    # (0xC0000005). QAbstractButton.click() is reentrancy-safe.
-                    okButton.click()
-                    msgBoxAccepted.timer.stop()
+    @staticmethod
+    def _mb_choose(available, want, escape):
+        Q = QMessageBox
+        if escape:
+            for b in (Q.Cancel, Q.No, Q.Close, Q.Abort):
+                if available & int(b):
+                    return b
+        if available & int(want):
+            return want
+        for b in (Q.Ok, Q.Yes, Q.Close, Q.No):
+            if available & int(b):
+                return b
+        return want
 
-        msgBoxAccepted.timer = QTimer(QApplication.instance())
-        msgBoxAccepted.timer.timeout.connect(acceptMessageBox)
-        msgBoxAccepted.timer.start(100)
-        action()
-        if contains:
-            assert (
-                msgBoxAccepted.wait() == True
-            ), f'QMessageBox not raised in time containing: "{contains}"'
-        else:
-            assert (
-                msgBoxAccepted.wait() == True
-            ), f"QMessageBox not raised in time. {QApplication.activeWindow()}"
+    def _mb_init(self):
+        if not hasattr(self, "_mb_stack"):
+            self._mb_stack = []
+            self._mb_captured = []
+            self._mb_patchers = []
 
-    def assert_QMessageBox_hasText(self, messageBox, **kwargs):
-        if messageBox.text():
-            text = messageBox.text()
-        elif messageBox.informativeText():
-            text = messageBox.informativeText()
-        else:
-            text = messageBox.detailedText()
+    def _mb_start_patch(self):
+        from unittest.mock import patch as _patch
 
-        log.debug(f"QMessageBox: '{text}'")
-        if "text" in kwargs and kwargs["text"] not in messageBox.text():
-            messageBox.close()
-            pytest.fail(
-                f"expected text: '{kwargs['text']}', found text: '{messageBox.text()}'."
+        Q = QMessageBox
+        kind_default = {
+            "question": Q.Yes | Q.No,
+            "information": Q.Ok,
+            "warning": Q.Ok,
+            "critical": Q.Ok,
+        }
+
+        def make_static(kind):
+            def fake(parent=None, title="", text="", *args, **kwargs):
+                buttons = kwargs.get("buttons")
+                if buttons is None and args:
+                    buttons = args[0]
+                if buttons is None:
+                    buttons = kind_default[kind]
+                self._mb_captured.append(
+                    self._MBCall(title, text, "", "", int(buttons))
+                )
+                want, escape = self._mb_stack[-1]
+                return self._mb_choose(int(buttons), want, escape)
+
+            return staticmethod(fake)
+
+        def fake_exec(mb, *a, **k):
+            self._mb_captured.append(
+                self._MBCall(
+                    mb.windowTitle(),
+                    mb.text(),
+                    mb.informativeText(),
+                    mb.detailedText(),
+                    int(mb.standardButtons()),
+                )
             )
-        elif (
+            want, escape = self._mb_stack[-1]
+            target = self._mb_choose(int(mb.standardButtons()), want, escape)
+            w = mb.button(target)
+            if w is None and escape and mb.escapeButton() is not None:
+                w = mb.escapeButton()
+            if w is None and mb.buttons():
+                w = mb.buttons()[0]
+            if w is not None:
+                w.click()
+                sb = mb.standardButton(w)
+                return int(sb) if sb else 0
+            mb.done(int(target))
+            return int(target)
+
+        self._mb_patchers = [
+            _patch.object(Q, "question", make_static("question")),
+            _patch.object(Q, "information", make_static("information")),
+            _patch.object(Q, "warning", make_static("warning")),
+            _patch.object(Q, "critical", make_static("critical")),
+            _patch.object(Q, "exec_", fake_exec),
+            _patch.object(Q, "exec", fake_exec),
+        ]
+        for pt in self._mb_patchers:
+            pt.start()
+
+    def _mb_stop_patch(self):
+        for pt in self._mb_patchers:
+            pt.stop()
+        self._mb_patchers = []
+
+    def qWaitForMessageBox(
+        self, action, *, button=QMessageBox.Ok, contains=None, escape=False, hasText=None
+    ):
+        self._mb_init()
+        self._mb_stack.append((button, escape))
+        if len(self._mb_stack) == 1:
+            self._mb_start_patch()
+        start = len(self._mb_captured)
+        try:
+            action()
+        finally:
+            self._mb_stack.pop()
+            if not self._mb_stack:
+                self._mb_stop_patch()
+
+        mine = self._mb_captured[start:]
+        assert mine, (
+            f"No QMessageBox was raised. "
+            f"active window: {QApplication.activeWindow()}"
+        )
+        if contains is not None:
+            assert any(
+                contains in (c.text + c.informativeText + c.detailedText)
+                for c in mine
+            ), f'No QMessageBox text contained "{contains}". Got: {[c.text for c in mine]}'
+        if hasText:
+            assert any(
+                self._mb_hasText(c, **hasText) for c in mine
+            ), f"No QMessageBox matched {hasText}. Got: {[c.text for c in mine]}"
+
+    @staticmethod
+    def _mb_hasText(call, **kwargs):
+        if "text" in kwargs and kwargs["text"] not in call.text:
+            return False
+        if (
             "informativeText" in kwargs
-            and kwargs["informativeText"] not in messageBox.informativeText()
+            and kwargs["informativeText"] not in call.informativeText
         ):
-            messageBox.close()
-            pytest.fail(
-                f"expected text: {kwargs['informativeText']}, QMessageBox::informativeText: {messageBox.informativeText()}."
-            )
-        elif (
-            "detailedText" in kwargs
-            and kwargs["detailedText"] not in messageBox.detailedText()
-        ):
-            messageBox.close()
-            pytest.fail(
-                f"expected text: {kwargs['detailedText']}, QMessageBox::detailedText: {messageBox.detailedText()}."
-            )
+            return False
+        if "detailedText" in kwargs and kwargs["detailedText"] not in call.detailedText:
+            return False
+        return True
 
     def clickButtonAfter(self, action, button: int, **hasTextArgs):
-        def doClickYes():
-            widget = QApplication.activeModalWidget()
-            if isinstance(widget, QMessageBox):
-                self.assert_QMessageBox_hasText(widget, **hasTextArgs)
-                buttonWidget = widget.button(button)
-                if not buttonWidget:
-                    raise ValueError(
-                        f"Button {button} not found in {widget} with text '{widget.text()}'"
-                    )
-                # Programmatic click (see note above): synthetic mouse events
-                # into a static QMessageBox's nested modal loop crash Windows.
-                buttonWidget.click()
-                return True
-            else:
-                widget.hide()
-                pytest.fail(f"Expected QMessageBox, got {widget}")
-
-        self.qWaitForMessageBox(action, handleClick=doClickYes)
+        self.qWaitForMessageBox(action, button=button, hasText=hasTextArgs)
 
     def clickYesAfter(self, action, **hasTextArgs):
         self.clickButtonAfter(action, QMessageBox.Yes, **hasTextArgs)
@@ -984,16 +1037,9 @@ class PKQtBot(QtBot):
         self.clickButtonAfter(action, QMessageBox.Cancel, **hasTextArgs)
 
     def hitEscapeAfter(self, action, **hasTextArgs):
-        def doHitEscape():
-            widget = QApplication.activeModalWidget()
-            if isinstance(widget, QMessageBox):
-                self.assert_QMessageBox_hasText(widget, **hasTextArgs)
-                self.keyClicks(QApplication.activeModalWidget(), Qt.Key_Escape)
-                return True
-            else:
-                pytest.fail(f"Expected QMessageBox, got {widget}")
-
-        self.qWaitForMessageBox(action, handleClick=doHitEscape)
+        self.qWaitForMessageBox(
+            action, button=QMessageBox.Cancel, escape=True, hasText=hasTextArgs
+        )
 
     def callAfter(self, action: callable, after: callable):
         QTimer.singleShot(100, after)
