@@ -60,12 +60,14 @@ class Statement(QObject):
         id: int,
         text: str,
         speaker: Speaker,
+        order: int | None = None,
         parent: QObject | None = None,
     ):
         super().__init__(parent)
         self._id = id
         self._text = text
         self._speaker = speaker
+        self._order = order if order is not None else 0
 
     def as_dict(self) -> dict:
         return {
@@ -86,6 +88,10 @@ class Statement(QObject):
     def speaker(self) -> Speaker:
         return self._speaker
 
+    @pyqtProperty(int, constant=True)
+    def order(self) -> int:
+        return self._order
+
 
 class Discussion(QObject):
     """
@@ -100,6 +106,7 @@ class Discussion(QObject):
         summary: str | None = None,
         statements: list[Statement] | None = None,
         speakers: list[Speaker] | None = None,
+        extracted_through_order: int | None = None,
         parent: QObject | None = None,
     ):
         super().__init__(parent)
@@ -109,6 +116,7 @@ class Discussion(QObject):
         self._statements = statements if statements is not None else []
         self._diagram_id = diagram_id
         self._speakers = speakers if speakers is not None else []
+        self._extracted_through_order = extracted_through_order
 
     def as_dict(self) -> dict:
         return {
@@ -133,6 +141,15 @@ class Discussion(QObject):
     def statements(self) -> list[Statement]:
         return list(self._statements)
 
+    @pyqtProperty(int, constant=True)
+    def extracted_through_order(self) -> int:
+        # -1 = nothing accepted yet → every statement is dirty
+        return (
+            self._extracted_through_order
+            if self._extracted_through_order is not None
+            else -1
+        )
+
     @staticmethod
     def create(data: dict) -> "Discussion":
         speakers = [
@@ -154,10 +171,12 @@ class Discussion(QObject):
                     id=x["id"],
                     text=x["text"],
                     speaker=next(y for y in speakers if y.id == x["speaker_id"]),
+                    order=x.get("order"),
                 )
                 for x in data.get("statements", [])
             ],
             speakers=speakers,
+            extracted_through_order=data.get("extracted_through_order"),
         )
 
 

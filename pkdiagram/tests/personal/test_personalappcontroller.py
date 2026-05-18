@@ -1095,3 +1095,113 @@ def test_importJournalNotes_triggers_cluster_detection(
         personalApp.importJournalNotes("Some journal text")
         assert completed.wait()
         assert detect_mock.call_count == 1
+
+
+def test_canExtract_gates_on_dirty_statements(
+    test_user, personalApp: PersonalAppController
+):
+    """Extract button visibility: only when statements exist after the
+    re-extraction cursor (FD-319)."""
+    from pkdiagram.personal.models import Discussion, Statement, Speaker, SpeakerType
+
+    spk = Speaker(id=1, person_id=1, name="C", type=SpeakerType.Subject)
+
+    def disc(stmt_orders, cursor):
+        return Discussion(
+            id=1,
+            user_id=test_user.id,
+            diagram_id=1,
+            summary="d",
+            speakers=[spk],
+            statements=[
+                Statement(id=i, text="x", speaker=spk, order=o)
+                for i, o in enumerate(stmt_orders)
+            ],
+            extracted_through_order=cursor,
+        )
+
+    personalApp._currentDiscussion = None
+    personalApp._recomputeDirtyFromModel()
+    assert personalApp.canExtract is False
+
+    # Load: computed from server-fresh model (order vs cursor).
+    personalApp._currentDiscussion = disc([], None)
+    personalApp._recomputeDirtyFromModel()
+    assert personalApp.canExtract is False  # no statements
+
+    personalApp._currentDiscussion = disc([0, 1], None)
+    personalApp._recomputeDirtyFromModel()
+    assert personalApp.canExtract is True  # never extracted -> dirty
+
+    personalApp._currentDiscussion = disc([0, 1], 1)
+    personalApp._recomputeDirtyFromModel()
+    assert personalApp.canExtract is False  # all <= cursor
+
+    personalApp._currentDiscussion = disc([0, 1, 2], 1)
+    personalApp._recomputeDirtyFromModel()
+    assert personalApp.canExtract is True  # order 2 > cursor 1
+
+    # Transitions (no model resync): full accept -> clean unless chat since
+    # the extract; a send always makes it dirty again.
+    personalApp._sentSinceExtract = False
+    personalApp._dirty = personalApp._sentSinceExtract  # full accept onSuccess
+    assert personalApp.canExtract is False
+    personalApp._dirty = True  # send
+    personalApp._sentSinceExtract = True
+    assert personalApp.canExtract is True
+    personalApp._sentSinceExtract = True  # chat happened after extract
+    personalApp._dirty = personalApp._sentSinceExtract  # full accept onSuccess
+    assert personalApp.canExtract is True  # still dirty
+
+
+def test_acceptAll_empty_pdp_clears_extract_button(
+    test_user, personalApp: PersonalAppController
+):
+    """J2 end-to-end: re-extracting an already-covered discussion yields an
+    empty PDP. 'Accept all' on it must still issue a full-accept commit-pdp
+    and, on success, clear the Extract button (canExtract -> False). This is
+    the exact failure the user hit repeatedly."""
+    from unittest.mock import MagicMock
+    from pkdiagram.personal.models import Discussion, Speaker, SpeakerType
+
+    personalApp._diagram = Diagram(
+        id=1,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(DiagramData(pdp=PDP()))),  # empty PDP
+    )
+    spk = Speaker(id=1, person_id=1, name="C", type=SpeakerType.Subject)
+    personalApp._currentDiscussion = Discussion(
+        id=60, user_id=test_user.id, diagram_id=1, summary="d", speakers=[spk]
+    )
+    # State after a re-extract that produced nothing, no chat since extract.
+    personalApp._dirty = True
+    personalApp._sentSinceExtract = False
+    assert personalApp.canExtract is True  # button currently shown
+
+    captured = {}
+
+    def fake_nbr(verb, path, **kw):
+        captured["verb"] = verb
+        captured["path"] = path
+        captured["data"] = kw.get("data")
+        kw["success"](
+            {
+                "success": True,
+                "full_accept": True,
+                "committed": 0,
+                "extracted_through_order": 20,
+            }
+        )
+        return MagicMock()
+
+    server = MagicMock()
+    server.nonBlockingRequest.side_effect = fake_nbr
+    with patch.object(personalApp.session, "server", return_value=server):
+        personalApp.acceptAllPDPItems()
+
+    assert captured["verb"] == "POST"
+    assert captured["path"] == "/personal/discussions/60/commit-pdp"
+    assert captured["data"] == {"item_ids": [], "full_accept": True}
+    assert personalApp.canExtract is False  # button cleared
