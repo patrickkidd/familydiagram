@@ -94,6 +94,11 @@ class PersonalAppController(QObject):
         self._currentDiscussion: Discussion | None = None
         self._dirty: bool = False  # conversation past last accepted extraction
         self._sentSinceExtract: bool = False
+        # Highest Statement.order the last extract covered, as reported by the
+        # server. Echoed back on commit-pdp so the cursor advances to the
+        # exact extraction being accepted, not whatever the server's pending
+        # value happens to hold after a concurrent re-extract (FD-331).
+        self._pendingExtractedThroughOrder: int | None = None
         self._pdp: dict | None = None
         self._rootObject = None
         self._engine: QQmlEngine | None = None
@@ -1069,10 +1074,14 @@ class PersonalAppController(QObject):
                 self._dirty = self._sentSinceExtract
                 self.statementsChanged.emit()
 
+        data = {"item_ids": itemIds, "full_accept": fullAccept}
+        if self._pendingExtractedThroughOrder is not None:
+            data["accepted_through_order"] = self._pendingExtractedThroughOrder
+
         reply = self.session.server().nonBlockingRequest(
             "POST",
             f"/personal/discussions/{self._currentDiscussion.id}/commit-pdp",
-            data={"item_ids": itemIds, "full_accept": fullAccept},
+            data=data,
             error=onError,
             success=onSuccess,
             headers={"Content-Type": "application/json", "Accept": "application/json"},
@@ -1584,6 +1593,9 @@ class PersonalAppController(QObject):
         self.extractStarted.emit()
 
         def onSuccess(data):
+            self._pendingExtractedThroughOrder = data.get(
+                "pending_extracted_through_order"
+            )
             diagramData = self._diagram.getDiagramData()
             diagramData.pdp = from_dict(PDP, data["pdp"])
             self._diagram.setDiagramData(diagramData)
