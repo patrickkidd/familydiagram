@@ -46,22 +46,23 @@ def test_load_tampered(data_root):
     assert ac.wasTamperedWith
 
 
-def test_write_new():
-    ifile = tempfile.NamedTemporaryFile()
-    ac = AppConfig(filePath=ifile.name)
+def test_write_new(tmp_path):
+    # NamedTemporaryFile can't be reopened by name while open on Windows
+    # (exclusive lock) -> PermissionError. Use a plain path.
+    fpath = str(tmp_path / "appconfig")
+    ac = AppConfig(filePath=fpath)
     ac.init()
     ac.set("something", "bleh")
     ac.write()
     ac.deinit()
 
-    ac2 = AppConfig(None, filePath=ifile.name)
+    ac2 = AppConfig(None, filePath=fpath)
     ac2.init()
     ac2.read()
     assert ac2.wasTamperedWith == False
     assert ac2.get("something") == "bleh"
 
     ac2.deinit()
-    ifile.close()
 
 
 def test_backward_compat_with_1x(tmp_path, data_root):

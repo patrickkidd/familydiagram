@@ -1,72 +1,179 @@
-# This workflow will install Python dependencies, run tests and lint with a single version of Python
-# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
-
 name: Test
 
+# familydiagram unit tests as a PR check, on the deployment targets
+# (macOS + Windows).
+#
+# Pre-existing test-isolation defect: a single shared pytest process leaks Qt
+# resources that accumulate and deadlock ~5-8% in (native hang). Every file
+# passes alone, so CI runs one process per file via
+# scripts/ci_run_tests_isolated.py (cross-platform). Root-fixing the leak,
+# plus the CI-only server/license/session tests it quarantines, is tracked in
+# doc/plans/2026-05-17--ci-test-suite-isolation.md.
 on:
   workflow_dispatch:
+    inputs:
+      test_path:
+        description: "Subset to run (default pkdiagram/tests). Speeds targeted debugging."
+        required: false
+        default: ""
+      only:
+        description: "Run only one job: macos | windows | both"
+        required: false
+        default: "both"
+  pull_request:
+  push:
+    branches: [master]
 
+# A new push to the same PR/branch cancels the superseded in-progress run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
-
-    runs-on: macos-12
+  test-macos:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == 'both' || inputs.only == 'macos' }}
+    runs-on: macos-15-intel
+    timeout-minutes: 90
     env:
       TWINE_REPOSITORY_URL: "${{ secrets.TWINE_REPOSITORY_URL }}"
       TWINE_USERNAME: "${{ secrets.TWINE_USERNAME }}"
       TWINE_PASSWORD: "${{ secrets.TWINE_PASSWORD }}"
+      QT_QPA_PLATFORM: offscreen
+      # Analytics raises if its Datadog key is None at construction. A dummy
+      # non-None key satisfies the ctor; analytics tests mock their own net.
+      FD_BUILD_DATADOG_API_KEY: "ci-dummy-key"
 
     steps:
-    - name: Checkout patrickkidd/famildiagram
-      uses: actions/checkout@v2
-      with:
-        submodules: true
+      - uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.11.6
-        # architecture: 'x64'
-        # cache: 'pipenv'
-    - run: |
-        pip install pipenv
-        mkdir .venv
-        pipenv install --dev --verbose --skip-lock
-        pipenv run which sip-install
-  
-    # It is faster to install homebrew than to restore from cache
-    - name: brew install qt@5 create-dmg
-      run: |
-        brew install qt@5 create-dmg
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11.6
+          cache: pip
+          cache-dependency-path: pyproject.toml
 
-    ## Build
-    
-    - name: sip-install for _pkdiagram
-      run: |
-        export PATH="/usr/local/opt/qt@5/bin:${PATH}"
-        which qmake
-        pipenv run cmake .
-        pipenv run make
+      - name: Set up virtual env + deps
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install --upgrade pip
+          .venv/bin/pip install -e ".[test]" --extra-index-url=$TWINE_REPOSITORY_URL
+          .venv/bin/pip install pytest-timeout
 
-        export PYQT5_DIR="/Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.11/site-packages/PyQt5/Qt5"
-        install_name_tool -add_rpath $PYQT5_DIR/lib /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.11/site-packages/_pkdiagram.cpython-310-darwin.so
-        install_name_tool -change /usr/local/opt/qt@5/lib/QtCore.framework/Versions/5/QtCore @rpath/QtCore.framework/Versions/5/QtCore /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.11/site-packages/_pkdiagram.cpython-310-darwin.so
-        install_name_tool -change /usr/local/opt/qt@5/lib/QtGui.framework/Versions/5/QtGui @rpath/QtGui.framework/Versions/5/QtGui /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.11/site-packages/_pkdiagram.cpython-310-darwin.so
-        install_name_tool -change /usr/local/opt/qt@5/lib/QtWidgets.framework/Versions/5/QtWidgets @rpath/QtWidgets.framework/Versions/5/QtWidgets /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.11/site-packages/_pkdiagram.cpython-310-darwin.so
-        otool -L /Users/runner/work/familydiagram/familydiagram/.venv/lib/python3.11/site-packages/_pkdiagram.cpython-310-darwin.so
+      - name: brew install qt@5
+        run: brew install qt@5
 
-    - name: Write build config
-      run: |
-        pipenv run python bin/update_build_info.py
-    
-    - name: Test with pytest
-      if: ${{ ! inputs.debug_enabled }}
-      run: |
-        pipenv run pytest -svv tests
+      - name: Build _pkdiagram (SIP C++ extension) + Qt UI forms
+        run: |
+          source .venv/bin/activate
+          export PATH="/usr/local/opt/qt@5/bin:$PATH"
+          which qmake
+          rm -f CMakeCache.txt
+          rm -rf CMakeFiles
+          cmake . -DCMAKE_PREFIX_PATH=/usr/local/opt/qt@5
+          make
+          SO=$(ls .venv/lib/python3.11/site-packages/_pkdiagram.cpython-*-darwin.so)
+          echo "Built extension: $SO"
+          PYQT5_DIR="$(pwd)/.venv/lib/python3.11/site-packages/PyQt5/Qt5"
+          install_name_tool -add_rpath "$PYQT5_DIR/lib" "$SO"
+          for fw in QtCore QtGui QtWidgets; do
+            install_name_tool -change \
+              "/usr/local/opt/qt@5/lib/$fw.framework/Versions/5/$fw" \
+              "@rpath/$fw.framework/Versions/5/$fw" "$SO"
+          done
+          otool -L "$SO"
 
-    # # Will provide an SSH command in the logs that you can use to access the runner.
-    # - name: Setup tmate session
-    #   uses: mxschmitt/action-tmate@v3
-    #   # if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
-    #   if: ${{ inputs.debug_enabled }}
+      - name: Write build config
+        run: .venv/bin/python bin/update_build_info.py
 
+      - name: Smoke test (fast env gate)
+        run: .venv/bin/python -m pytest -vv pkdiagram/tests/test_version.py
+
+      - name: Full test suite (one process per file)
+        env:
+          TEST_PATH: ${{ inputs.test_path }}
+        run: .venv/bin/python scripts/ci_run_tests_isolated.py
+
+  test-windows:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == 'both' || inputs.only == 'windows' }}
+    runs-on: windows-2022
+    timeout-minutes: 120
+    env:
+      TWINE_REPOSITORY_URL: "${{ secrets.TWINE_REPOSITORY_URL }}"
+      TWINE_USERNAME: "${{ secrets.TWINE_USERNAME }}"
+      TWINE_PASSWORD: "${{ secrets.TWINE_PASSWORD }}"
+      QT_QPA_PLATFORM: offscreen
+      FD_BUILD_DATADOG_API_KEY: "ci-dummy-key"
+      # Windows defaults stdio/locale to cp1252; conftest fixtures load SARF
+      # markdown with unicode (→ ≠) and crash on encode. UTF-8 mode fixes it.
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11.6
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Set up virtual env + deps
+        shell: cmd
+        run: |
+          python -m venv .venv
+          .venv\Scripts\pip install --upgrade pip
+          .venv\Scripts\pip install -e ".[test]" --extra-index-url=%TWINE_REPOSITORY_URL%
+          .venv\Scripts\pip install pytest-timeout
+
+      - name: Cache Qt 5.15.2 (msvc2019_64)
+        id: cache-qt
+        uses: actions/cache@v4
+        with:
+          path: C:\Qt
+          key: qt-5.15.2-win64_msvc2019_64-v1
+
+      - name: Install Qt 5.15.2 (msvc2019_64)
+        if: steps.cache-qt.outputs.cache-hit != 'true'
+        shell: cmd
+        run: |
+          call .venv\Scripts\activate.bat
+          pip install aqtinstall
+          aqt install-qt windows desktop 5.15.2 win64_msvc2019_64 --outputdir C:\Qt --archives qtbase qtdeclarative qtgraphicaleffects qtimageformats qtquickcontrols qtquickcontrols2 qttools qtwinextras qtmultimedia
+
+      - name: Setup MSVC dev environment (x64)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build _pkdiagram (SIP C++ extension) + Qt UI forms
+        shell: cmd
+        run: |
+          call .venv\Scripts\activate.bat
+          set PATH=C:\Qt\5.15.2\msvc2019_64\bin;%PATH%
+          qmake --version
+          cd _pkdiagram
+          sip-install --qmake C:\Qt\5.15.2\msvc2019_64\bin\qmake.exe --build-dir build
+          cd ..
+          python scripts\win_qt_dll_pth.py
+          pyuic5 pkdiagram\mainwindow\mainwindow.ui -o pkdiagram\mainwindow\mainwindow_form.py
+          pyuic5 pkdiagram\mainwindow\preferences.ui -o pkdiagram\mainwindow\preferences_form.py
+          pyuic5 pkdiagram\mainwindow\welcome.ui -o pkdiagram\mainwindow\welcome_form.py
+          python -c "from _pkdiagram import CUtil; print('CUtil OK', CUtil.operatingSystem())"
+
+      - name: Write build config
+        shell: cmd
+        run: .venv\Scripts\python bin\update_build_info.py
+
+      - name: Smoke test (fast env gate)
+        shell: cmd
+        run: .venv\Scripts\python -m pytest -vv pkdiagram\tests\test_version.py
+
+      - name: Full test suite (one process per file)
+        shell: cmd
+        # No aqtinstall Qt on PATH at test time: the .pth makes _pkdiagram use
+        # PyQt5's bundled Qt. A second Qt on PATH reintroduced 0xC0000005.
+        env:
+          TEST_PATH: ${{ inputs.test_path }}
+        run: .venv\Scripts\python scripts\ci_run_tests_isolated.py
