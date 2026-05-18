@@ -146,7 +146,14 @@ Page {
         }
         function onExtractCompleted(summary) {
             extractOverlay.visible = false
-            pdpSheet.open()
+            var total = (summary.people || 0) + (summary.events || 0) + (summary.pairBonds || 0)
+            if (total > 0) {
+                pdpSheet.open()
+            } else {
+                personalApp.dismissEmptyExtraction()
+                util.informationBox("Nothing New",
+                    "Nothing new was detected. Chat more to generate more data.")
+            }
         }
         function onExtractFailed(error) {
             extractOverlay.visible = false
