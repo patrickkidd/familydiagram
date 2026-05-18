@@ -29,6 +29,24 @@ though eventsFor, emotionsFor, marriageFor, etc.
     fail with an `AttributeError` on the return value of `self.scene()` and
     the calling code should be fixed to ensure the Item is added to the scene
     before using the getter.
+- **Provenance-normalized scene ingress (MANDATORY — do not re-derive):**
+  Data reaches the scene from two provenance classes, with opposite policies:
+  - **Deterministic origin** (programmatic construction, edit, draw,
+    undo/redo): a missing/unresolvable ref is a code bug → strict getters,
+    fail loud, fix the caller. (This is the rule above; it applies ONLY to
+    deterministic behaviors.)
+  - **Probabilistic origin** (LLM extraction → committed diagram → loaded or
+    accepted): data is inherently unreliable → resilience: drop the
+    irrecoverable item and log the full chunk (recoverable), never fail loud.
+  All probabilistic-origin data MUST pass through ONE shared
+  resilience-normalization step (`Scene._dropIrrecoverableEvents`) before it
+  touches the scene. There are multiple probabilistic ingresses — currently
+  **load** (`Scene.read`) and **accept** (`PersonalAppController.
+  _addCommittedItemsToScene`); any new one must call the same step. Enforcing
+  resilience at one ingress instead of the shared step is the
+  normalized-data-flow violation that caused the FD-319 accept-path crash
+  (FMEA 2026-05-02 L2 recurred on the accept door). Never patch a single
+  ingress (e.g. a guard in `eventsFor`); fix the shared step.
 - compat.py must set all Event.uniqueId's that are blank or 'CustomIndividual' to EventKind.VarableShift.value
 - `Event` has mandatory `EventKind` as:
 - `Bonded`, `Married`, `SeparatedBirth`, `Adopted`, `Moved`, `Separated`,

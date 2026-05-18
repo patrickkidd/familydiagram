@@ -92,6 +92,8 @@ class PersonalAppController(QObject):
         self._diagrams: list[dict] = []
         self._discussions = []
         self._currentDiscussion: Discussion | None = None
+        self._dirty: bool = False  # conversation past last accepted extraction
+        self._sentSinceExtract: bool = False
         self._pdp: dict | None = None
         self._rootObject = None
         self._engine: QQmlEngine | None = None
@@ -887,6 +889,17 @@ class PersonalAppController(QObject):
     def currentDiscussionId(self):
         return self._currentDiscussion.id if self._currentDiscussion else -1
 
+    @pyqtProperty(bool, notify=statementsChanged)
+    def canExtract(self) -> bool:
+        """Extract button visibility. Dirty = there is conversation past the
+        last accepted extraction. Transitions (no model resync needed):
+        - discussion load: computed from server order vs cursor;
+        - send: dirty (a new statement is always past the cursor);
+        - full accept: clean, unless chat happened since the extract that
+          produced the accepted PDP (then still dirty);
+        - partial accept / extract-without-accept: unchanged."""
+        return bool(self._currentDiscussion) and self._dirty
+
     @pyqtSlot()
     def createDiscussion(self):
         self._createDiscussion()
@@ -918,8 +931,21 @@ class PersonalAppController(QObject):
         self._currentDiscussion = next(
             x for x in self._discussions if x.id == discussion_id
         )
+        self._recomputeDirtyFromModel()
         self.statementsChanged.emit()
         self.pdpChanged.emit()
+
+    def _recomputeDirtyFromModel(self):
+        """At discussion load the model is server-fresh (statements carry
+        order, cursor = extracted_through_order), so compute dirty directly."""
+        self._sentSinceExtract = False
+        d = self._currentDiscussion
+        if not d:
+            self._dirty = False
+            return
+        self._dirty = any(
+            (s.order or 0) > d.extracted_through_order for s in d.statements()
+        )
 
     @pyqtSlot(int)
     def setCurrentDiscussion(self, discussion_id: int):
@@ -966,6 +992,11 @@ class PersonalAppController(QObject):
                 from_root=True,
             )
             self.session.track(f"personal.Engine.sendStatement: {statement}")
+            # A new statement is always past the cursor -> dirty. No model
+            # resync needed; the flag is the source of truth between loads.
+            self._dirty = True
+            self._sentSinceExtract = True
+            self.statementsChanged.emit()
             self.requestSent.emit(statement)
 
         if self._currentDiscussion:
@@ -1023,18 +1054,27 @@ class PersonalAppController(QObject):
         re-extraction cursor advances on a full accept. Best-effort: a failure
         only means the cursor doesn't advance (next extract re-windows; the
         server-side committed-duplicate guard absorbs the repeat)."""
-        if not self._currentDiscussion or not itemIds:
+        # Empty itemIds is valid only as an explicit full accept of an empty
+        # PDP (advance the cursor, nothing to commit).
+        if not self._currentDiscussion or (not itemIds and not fullAccept):
             return
 
         def onError():
             _log.warning(f"commit-pdp cursor advance failed: {reply.errorString()}")
+
+        def onSuccess(data):
+            # Server confirmed the accept. Clean unless chat was sent after the
+            # extract that produced this PDP (then still dirty).
+            if isinstance(data, dict) and data.get("full_accept"):
+                self._dirty = self._sentSinceExtract
+                self.statementsChanged.emit()
 
         reply = self.session.server().nonBlockingRequest(
             "POST",
             f"/personal/discussions/{self._currentDiscussion.id}/commit-pdp",
             data={"item_ids": itemIds, "full_accept": fullAccept},
             error=onError,
-            success=lambda: None,
+            success=onSuccess,
             headers={"Content-Type": "application/json", "Accept": "application/json"},
             from_root=True,
         )
@@ -1139,6 +1179,17 @@ class PersonalAppController(QObject):
 
         for item, chunk in itemChunks:
             item.read(chunk, byId)
+
+        # Accept is a probabilistic-origin ingress (LLM extraction). Per the
+        # provenance-normalized ingress rule (scene/CLAUDE.md), it must pass
+        # through the SAME shared resilience step as load (Scene.read), not a
+        # per-ingress patch. Drop events whose primary refs didn't resolve
+        # (full chunk logged, recoverable) so addItem can't crash on a None
+        # person. FMEA 2026-05-02 L2 recurred here because only load was wired.
+        dropped = self.scene._dropIrrecoverableEvents(itemChunks)
+        if dropped:
+            droppedSet = set(dropped)
+            itemChunks = [(i, c) for (i, c) in itemChunks if i not in droppedSet]
 
         # Phase 3: Add all items to scene.
         # isInitializing: suppress cross-reference validation (FR-4)
@@ -1314,6 +1365,10 @@ class PersonalAppController(QObject):
                     allIds.append(pair_bond.id)
 
             if not allIds:
+                # Empty PDP (re-extraction produced nothing to stage). This is
+                # still a full accept — advance the cursor so the discussion is
+                # marked covered and the Extract button clears.
+                self._postCommitPdp([], True)
                 return
 
             _log.info(f"Accepting all PDP items: {allIds}")
@@ -1523,6 +1578,9 @@ class PersonalAppController(QObject):
             self.extractFailed.emit("No diagram loaded")
             return
 
+        # Baseline for "chat since this extract": a later full accept is clean
+        # only if no statement was sent after this extract.
+        self._sentSinceExtract = False
         self.extractStarted.emit()
 
         def onSuccess(data):

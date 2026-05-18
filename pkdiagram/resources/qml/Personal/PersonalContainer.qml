@@ -228,7 +228,8 @@ Page {
             }
         }
 
-        // Extract button (Discuss tab, always visible)
+        // Extract button (Discuss tab, only when there are statements after
+        // the re-extraction cursor — i.e. unextracted/"dirty" content)
         Rectangle {
             id: extractButton
             objectName: "extractButton"
@@ -239,7 +240,7 @@ Page {
             height: 28
             radius: 14
             color: util.IS_UI_DARK_MODE ? "#4495F7" : "#007AFF"
-            visible: tabBar.currentIndex === 0
+            visible: tabBar.currentIndex === 0 && !!personalApp && personalApp.canExtract
 
             Canvas {
                 anchors.centerIn: parent
