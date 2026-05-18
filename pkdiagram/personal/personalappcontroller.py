@@ -1299,6 +1299,26 @@ class PersonalAppController(QObject):
                 return nameA or nameB
         return ""
 
+    @pyqtSlot(int, result=str)
+    @pyqtSlot("QVariant", result=str)
+    def resolvePairBondChildren(self, pairBondId: int | None) -> str:
+        """Names of people whose parents point at this pair bond — surfaces
+        the structural change a pair-bond card applies (e.g. setting an
+        already-committed person's parents)."""
+        if pairBondId is None or not self._diagram:
+            return ""
+        names = []
+        diagramData = self._diagram.getDiagramData()
+        if diagramData.pdp:
+            for p in diagramData.pdp.people:
+                if p.parents == pairBondId:
+                    names.append(p.name or p.last_name or f"Person #{p.id}")
+        if self.scene:
+            for person in self.scene.people():
+                if person.parents() and person.parents().id == pairBondId:
+                    names.append(person.fullNameOrAlias())
+        return ", ".join(n for n in names if n)
+
     @pyqtSlot(str, result=str)
     @pyqtSlot("QVariant", result=str)
     def eventKindLabel(self, kind: str | None) -> str:
@@ -1436,6 +1456,13 @@ class PersonalAppController(QObject):
                 _log.warning("Failed to accept all PDP items after retries")
 
         self._withSaveGuard(_do)
+
+    @pyqtSlot()
+    def dismissEmptyExtraction(self):
+        """An extraction produced nothing to review. Nothing is committed, but
+        the conversation must still be marked covered so the Extract button
+        clears — same cursor advance as a full accept of an empty pool."""
+        self._postCommitPdp([], True)
 
     @pyqtSlot(int, str, "QVariant")
     def updatePDPItem(self, id: int, field: str, value):

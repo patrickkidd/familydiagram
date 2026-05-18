@@ -296,7 +296,7 @@ These bridge commands make multi-instance tests deterministic without `time.slee
 | Triangle View | [TRIANGLE_VIEW.md](doc/asbuilts/TRIANGLE_VIEW.md) | `scene/triangle.py`, `models/trianglemodel.py`, `TriangleView.qml` |
 | Learn View | [LEARN_VIEW.md](doc/asbuilts/LEARN_VIEW.md) | `resources/qml/Personal/LearnView.qml`, `personal/sarfgraphmodel.py`, `personal/clustermodel.py` |
 | Timeline Click | [TIMELINE_CLICK_IMPLEMENTED.md](doc/asbuilts/TIMELINE_CLICK_IMPLEMENTED.md) | Timeline event selection |
-| Data Sync | [DATA_SYNC_FLOW.md](doc/specs/DATA_SYNC_FLOW.md) | `server_types.py` (`mutate`, `pushToServer`, `save`), `personal/personalappcontroller.py` (`saveDiagram`, `_doAcceptPDPItem`, `_addCommittedItemsToScene`) |
+| Data Sync | [DATA_SYNC_FLOW.md](doc/specs/DATA_SYNC_FLOW.md) | `server_types.py` (`mutate`, `pushToServer`, `save`), `personal/personalappcontroller.py` (`saveDiagram`, `_doAcceptPDPItem`, `_addCommittedItemsToScene`, `dismissEmptyExtraction`, `resolvePairBondChildren`), `resources/qml/Personal/` (`PDPSheet.qml`, `PDPPairBondCard.qml`, `DiscussView.qml` empty-extraction routing) |
 
 As-built docs contain:
 - Component relationships and data flow

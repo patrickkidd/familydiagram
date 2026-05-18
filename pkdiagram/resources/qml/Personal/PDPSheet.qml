@@ -58,25 +58,32 @@ Drawer {
             return
         }
 
-        // Only show negative-ID items (PDP proposals); positive IDs are committed item updates
-        if (pdp.events) {
-            for (var i = 0; i < pdp.events.length; i++) {
-                if (pdp.events[i].id < 0) {
-                    itemsModel.append({
-                        "itemType": "event",
-                        "itemId": pdp.events[i].id
-                    })
-                }
-            }
-        }
+        // Every entry in the PDP is a pending change to review — new people,
+        // new events, and pair bonds (which may link already-committed people,
+        // e.g. setting someone's parents). Render a card for each so the view
+        // is never empty when the PDP has content.
         if (pdp.people) {
             for (var i = 0; i < pdp.people.length; i++) {
-                if (pdp.people[i].id < 0) {
-                    itemsModel.append({
-                        "itemType": "person",
-                        "itemId": pdp.people[i].id
-                    })
-                }
+                itemsModel.append({
+                    "itemType": "person",
+                    "itemId": pdp.people[i].id
+                })
+            }
+        }
+        if (pdp.pair_bonds) {
+            for (var i = 0; i < pdp.pair_bonds.length; i++) {
+                itemsModel.append({
+                    "itemType": "pair_bond",
+                    "itemId": pdp.pair_bonds[i].id
+                })
+            }
+        }
+        if (pdp.events) {
+            for (var i = 0; i < pdp.events.length; i++) {
+                itemsModel.append({
+                    "itemType": "event",
+                    "itemId": pdp.events[i].id
+                })
             }
         }
         itemCount = itemsModel.count
@@ -96,6 +103,10 @@ Drawer {
 
     function findEventById(id) {
         return findItemById(pdp ? pdp.events : null, id)
+    }
+
+    function findPairBondById(id) {
+        return findItemById(pdp ? pdp.pair_bonds : null, id)
     }
 
     function removeItemById(id) {
@@ -305,6 +316,7 @@ Drawer {
                 objectName: "acceptAllButton"
                 text: "Accept All"
                 pill: true
+                visible: root.itemCount > 0
                 onClicked: root.acceptAllClicked()
             }
         }
@@ -315,6 +327,22 @@ Drawer {
             color: util.QML_ITEM_BORDER_COLOR
         }
 
+        Item {
+            objectName: "pdpEmptyState"
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            visible: root.itemCount === 0
+
+            Text {
+                anchors.centerIn: parent
+                text: "No changes detected"
+                font.pixelSize: util.QML_TITLE_FONT_SIZE
+                font.family: util.FONT_FAMILY_TITLE
+                color: util.QML_INACTIVE_TEXT_COLOR
+                horizontalAlignment: Text.AlignHCenter
+            }
+        }
+
         SwipeView {
             id: cardStack
             objectName: "pdpCardStack"
@@ -323,6 +351,7 @@ Drawer {
             Layout.margins: util.QML_MARGINS
             clip: true
             interactive: true
+            visible: root.itemCount > 0
 
             Repeater {
                 id: cardRepeater
@@ -344,6 +373,8 @@ Drawer {
                                 return personCardComponent
                             } else if (model.itemType === "event") {
                                 return eventCardComponent
+                            } else if (model.itemType === "pair_bond") {
+                                return pairBondCardComponent
                             }
                             return null
                         }
@@ -354,6 +385,9 @@ Drawer {
                                 item.pdp = root.pdp
                             } else if (model.itemType === "event") {
                                 item.eventData = root.findEventById(model.itemId)
+                                item.pdp = root.pdp
+                            } else if (model.itemType === "pair_bond") {
+                                item.pairBondData = root.findPairBondById(model.itemId)
                                 item.pdp = root.pdp
                             }
                         }
@@ -366,6 +400,7 @@ Drawer {
             id: pageIndicator
             Layout.alignment: Qt.AlignHCenter
             Layout.bottomMargin: util.QML_MARGINS
+            visible: root.itemCount > 0
             count: itemsModel.count
             currentIndex: cardStack.currentIndex
             interactive: false
@@ -983,6 +1018,16 @@ Drawer {
             onEditRequested: function(eventData) {
                 root.openEventEditOverlay(eventData)
             }
+            onHorizontalWheel: root.handleHorizontalWheel(deltaX)
+        }
+    }
+
+    Component {
+        id: pairBondCardComponent
+
+        Personal.PDPPairBondCard {
+            onAccepted: root.handleAccept(id)
+            onRejected: root.handleReject(id)
             onHorizontalWheel: root.handleHorizontalWheel(deltaX)
         }
     }

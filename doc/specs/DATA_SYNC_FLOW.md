@@ -246,6 +246,26 @@ Removes the item and cascade-dependent items from PDP:
 
 Modifies a single field on a PDP item. Used for inline editing in the PDP sheet.
 
+### PDP Review Surface (FD-332)
+
+The review sheet (`PDPSheet.qml`) renders a card for **every** PDP entry kind —
+`people`, `events`, AND `pair_bonds` — with no positive/negative id filter.
+Pair bonds (including those linking already-committed people, e.g. setting a
+person's parents) get `PDPPairBondCard.qml`, styled as an entity card like the
+person card (not an event/SARF pill). `PersonalAppController.resolvePairBondChildren`
+names the person whose `parents` points at the bond ("Parents of"). The badge
+count (`PersonalContainer.qml`) counts all three collections, so a non-empty
+pool can never show "0".
+
+An extraction that yields nothing does NOT open an empty deck: `onExtractCompleted`
+shows the "Nothing New" info dialog and calls
+`PersonalAppController.dismissEmptyExtraction()`, which advances the
+re-extraction cursor via `_postCommitPdp([], True)` (same bookkeeping as a full
+accept of an empty pool) so the Extract button clears.
+
+Out of scope (deferred): edits to already-committed people/events and deletes
+of committed entities are not carried in the pool today and have no card.
+
 ### Clear Diagram Data
 
 Wipes events, PDP, and optionally people/pair_bonds/emotions. Dev/test reset.

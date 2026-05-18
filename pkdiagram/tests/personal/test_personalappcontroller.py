@@ -21,7 +21,7 @@ from PyQt5.QtCore import QByteArray
 from PyQt5.QtWidgets import QMessageBox
 
 from btcopilot.extensions import db
-from btcopilot.schema import DiagramData, PDP, Person, asdict
+from btcopilot.schema import DiagramData, PDP, Person, PairBond, asdict
 
 pytestmark = [
     pytest.mark.component("Personal"),
@@ -152,6 +152,38 @@ def test_rejectPDPItem_undo(test_user, personalApp: PersonalAppController):
         personalApp._undoStack.redo()
         assert reject.call_count == 2
         assert not personalApp._undoStack.canRedo()
+
+
+def test_pdp_surfaces_pair_bonds_and_parents_link(
+    test_user, personalApp: PersonalAppController
+):
+    """FD-332: a pair bond (e.g. setting someone's parents) must be reviewable
+    in the PDP, not silently invisible. The pdp property exposes pair_bonds and
+    resolvePairBondChildren names the person whose parents it sets so the card
+    can emphasize the change."""
+    diagram_data = DiagramData(
+        pdp=PDP(
+            people=[
+                Person(id=-1, name="Wally"),
+                Person(id=-2, name="Louann"),
+                Person(id=-3, name="Robert", parents=-10),
+            ],
+            pair_bonds=[PairBond(id=-10, person_a=-1, person_b=-2)],
+        )
+    )
+    personalApp._diagram = Diagram(
+        id=1,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(diagram_data)),
+    )
+
+    pdp = personalApp.pdp
+    assert [pb["id"] for pb in pdp["pair_bonds"]] == [-10]
+    assert personalApp.resolvePersonName(-1) == "Wally"
+    assert personalApp.resolvePairBondChildren(-10) == "Robert"
+    assert personalApp.resolvePairBondChildren(None) == ""
 
 
 def test_undo_stack_multiple_operations(test_user, personalApp: PersonalAppController):
@@ -352,6 +384,39 @@ def test_acceptAllPDPItems_adds_to_scene(test_user, personalApp: PersonalAppCont
             assert "people" in args
             assert "events" in args
             assert "pair_bonds" in args
+
+
+def test_dismissEmptyExtraction_advances_cursor(
+    test_user, discussion, personalApp: PersonalAppController
+):
+    """An empty extraction shows an info dialog (not a deck); dismissing it must
+    still mark the conversation covered — POST commit-pdp with empty item_ids and
+    full_accept True, same cursor advance as a full accept."""
+    personalApp._currentDiscussion = discussion
+    server = MagicMock()
+    with patch.object(personalApp.session, "server", return_value=server):
+        personalApp.dismissEmptyExtraction()
+
+    server.nonBlockingRequest.assert_called_once()
+    args, kwargs = server.nonBlockingRequest.call_args
+    assert args[0] == "POST"
+    assert args[1] == f"/personal/discussions/{discussion.id}/commit-pdp"
+    assert kwargs["data"]["item_ids"] == []
+    assert kwargs["data"]["full_accept"] is True
+
+
+def test_dismissEmptyExtraction_no_discussion_is_noop(
+    test_user, personalApp: PersonalAppController
+):
+    """No current discussion -> _postCommitPdp guard returns before building
+    the f-string path off _currentDiscussion.id (would AttributeError on None).
+    Must not raise and must not POST."""
+    personalApp._currentDiscussion = None
+    server = MagicMock()
+    with patch.object(personalApp.session, "server", return_value=server):
+        personalApp.dismissEmptyExtraction()
+
+    server.nonBlockingRequest.assert_not_called()
 
 
 def test_acceptPDPItem_posts_commit_pdp_partial(
