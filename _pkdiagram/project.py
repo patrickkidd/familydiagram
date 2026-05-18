@@ -63,7 +63,7 @@ class PKDiagramProject(pyqtbuild.PyQtProject):
             sources = ["_pkdiagram_mac.mm"]
         elif platform == "win32":
             sources = ["_pkdiagram_win32.cpp"]
-            libraries = ["shlwapi"]
+            libraries = ["shlwapi", "shell32"]
         else:
             raise PyProjectOptionException(
                 "platform", "the '{0}' platform is not supported".format(platform)

@@ -9,10 +9,9 @@ on:
         type: boolean
         default: false
 
-  push:
-    branches-ignore:
-      - master
-      - release
+  # Releases are manual (small usership, careful release decisions). The heavy
+  # frozen-app packaging (build-osx/build-windows) no longer runs per-commit;
+  # PR regression coverage lives in test.yml (unit suite, macOS + Windows).
 
 env:
   TWINE_REPOSITORY_URL: "${{ secrets.TWINE_REPOSITORY_URL }}"
