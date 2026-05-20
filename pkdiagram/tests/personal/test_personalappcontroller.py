@@ -647,6 +647,7 @@ def test_startRecording_creates_temp_file_and_records(
     personalApp: PersonalAppController,
 ):
     """startRecording creates a temp WAV file and calls recorder.record()."""
+    personalApp._ensureAudioRecorder()
     with (
         patch.object(personalApp._audioRecorder, "setEncodingSettings"),
         patch.object(personalApp._audioRecorder, "setOutputLocation"),
@@ -690,6 +691,7 @@ def test_stopRecording_stops_recorder_and_transcribes(
     personalApp: PersonalAppController,
 ):
     """stopRecording stops the recorder and begins transcription."""
+    personalApp._ensureAudioRecorder()
     # Create a real temp file so the path exists check passes
     import tempfile as _tempfile
 
@@ -718,6 +720,7 @@ def test_stopRecording_emits_failed_when_no_file(
     personalApp: PersonalAppController,
 ):
     """stopRecording emits transcriptionFailed if recording file is missing."""
+    personalApp._ensureAudioRecorder()
     from pkdiagram.pyqt import QMessageBox
 
     failed = util.Condition(personalApp.transcriptionFailed)
@@ -738,6 +741,7 @@ def test_stopRecording_emits_failed_when_empty_path(
     personalApp: PersonalAppController,
 ):
     """stopRecording emits transcriptionFailed if _recordingFilePath is empty."""
+    personalApp._ensureAudioRecorder()
     from pkdiagram.pyqt import QMessageBox
 
     failed = util.Condition(personalApp.transcriptionFailed)
@@ -757,6 +761,7 @@ def test_cancelRecording_stops_and_cleans_up(
     personalApp: PersonalAppController,
 ):
     """cancelRecording stops the recorder, cleans up temp file, resets path."""
+    personalApp._ensureAudioRecorder()
     import tempfile as _tempfile
 
     tmpFile = _tempfile.NamedTemporaryFile(
@@ -777,6 +782,7 @@ def test_cancelRecording_does_not_transcribe(
     personalApp: PersonalAppController,
 ):
     """cancelRecording should NOT trigger transcription."""
+    personalApp._ensureAudioRecorder()
     import tempfile as _tempfile
 
     tmpFile = _tempfile.NamedTemporaryFile(
@@ -802,6 +808,7 @@ def test_voice_state_idle_to_recording_to_transcribing_to_idle(
     personalApp: PersonalAppController,
 ):
     """Full voice state machine: idle → startRecording → stopRecording → transcriptionReady → idle."""
+    personalApp._ensureAudioRecorder()
     import tempfile as _tempfile
 
     # Start in idle state
@@ -839,6 +846,7 @@ def test_short_tap_cancel_does_not_transcribe(
     personalApp: PersonalAppController,
 ):
     """Simulates short tap behavior: startRecording then immediate cancelRecording (no transcription)."""
+    personalApp._ensureAudioRecorder()
     import tempfile as _tempfile
 
     with (

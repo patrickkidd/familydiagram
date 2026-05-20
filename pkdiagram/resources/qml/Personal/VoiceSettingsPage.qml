@@ -114,8 +114,8 @@ Page {
                     anchors.right: parent.right
                     anchors.rightMargin: 6
                     anchors.verticalCenter: parent.verticalCenter
-                    checked: personalApp && personalApp.settings ? personalApp.settings.value("autoReadAloud", false) === true : false
-                    onToggled: if (personalApp && personalApp.settings) personalApp.settings.setValue("autoReadAloud", checked)
+                    checked: personalApp ? personalApp.autoReadAloud : false
+                    onToggled: if (personalApp) personalApp.setAutoReadAloud(checked)
 
                     indicator: Rectangle {
                         implicitWidth: 51

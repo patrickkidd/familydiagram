@@ -78,6 +78,7 @@ class PersonalAppController(QObject):
     ttsPlayingIndexChanged = pyqtSignal()
     ttsFinished = pyqtSignal()
     ttsVoiceChanged = pyqtSignal()
+    autoReadAloudChanged = pyqtSignal()
     responseModelChanged = pyqtSignal()
 
     transcriptionReady = pyqtSignal(str, arguments=["text"])
@@ -126,15 +127,22 @@ class PersonalAppController(QObject):
         self._saving = False
         self._saveQueue = []
         self._settings = Settings(self.app.prefs(), self)
-        self._tts = QTextToSpeech(self)
+        self._tts = None
         self._ttsPlayingIndex = -1
-        self._tts.stateChanged.connect(self._onTtsStateChanged)
-        self._initTtsVoice()
+        if self._settings.value("autoReadAloud", False):
+            self._ensureTts()
 
-        # Voice recording
-        self._audioRecorder = QAudioRecorder(self)
+        # Voice recording — lazy init to avoid activating AVAudioSession at startup
+        self._audioRecorder = None
         self._recordingFilePath = ""
         self._networkManager = QNetworkAccessManager(self)
+
+    def _ensureTts(self):
+        if self._tts is not None:
+            return
+        self._tts = QTextToSpeech(self)
+        self._tts.stateChanged.connect(self._onTtsStateChanged)
+        self._initTtsVoice()
 
     def _initTtsVoice(self):
         saved = self._settings.value("ttsVoiceName")
@@ -163,6 +171,8 @@ class PersonalAppController(QObject):
         return None, None
 
     def _collectVoices(self):
+        if self._tts is None:
+            return []
         origLocale = self._tts.locale()
         origVoice = self._tts.voice()
         voices = []
@@ -437,8 +447,20 @@ class PersonalAppController(QObject):
     def ttsPlayingIndex(self):
         return self._ttsPlayingIndex
 
+    @pyqtProperty(bool, notify=autoReadAloudChanged)
+    def autoReadAloud(self):
+        return bool(self._settings.value("autoReadAloud", False))
+
+    @pyqtSlot(bool)
+    def setAutoReadAloud(self, enabled):
+        self._settings.setValue("autoReadAloud", enabled)
+        if enabled:
+            self._ensureTts()
+        self.autoReadAloudChanged.emit()
+
     @pyqtSlot(str, int)
     def sayAtIndex(self, text, index):
+        self._ensureTts()
         self._tts.stop()
         self._ttsPlayingIndex = index
         self.ttsPlayingIndexChanged.emit()
@@ -446,7 +468,8 @@ class PersonalAppController(QObject):
 
     @pyqtSlot()
     def stopSpeaking(self):
-        self._tts.stop()
+        if self._tts is not None:
+            self._tts.stop()
 
     @pyqtProperty("QVariantList", constant=True)
     def ttsVoices(self):
@@ -454,10 +477,13 @@ class PersonalAppController(QObject):
 
     @pyqtProperty(str, notify=ttsVoiceChanged)
     def ttsVoiceName(self):
+        if self._tts is None:
+            return ""
         return self._tts.voice().name()
 
     @pyqtSlot(str)
     def setTtsVoice(self, name):
+        self._ensureTts()
         voice, locale = self._findVoice(name)
         if voice:
             self._tts.setLocale(locale)
@@ -468,6 +494,7 @@ class PersonalAppController(QObject):
 
     @pyqtSlot(str)
     def previewVoice(self, name):
+        self._ensureTts()
         self.setTtsVoice(name)
         self._tts.say("Hello, this is a preview of my voice.")
 
@@ -487,9 +514,14 @@ class PersonalAppController(QObject):
 
     # Voice Recording & Transcription
 
+    def _ensureAudioRecorder(self):
+        if self._audioRecorder is None:
+            self._audioRecorder = QAudioRecorder(self)
+
     @pyqtSlot()
     def startRecording(self):
         """Start recording audio via QAudioRecorder."""
+        self._ensureAudioRecorder()
         try:
             tmpFile = tempfile.NamedTemporaryFile(
                 suffix=".wav", delete=False, prefix="fd_voice_"
@@ -515,6 +547,8 @@ class PersonalAppController(QObject):
     @pyqtSlot()
     def cancelRecording(self):
         """Stop recording WITHOUT transcribing (e.g. short tap or drag-off)."""
+        if self._audioRecorder is None:
+            return
         self._audioRecorder.stop()
         _log.info(f"Cancelled recording: {self._recordingFilePath}")
         self._cleanupRecording(self._recordingFilePath)
@@ -523,6 +557,9 @@ class PersonalAppController(QObject):
     @pyqtSlot()
     def stopRecording(self):
         """Stop recording and begin transcription."""
+        if self._audioRecorder is None:
+            self.transcriptionFailed.emit("Recording file not found")
+            return
         self._audioRecorder.stop()
         _log.info(f"Stopped recording: {self._recordingFilePath}")
 
@@ -1022,8 +1059,10 @@ class PersonalAppController(QObject):
 
     @pyqtSlot(int, result=bool)
     def acceptPDPItem(self, id: int, undo=True):
-        if id >= 0:
-            _log.error(f"acceptPDPItem called with non-PDP id {id}, ignoring")
+        if id > 0:
+            return self._withSaveGuard(lambda: self._doHandleCommittedItem(id, accept=True, undo=undo))
+        if id == 0:
+            _log.error(f"acceptPDPItem called with id 0, ignoring")
             return False
 
         def _do():
@@ -1040,8 +1079,10 @@ class PersonalAppController(QObject):
 
     @pyqtSlot(int, result=bool)
     def rejectPDPItem(self, id: int, undo=True):
-        if id >= 0:
-            _log.error(f"rejectPDPItem called with non-PDP id {id}, ignoring")
+        if id > 0:
+            return self._withSaveGuard(lambda: self._doHandleCommittedItem(id, accept=False, undo=undo))
+        if id == 0:
+            _log.error(f"rejectPDPItem called with id 0, ignoring")
             return False
 
         def _do():
