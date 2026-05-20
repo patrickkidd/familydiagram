@@ -132,8 +132,8 @@ class PersonalAppController(QObject):
         if self._settings.value("autoReadAloud", False):
             self._ensureTts()
 
-        # Voice recording
-        self._audioRecorder = QAudioRecorder(self)
+        # Voice recording — lazy init to avoid activating AVAudioSession at startup
+        self._audioRecorder = None
         self._recordingFilePath = ""
         self._networkManager = QNetworkAccessManager(self)
 
@@ -514,9 +514,14 @@ class PersonalAppController(QObject):
 
     # Voice Recording & Transcription
 
+    def _ensureAudioRecorder(self):
+        if self._audioRecorder is None:
+            self._audioRecorder = QAudioRecorder(self)
+
     @pyqtSlot()
     def startRecording(self):
         """Start recording audio via QAudioRecorder."""
+        self._ensureAudioRecorder()
         try:
             tmpFile = tempfile.NamedTemporaryFile(
                 suffix=".wav", delete=False, prefix="fd_voice_"
@@ -542,6 +547,8 @@ class PersonalAppController(QObject):
     @pyqtSlot()
     def cancelRecording(self):
         """Stop recording WITHOUT transcribing (e.g. short tap or drag-off)."""
+        if self._audioRecorder is None:
+            return
         self._audioRecorder.stop()
         _log.info(f"Cancelled recording: {self._recordingFilePath}")
         self._cleanupRecording(self._recordingFilePath)
@@ -550,6 +557,9 @@ class PersonalAppController(QObject):
     @pyqtSlot()
     def stopRecording(self):
         """Stop recording and begin transcription."""
+        if self._audioRecorder is None:
+            self.transcriptionFailed.emit("Recording file not found")
+            return
         self._audioRecorder.stop()
         _log.info(f"Stopped recording: {self._recordingFilePath}")
 
@@ -1049,8 +1059,10 @@ class PersonalAppController(QObject):
 
     @pyqtSlot(int, result=bool)
     def acceptPDPItem(self, id: int, undo=True):
-        if id >= 0:
-            _log.error(f"acceptPDPItem called with non-PDP id {id}, ignoring")
+        if id > 0:
+            return self._withSaveGuard(lambda: self._doHandleCommittedItem(id, accept=True, undo=undo))
+        if id == 0:
+            _log.error(f"acceptPDPItem called with id 0, ignoring")
             return False
 
         def _do():
@@ -1067,8 +1079,10 @@ class PersonalAppController(QObject):
 
     @pyqtSlot(int, result=bool)
     def rejectPDPItem(self, id: int, undo=True):
-        if id >= 0:
-            _log.error(f"rejectPDPItem called with non-PDP id {id}, ignoring")
+        if id > 0:
+            return self._withSaveGuard(lambda: self._doHandleCommittedItem(id, accept=False, undo=undo))
+        if id == 0:
+            _log.error(f"rejectPDPItem called with id 0, ignoring")
             return False
 
         def _do():
