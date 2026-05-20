@@ -78,6 +78,7 @@ class PersonalAppController(QObject):
     ttsPlayingIndexChanged = pyqtSignal()
     ttsFinished = pyqtSignal()
     ttsVoiceChanged = pyqtSignal()
+    autoReadAloudChanged = pyqtSignal()
     responseModelChanged = pyqtSignal()
 
     transcriptionReady = pyqtSignal(str, arguments=["text"])
@@ -126,15 +127,22 @@ class PersonalAppController(QObject):
         self._saving = False
         self._saveQueue = []
         self._settings = Settings(self.app.prefs(), self)
-        self._tts = QTextToSpeech(self)
+        self._tts = None
         self._ttsPlayingIndex = -1
-        self._tts.stateChanged.connect(self._onTtsStateChanged)
-        self._initTtsVoice()
+        if self._settings.value("autoReadAloud", False):
+            self._ensureTts()
 
         # Voice recording
         self._audioRecorder = QAudioRecorder(self)
         self._recordingFilePath = ""
         self._networkManager = QNetworkAccessManager(self)
+
+    def _ensureTts(self):
+        if self._tts is not None:
+            return
+        self._tts = QTextToSpeech(self)
+        self._tts.stateChanged.connect(self._onTtsStateChanged)
+        self._initTtsVoice()
 
     def _initTtsVoice(self):
         saved = self._settings.value("ttsVoiceName")
@@ -163,6 +171,8 @@ class PersonalAppController(QObject):
         return None, None
 
     def _collectVoices(self):
+        if self._tts is None:
+            return []
         origLocale = self._tts.locale()
         origVoice = self._tts.voice()
         voices = []
@@ -437,8 +447,20 @@ class PersonalAppController(QObject):
     def ttsPlayingIndex(self):
         return self._ttsPlayingIndex
 
+    @pyqtProperty(bool, notify=autoReadAloudChanged)
+    def autoReadAloud(self):
+        return bool(self._settings.value("autoReadAloud", False))
+
+    @pyqtSlot(bool)
+    def setAutoReadAloud(self, enabled):
+        self._settings.setValue("autoReadAloud", enabled)
+        if enabled:
+            self._ensureTts()
+        self.autoReadAloudChanged.emit()
+
     @pyqtSlot(str, int)
     def sayAtIndex(self, text, index):
+        self._ensureTts()
         self._tts.stop()
         self._ttsPlayingIndex = index
         self.ttsPlayingIndexChanged.emit()
@@ -446,7 +468,8 @@ class PersonalAppController(QObject):
 
     @pyqtSlot()
     def stopSpeaking(self):
-        self._tts.stop()
+        if self._tts is not None:
+            self._tts.stop()
 
     @pyqtProperty("QVariantList", constant=True)
     def ttsVoices(self):
@@ -454,10 +477,13 @@ class PersonalAppController(QObject):
 
     @pyqtProperty(str, notify=ttsVoiceChanged)
     def ttsVoiceName(self):
+        if self._tts is None:
+            return ""
         return self._tts.voice().name()
 
     @pyqtSlot(str)
     def setTtsVoice(self, name):
+        self._ensureTts()
         voice, locale = self._findVoice(name)
         if voice:
             self._tts.setLocale(locale)
@@ -468,6 +494,7 @@ class PersonalAppController(QObject):
 
     @pyqtSlot(str)
     def previewVoice(self, name):
+        self._ensureTts()
         self.setTtsVoice(name)
         self._tts.say("Hello, this is a preview of my voice.")
 

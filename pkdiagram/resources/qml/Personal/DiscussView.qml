@@ -96,12 +96,12 @@ Page {
                 "speakerType": 'expert'
             })
             statementsList.delayedScrollToBottom()
-            if (personalApp.settings.value("autoReadAloud", false)) {
+            if (personalApp.autoReadAloud) {
                 personalApp.sayAtIndex(text, chatModel.count - 1)
             }
         }
         function onTtsFinished() {
-            if (personalApp.settings.value("autoReadAloud", false)) {
+            if (personalApp.autoReadAloud) {
                 textEdit.forceActiveFocus()
             }
         }
@@ -380,6 +380,7 @@ Page {
                         width: 28
                         height: 28
                         color: "transparent"
+                        visible: personalApp ? personalApp.autoReadAloud : false
 
                         Canvas {
                             anchors.centerIn: parent
