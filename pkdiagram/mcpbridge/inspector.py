@@ -376,6 +376,14 @@ class QtInspector:
         if parent.objectName() == objectName:
             return parent
 
+        # Check currentItem first so SwipeView searches the active page before
+        # traversing all instantiated delegates (Repeater creates them all upfront).
+        currentItem = parent.property("currentItem")
+        if isinstance(currentItem, QQuickItem):
+            result = self._findQmlItemInChildren(currentItem, objectName)
+            if result is not None:
+                return result
+
         for child in parent.childItems():
             result = self._findQmlItemInChildren(child, objectName)
             if result is not None:
@@ -1824,7 +1832,7 @@ class QtInspector:
             people=people,
             events=events,
             pair_bonds=pairBonds,
-            committed_deletes=data.get("committed_deletes", []),
+            delete=data.get("delete", []),
         )
 
         diagramData = controller._diagram.getDiagramData()

@@ -59,6 +59,7 @@ Page {
                 if (pdp.people) count += pdp.people.length
                 if (pdp.pair_bonds) count += pdp.pair_bonds.length
                 if (pdp.events) count += pdp.events.length
+                if (pdp.delete) count += pdp.delete.length
                 root.pdpCount = count
             } else {
                 root.pdpCount = 0

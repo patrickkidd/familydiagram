@@ -246,6 +246,53 @@ Removes the item and cascade-dependent items from PDP:
 
 Modifies a single field on a PDP item. Used for inline editing in the PDP sheet.
 
+### Committed Edit Accept (FD-333)
+
+Accepts a positive-ID entry in `pdp.people`, `pdp.events`, or `pdp.pair_bonds` —
+an AI-proposed edit to an already-committed entity. The mutation calls
+`DiagramData.accept_committed_edit(item_id)` on the incoming `diagramData`:
+1. Finds the entity in the scene by positive ID
+2. Applies the PDP field values onto the scene entity
+3. Removes the entry from `pdp.*`
+
+After mutate, `_syncCommittedEditToScene(item_id, prev_data)` updates the Qt
+scene item to reflect the new values, then emits `pdpChanged`.
+
+### Committed Edit Reject (FD-333)
+
+Discards a positive-ID edit proposal without touching the scene entity. Calls
+`DiagramData.reject_committed_edit(item_id)`: removes from `pdp.*` only. After
+mutate, emits `pdpChanged`. No scene change.
+
+### Committed Delete Accept (FD-333)
+
+Accepts a pending delete from `pdp.delete`. Calls
+`DiagramData.accept_committed_delete(item_id)`:
+1. Cascade-deletes the scene entity and all dependent items (events, pair bonds,
+   children whose only parents reference this pair bond)
+2. Removes the ID from `pdp.delete`
+
+After mutate, `_removeCommittedItemsFromScene(removedIds)` removes the items
+from the Qt scene, then emits `pdpChanged`.
+
+### Committed Delete Reject (FD-333)
+
+Preserves the entity; removes its ID from `pdp.delete` only. Calls
+`DiagramData.reject_committed_delete(item_id)`. No scene change.
+
+### Accept All (FD-333)
+
+`acceptAllPDPItems` collects all three item categories from the current PDP and
+processes them in a single `save()` call:
+
+1. `negativeIds` — new entities to commit (`person.id < 0` across people/events/pair_bonds): calls `commit_pdp_items(negativeIds)` → moves to scene via `_addCommittedItemsToScene`
+2. `positiveEditIds` — committed edits (positive-ID entries in `pdp.*`): calls `accept_committed_edit(eid)` for each → syncs each via `_syncCommittedEditToScene`
+3. `deleteIds` — committed deletes (`pdp.delete`): calls `accept_committed_delete(did)` for each → removes via `_removeCommittedItemsFromScene`
+
+All three run inside one `applyChange` callback. A single `save()` call handles
+all 409 replays atomically. After save: `pdpChanged.emit()` and
+`_postCommitPdp(negativeIds, True)` to advance the re-extraction cursor.
+
 ### PDP Review Surface (FD-332)
 
 The review sheet (`PDPSheet.qml`) renders a card for **every** PDP entry kind —
@@ -263,8 +310,7 @@ shows the "Nothing New" info dialog and calls
 re-extraction cursor via `_postCommitPdp([], True)` (same bookkeeping as a full
 accept of an empty pool) so the Extract button clears.
 
-Out of scope (deferred): edits to already-committed people/events and deletes
-of committed entities are not carried in the pool today and have no card.
+**FD-333 extension**: Committed edits (positive-ID people/events in `pdp.*`) and committed deletes (`pdp.delete`) now render as cards in the same SwipeView deck. The badge count (`PersonalContainer.qml`) includes all three collections plus `pdp.delete.length`. See Committed Edit Accept and Committed Delete Accept mutation types below.
 
 ### Clear Diagram Data
 

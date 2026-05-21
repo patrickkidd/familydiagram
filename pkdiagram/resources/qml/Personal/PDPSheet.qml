@@ -91,11 +91,11 @@ Drawer {
                 })
             }
         }
-        if (pdp.committed_deletes) {
-            for (var i = 0; i < pdp.committed_deletes.length; i++) {
+        if (pdp.delete) {
+            for (var i = 0; i < pdp.delete.length; i++) {
                 itemsModel.append({
                     "itemType": "committed_delete",
-                    "itemId": pdp.committed_deletes[i]
+                    "itemId": pdp.delete[i]
                 })
             }
         }
@@ -1142,12 +1142,14 @@ Drawer {
                     spacing: 12
 
                     PK.Button {
+                        objectName: "pdpAcceptButton"
                         text: "Accept"
                         Layout.fillWidth: true
                         pill: true
                         onClicked: editData && root.handleAcceptCommittedEdit(editData.id)
                     }
                     PK.Button {
+                        objectName: "pdpRejectButton"
                         text: "Reject"
                         Layout.fillWidth: true
                         pill: true
@@ -1226,12 +1228,14 @@ Drawer {
                     spacing: 12
 
                     PK.Button {
+                        objectName: "pdpAcceptButton"
                         text: "Accept"
                         Layout.fillWidth: true
                         pill: true
                         onClicked: root.handleAcceptCommittedDelete(entityId)
                     }
                     PK.Button {
+                        objectName: "pdpRejectButton"
                         text: "Reject"
                         Layout.fillWidth: true
                         pill: true

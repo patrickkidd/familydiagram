@@ -1382,33 +1382,40 @@ class PersonalAppController(QObject):
             if not diagramData.pdp:
                 return
 
-            allIds = []
+            negativeIds = []
             for person in diagramData.pdp.people:
                 if person.id is not None and person.id < 0:
-                    allIds.append(person.id)
+                    negativeIds.append(person.id)
             for event in diagramData.pdp.events:
                 if event.id < 0:
-                    allIds.append(event.id)
+                    negativeIds.append(event.id)
             for pair_bond in diagramData.pdp.pair_bonds:
                 if pair_bond.id is not None and pair_bond.id < 0:
-                    allIds.append(pair_bond.id)
+                    negativeIds.append(pair_bond.id)
 
-            if not allIds:
+            positiveEditIds = [
+                p.id for p in diagramData.pdp.people if p.id is not None and p.id > 0
+            ] + [
+                e.id for e in diagramData.pdp.events if e.id > 0
+            ] + [
+                pb.id for pb in diagramData.pdp.pair_bonds if pb.id is not None and pb.id > 0
+            ]
+            deleteIds = list(diagramData.pdp.delete)
+
+            if not negativeIds and not positiveEditIds and not deleteIds:
                 # Empty PDP (re-extraction produced nothing to stage). This is
                 # still a full accept — advance the cursor so the discussion is
                 # marked covered and the Extract button clears.
                 self._postCommitPdp([], True)
                 return
 
-            _log.info(f"Accepting all PDP items: {allIds}")
+            _log.info(
+                f"Accepting all PDP items: neg={negativeIds} edits={positiveEditIds} deletes={deleteIds}"
+            )
 
-            committedItems = {
-                "people": [],
-                "events": [],
-                "pair_bonds": [],
-                "emotions": [],
-            }
-            drained = {}
+            prev_data = self._diagram.getDiagramData()
+            committedItems = {"people": [], "events": [], "pair_bonds": [], "emotions": []}
+            removedIds: set[int] = set()
 
             def applyChange(diagramData: DiagramData):
                 if not diagramData.pdp:
@@ -1418,28 +1425,35 @@ class PersonalAppController(QObject):
                     diagramData.lastItemId = max(
                         diagramData.lastItemId, self.scene.lastItemId()
                     )
-                prevPeopleIds = {p["id"] for p in diagramData.people}
-                prevEventIds = {e["id"] for e in diagramData.events}
-                prevPairBondIds = {pb["id"] for pb in diagramData.pair_bonds}
 
-                diagramData.commit_pdp_items(allIds)
+                if negativeIds:
+                    prevPeopleIds = {p["id"] for p in diagramData.people}
+                    prevEventIds = {e["id"] for e in diagramData.events}
+                    prevPairBondIds = {pb["id"] for pb in diagramData.pair_bonds}
+                    diagramData.commit_pdp_items(negativeIds)
+                    committedItems["people"] = [
+                        p for p in diagramData.people if p["id"] not in prevPeopleIds
+                    ]
+                    committedItems["events"] = [
+                        e for e in diagramData.events if e["id"] not in prevEventIds
+                    ]
+                    committedItems["pair_bonds"] = [
+                        pb for pb in diagramData.pair_bonds if pb["id"] not in prevPairBondIds
+                    ]
 
-                committedItems["people"] = [
-                    p for p in diagramData.people if p["id"] not in prevPeopleIds
-                ]
-                committedItems["events"] = [
-                    e for e in diagramData.events if e["id"] not in prevEventIds
-                ]
-                committedItems["pair_bonds"] = [
-                    pb
-                    for pb in diagramData.pair_bonds
-                    if pb["id"] not in prevPairBondIds
-                ]
-                drained["v"] = not (
-                    diagramData.pdp.people
-                    or diagramData.pdp.events
-                    or diagramData.pdp.pair_bonds
-                )
+                for eid in positiveEditIds:
+                    diagramData.accept_committed_edit(eid)
+
+                for did in deleteIds:
+                    bp = {p["id"] for p in diagramData.people}
+                    be = {e["id"] for e in diagramData.events}
+                    bb = {pb["id"] for pb in diagramData.pair_bonds}
+                    diagramData.accept_committed_delete(did)
+                    removedIds.update(
+                        (bp - {p["id"] for p in diagramData.people})
+                        | (be - {e["id"] for e in diagramData.events})
+                        | (bb - {pb["id"] for pb in diagramData.pair_bonds})
+                    )
 
                 return diagramData
 
@@ -1448,10 +1462,15 @@ class PersonalAppController(QObject):
             )
 
             if success:
-                self._addCommittedItemsToScene(committedItems)
+                if negativeIds:
+                    self._addCommittedItemsToScene(committedItems)
+                for eid in positiveEditIds:
+                    self._syncCommittedEditToScene(eid, prev_data)
+                if removedIds:
+                    self._removeCommittedItemsFromScene(removedIds)
                 self.pdpChanged.emit()
                 self.clusterModel.detect()
-                self._postCommitPdp(allIds, drained.get("v", True))
+                self._postCommitPdp(negativeIds, True)
             else:
                 _log.warning("Failed to accept all PDP items after retries")
 

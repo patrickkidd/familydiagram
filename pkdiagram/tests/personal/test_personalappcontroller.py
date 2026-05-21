@@ -1333,7 +1333,7 @@ def test_acceptCommittedDelete_cascade_and_undoes(test_user, personalApp: Person
         people=[{"id": 10, "name": "Alice"}, {"id": 11, "name": "Bob"}],
         events=[{"id": 20, "kind": "shift", "person": 10, "description": "x", "dateTime": "2000-01-01"}],
         pair_bonds=[{"id": 30, "person_a": 10, "person_b": 11}],
-        pdp=PDP(committed_deletes=[10]),
+        pdp=PDP(delete=[10]),
     )
     personalApp._diagram = Diagram(
         id=1,
@@ -1349,19 +1349,19 @@ def test_acceptCommittedDelete_cascade_and_undoes(test_user, personalApp: Person
     assert all(p["id"] != 10 for p in diagramData.people)
     assert diagramData.events == []
     assert diagramData.pair_bonds == []
-    assert 10 not in diagramData.pdp.committed_deletes
+    assert 10 not in diagramData.pdp.delete
     assert personalApp._undoStack.canUndo()
 
     personalApp._undoStack.undo()
     diagramData = personalApp._diagram.getDiagramData()
     assert any(p["id"] == 10 for p in diagramData.people)
-    assert len(diagramData.pdp.committed_deletes) == 1
+    assert len(diagramData.pdp.delete) == 1
 
 
 def test_rejectCommittedDelete_preserves_entity(test_user, personalApp: PersonalAppController):
     initial_diagram_data = DiagramData(
         people=[{"id": 10, "name": "Alice"}],
-        pdp=PDP(committed_deletes=[10]),
+        pdp=PDP(delete=[10]),
     )
     personalApp._diagram = Diagram(
         id=1,
@@ -1375,5 +1375,5 @@ def test_rejectCommittedDelete_preserves_entity(test_user, personalApp: Personal
     assert result is True
     diagramData = personalApp._diagram.getDiagramData()
     assert any(p["id"] == 10 for p in diagramData.people)
-    assert diagramData.pdp.committed_deletes == []
+    assert diagramData.pdp.delete == []
     assert personalApp._undoStack.canUndo()
