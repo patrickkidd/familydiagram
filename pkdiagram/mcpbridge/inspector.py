@@ -1820,7 +1820,13 @@ class QtInspector:
                 del pb["people"]
         pairBonds = [from_dict(PairBond, pb) for pb in rawPairBonds]
 
-        pdp = PDP(people=people, events=events, pair_bonds=pairBonds)
+        pdp = PDP(
+            people=people,
+            events=events,
+            pair_bonds=pairBonds,
+            committed_edits=data.get("committed_edits", []),
+            committed_deletes=data.get("committed_deletes", []),
+        )
 
         diagramData = controller._diagram.getDiagramData()
         diagramData.pdp = pdp

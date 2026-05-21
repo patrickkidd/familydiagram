@@ -785,6 +785,22 @@ Page {
         onFieldChanged: function(id, field, value) {
             personalApp.updatePDPItem(id, field, value)
         }
+        onCommittedEditAccepted: function(id) {
+            personalApp.acceptCommittedEdit(id)
+            pdpSheet.removeItemById(id)
+        }
+        onCommittedEditRejected: function(id) {
+            personalApp.rejectCommittedEdit(id)
+            pdpSheet.removeItemById(id)
+        }
+        onCommittedDeleteAccepted: function(id) {
+            personalApp.acceptCommittedDelete(id)
+            pdpSheet.removeItemById(id)
+        }
+        onCommittedDeleteRejected: function(id) {
+            personalApp.rejectCommittedDelete(id)
+            pdpSheet.removeItemById(id)
+        }
     }
 
     Personal.LoadingOverlay {

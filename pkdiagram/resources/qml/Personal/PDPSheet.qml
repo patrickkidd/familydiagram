@@ -29,6 +29,10 @@ Drawer {
 
     signal itemAccepted(int id)
     signal itemRejected(int id)
+    signal committedEditAccepted(int id)
+    signal committedEditRejected(int id)
+    signal committedDeleteAccepted(int id)
+    signal committedDeleteRejected(int id)
     signal acceptAllClicked()
     signal fieldChanged(int id, string field, var value)
 
@@ -86,6 +90,22 @@ Drawer {
                 })
             }
         }
+        if (pdp.committed_edits) {
+            for (var i = 0; i < pdp.committed_edits.length; i++) {
+                itemsModel.append({
+                    "itemType": "committed_edit",
+                    "itemId": pdp.committed_edits[i].id
+                })
+            }
+        }
+        if (pdp.committed_deletes) {
+            for (var i = 0; i < pdp.committed_deletes.length; i++) {
+                itemsModel.append({
+                    "itemType": "committed_delete",
+                    "itemId": pdp.committed_deletes[i]
+                })
+            }
+        }
         itemCount = itemsModel.count
     }
 
@@ -107,6 +127,10 @@ Drawer {
 
     function findPairBondById(id) {
         return findItemById(pdp ? pdp.pair_bonds : null, id)
+    }
+
+    function findCommittedEditById(id) {
+        return findItemById(pdp ? pdp.committed_edits : null, id)
     }
 
     function removeItemById(id) {
@@ -133,6 +157,30 @@ Drawer {
 
     function handleReject(id) {
         root.itemRejected(id)
+        advanceTimer.targetIndex = Math.min(cardStack.currentIndex + 1, itemsModel.count - 1)
+        advanceTimer.start()
+    }
+
+    function handleAcceptCommittedEdit(id) {
+        root.committedEditAccepted(id)
+        advanceTimer.targetIndex = Math.min(cardStack.currentIndex + 1, itemsModel.count - 1)
+        advanceTimer.start()
+    }
+
+    function handleRejectCommittedEdit(id) {
+        root.committedEditRejected(id)
+        advanceTimer.targetIndex = Math.min(cardStack.currentIndex + 1, itemsModel.count - 1)
+        advanceTimer.start()
+    }
+
+    function handleAcceptCommittedDelete(id) {
+        root.committedDeleteAccepted(id)
+        advanceTimer.targetIndex = Math.min(cardStack.currentIndex + 1, itemsModel.count - 1)
+        advanceTimer.start()
+    }
+
+    function handleRejectCommittedDelete(id) {
+        root.committedDeleteRejected(id)
         advanceTimer.targetIndex = Math.min(cardStack.currentIndex + 1, itemsModel.count - 1)
         advanceTimer.start()
     }
@@ -375,6 +423,10 @@ Drawer {
                                 return eventCardComponent
                             } else if (model.itemType === "pair_bond") {
                                 return pairBondCardComponent
+                            } else if (model.itemType === "committed_edit") {
+                                return committedEditCardComponent
+                            } else if (model.itemType === "committed_delete") {
+                                return committedDeleteCardComponent
                             }
                             return null
                         }
@@ -389,6 +441,10 @@ Drawer {
                             } else if (model.itemType === "pair_bond") {
                                 item.pairBondData = root.findPairBondById(model.itemId)
                                 item.pdp = root.pdp
+                            } else if (model.itemType === "committed_edit") {
+                                item.editData = root.findCommittedEditById(model.itemId)
+                            } else if (model.itemType === "committed_delete") {
+                                item.entityId = model.itemId
                             }
                         }
                     }
@@ -1029,6 +1085,174 @@ Drawer {
             onAccepted: root.handleAccept(id)
             onRejected: root.handleReject(id)
             onHorizontalWheel: root.handleHorizontalWheel(deltaX)
+        }
+    }
+
+    Component {
+        id: committedEditCardComponent
+
+        Item {
+            property var editData: null
+            signal horizontalWheel(real deltaX)
+
+            readonly property string entityName: personalApp && editData
+                ? personalApp.resolvePersonName(editData.id)
+                : (editData ? "" + editData.id : "")
+
+            ColumnLayout {
+                anchors.fill: parent
+                spacing: 12
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    radius: 12
+                    color: util.QML_ITEM_BG
+                    border.color: util.QML_ITEM_BORDER_COLOR
+                    border.width: 1
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 16
+                        spacing: 8
+
+                        Text {
+                            text: "Update"
+                            font.pixelSize: 11
+                            font.bold: true
+                            color: util.QML_HIGHLIGHT_COLOR
+                        }
+
+                        Text {
+                            text: entityName
+                            font.pixelSize: util.QML_TITLE_FONT_SIZE
+                            font.family: util.FONT_FAMILY_TITLE
+                            color: util.QML_TEXT_COLOR
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+
+                        Text {
+                            text: "Apply AI-suggested field changes to this committed entry."
+                            font.pixelSize: 13
+                            color: util.QML_INACTIVE_TEXT_COLOR
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+
+                        Item { Layout.fillHeight: true }
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 12
+
+                    PK.Button {
+                        text: "Accept"
+                        Layout.fillWidth: true
+                        pill: true
+                        onClicked: editData && root.handleAcceptCommittedEdit(editData.id)
+                    }
+                    PK.Button {
+                        text: "Reject"
+                        Layout.fillWidth: true
+                        pill: true
+                        textColor: "#FF4500"
+                        onClicked: editData && root.handleRejectCommittedEdit(editData.id)
+                    }
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.NoButton
+                onWheel: function(event) { parent.horizontalWheel(event.angleDelta.x) }
+            }
+        }
+    }
+
+    Component {
+        id: committedDeleteCardComponent
+
+        Item {
+            property int entityId: 0
+            signal horizontalWheel(real deltaX)
+
+            readonly property string entityName: personalApp
+                ? personalApp.resolvePersonName(entityId)
+                : "" + entityId
+
+            ColumnLayout {
+                anchors.fill: parent
+                spacing: 12
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    radius: 12
+                    color: util.QML_ITEM_BG
+                    border.color: util.QML_ITEM_BORDER_COLOR
+                    border.width: 1
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 16
+                        spacing: 8
+
+                        Text {
+                            text: "Remove"
+                            font.pixelSize: 11
+                            font.bold: true
+                            color: "#FF4500"
+                        }
+
+                        Text {
+                            text: entityName
+                            font.pixelSize: util.QML_TITLE_FONT_SIZE
+                            font.family: util.FONT_FAMILY_TITLE
+                            color: util.QML_TEXT_COLOR
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+
+                        Text {
+                            text: "Delete this committed entry and all dependent events and relationships."
+                            font.pixelSize: 13
+                            color: util.QML_INACTIVE_TEXT_COLOR
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+
+                        Item { Layout.fillHeight: true }
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 12
+
+                    PK.Button {
+                        text: "Accept"
+                        Layout.fillWidth: true
+                        pill: true
+                        onClicked: root.handleAcceptCommittedDelete(entityId)
+                    }
+                    PK.Button {
+                        text: "Reject"
+                        Layout.fillWidth: true
+                        pill: true
+                        textColor: "#FF4500"
+                        onClicked: root.handleRejectCommittedDelete(entityId)
+                    }
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.NoButton
+                onWheel: function(event) { parent.horizontalWheel(event.angleDelta.x) }
+            }
         }
     }
 

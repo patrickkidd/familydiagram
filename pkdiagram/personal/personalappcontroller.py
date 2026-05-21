@@ -1457,6 +1457,151 @@ class PersonalAppController(QObject):
 
         self._withSaveGuard(_do)
 
+    @pyqtSlot(int, result=bool)
+    def acceptCommittedEdit(self, id: int) -> bool:
+        if id <= 0:
+            _log.error(f"acceptCommittedEdit called with non-positive id {id}, ignoring")
+            return False
+
+        def _do():
+            prev_data = self._diagram.getDiagramData()
+
+            def applyChange(diagramData: DiagramData):
+                diagramData.accept_committed_edit(id)
+                return diagramData
+
+            success = self._diagram.save(
+                self.session.server(), applyChange, lambda d: True, useJson=True
+            )
+            if success:
+                self._syncCommittedEditToScene(id, prev_data)
+                cmd = HandlePDPItem(PDPAction.Accept, self, id, prev_data)
+                self._undoStack.push(cmd)
+                self.pdpChanged.emit()
+            return success
+
+        return self._withSaveGuard(_do)
+
+    @pyqtSlot(int, result=bool)
+    def rejectCommittedEdit(self, id: int) -> bool:
+        if id <= 0:
+            _log.error(f"rejectCommittedEdit called with non-positive id {id}, ignoring")
+            return False
+
+        def _do():
+            prev_data = self._diagram.getDiagramData()
+
+            def applyChange(diagramData: DiagramData):
+                diagramData.reject_committed_edit(id)
+                return diagramData
+
+            success = self._diagram.save(
+                self.session.server(), applyChange, lambda d: True, useJson=True
+            )
+            if success:
+                cmd = HandlePDPItem(PDPAction.Reject, self, id, prev_data)
+                self._undoStack.push(cmd)
+                self.pdpChanged.emit()
+            return success
+
+        return self._withSaveGuard(_do)
+
+    @pyqtSlot(int, result=bool)
+    def acceptCommittedDelete(self, id: int) -> bool:
+        if id <= 0:
+            _log.error(f"acceptCommittedDelete called with non-positive id {id}, ignoring")
+            return False
+
+        def _do():
+            prev_data = self._diagram.getDiagramData()
+            removed_ids: set[int] = set()
+
+            def applyChange(diagramData: DiagramData):
+                before_people = {p["id"] for p in diagramData.people}
+                before_events = {e["id"] for e in diagramData.events}
+                before_bonds = {pb["id"] for pb in diagramData.pair_bonds}
+                diagramData.accept_committed_delete(id)
+                removed_ids.update(
+                    (before_people - {p["id"] for p in diagramData.people})
+                    | (before_events - {e["id"] for e in diagramData.events})
+                    | (before_bonds - {pb["id"] for pb in diagramData.pair_bonds})
+                )
+                return diagramData
+
+            success = self._diagram.save(
+                self.session.server(), applyChange, lambda d: True, useJson=True
+            )
+            if success:
+                self._removeCommittedItemsFromScene(removed_ids)
+                cmd = HandlePDPItem(PDPAction.Accept, self, id, prev_data)
+                self._undoStack.push(cmd)
+                self.pdpChanged.emit()
+            return success
+
+        return self._withSaveGuard(_do)
+
+    @pyqtSlot(int, result=bool)
+    def rejectCommittedDelete(self, id: int) -> bool:
+        if id <= 0:
+            _log.error(f"rejectCommittedDelete called with non-positive id {id}, ignoring")
+            return False
+
+        def _do():
+            prev_data = self._diagram.getDiagramData()
+
+            def applyChange(diagramData: DiagramData):
+                diagramData.reject_committed_delete(id)
+                return diagramData
+
+            success = self._diagram.save(
+                self.session.server(), applyChange, lambda d: True, useJson=True
+            )
+            if success:
+                cmd = HandlePDPItem(PDPAction.Reject, self, id, prev_data)
+                self._undoStack.push(cmd)
+                self.pdpChanged.emit()
+            return success
+
+        return self._withSaveGuard(_do)
+
+    def _syncCommittedEditToScene(self, id: int, prev_data: DiagramData):
+        """Apply the accepted field-edit to the matching scene item."""
+        if not self.scene:
+            return
+        diagramData = self._diagram.getDiagramData()
+        chunk = next(
+            (p for p in diagramData.people if p.get("id") == id),
+            None,
+        ) or next(
+            (e for e in diagramData.events if e.get("id") == id),
+            None,
+        ) or next(
+            (pb for pb in diagramData.pair_bonds if pb.get("id") == id),
+            None,
+        )
+        if chunk is None:
+            return
+
+        def byId(eid):
+            return self.scene.itemRegistry.get(eid)
+
+        item = self.scene.itemRegistry.get(id)
+        if item is not None:
+            item.read(chunk, byId)
+
+    def _removeCommittedItemsFromScene(self, ids: set[int]):
+        """Remove scene items whose ids were cascade-deleted."""
+        if not self.scene or not ids:
+            return
+        self.scene.setBatchAddingRemovingItems(True)
+        try:
+            for item_id in list(ids):
+                item = self.scene.itemRegistry.get(item_id)
+                if item is not None:
+                    self.scene.removeItem(item)
+        finally:
+            self.scene.setBatchAddingRemovingItems(False)
+
     @pyqtSlot()
     def dismissEmptyExtraction(self):
         """An extraction produced nothing to review. Nothing is committed, but
