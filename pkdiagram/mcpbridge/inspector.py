@@ -1824,7 +1824,6 @@ class QtInspector:
             people=people,
             events=events,
             pair_bonds=pairBonds,
-            committed_edits=data.get("committed_edits", []),
             committed_deletes=data.get("committed_deletes", []),
         )
 

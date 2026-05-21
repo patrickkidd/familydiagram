@@ -68,9 +68,10 @@ Drawer {
         // is never empty when the PDP has content.
         if (pdp.people) {
             for (var i = 0; i < pdp.people.length; i++) {
+                var pid = pdp.people[i].id
                 itemsModel.append({
-                    "itemType": "person",
-                    "itemId": pdp.people[i].id
+                    "itemType": pid > 0 ? "committed_edit" : "person",
+                    "itemId": pid
                 })
             }
         }
@@ -87,14 +88,6 @@ Drawer {
                 itemsModel.append({
                     "itemType": "event",
                     "itemId": pdp.events[i].id
-                })
-            }
-        }
-        if (pdp.committed_edits) {
-            for (var i = 0; i < pdp.committed_edits.length; i++) {
-                itemsModel.append({
-                    "itemType": "committed_edit",
-                    "itemId": pdp.committed_edits[i].id
                 })
             }
         }
@@ -130,7 +123,7 @@ Drawer {
     }
 
     function findCommittedEditById(id) {
-        return findItemById(pdp ? pdp.committed_edits : null, id)
+        return findItemById(pdp ? pdp.people : null, id)
     }
 
     function removeItemById(id) {

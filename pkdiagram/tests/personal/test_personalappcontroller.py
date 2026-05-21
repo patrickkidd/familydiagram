@@ -1280,7 +1280,7 @@ from btcopilot.schema import Event, EventKind
 def test_acceptCommittedEdit_applies_and_undoes(test_user, personalApp: PersonalAppController):
     initial_diagram_data = DiagramData(
         people=[{"id": 10, "name": "Alice"}],
-        pdp=PDP(committed_edits=[{"id": 10, "name": "Alicia"}]),
+        pdp=PDP(people=[Person(id=10, name="Alicia")]),
     )
     personalApp._diagram = Diagram(
         id=1,
@@ -1294,19 +1294,19 @@ def test_acceptCommittedEdit_applies_and_undoes(test_user, personalApp: Personal
     assert result is True
     diagramData = personalApp._diagram.getDiagramData()
     assert diagramData.people[0]["name"] == "Alicia"
-    assert diagramData.pdp.committed_edits == []
+    assert diagramData.pdp.people == []
     assert personalApp._undoStack.canUndo()
 
     personalApp._undoStack.undo()
     diagramData = personalApp._diagram.getDiagramData()
     assert diagramData.people[0]["name"] == "Alice"
-    assert len(diagramData.pdp.committed_edits) == 1
+    assert len(diagramData.pdp.people) == 1
 
 
 def test_rejectCommittedEdit_discards_and_undoes(test_user, personalApp: PersonalAppController):
     initial_diagram_data = DiagramData(
         people=[{"id": 10, "name": "Alice"}],
-        pdp=PDP(committed_edits=[{"id": 10, "name": "Alicia"}]),
+        pdp=PDP(people=[Person(id=10, name="Alicia")]),
     )
     personalApp._diagram = Diagram(
         id=1,
@@ -1320,12 +1320,12 @@ def test_rejectCommittedEdit_discards_and_undoes(test_user, personalApp: Persona
     assert result is True
     diagramData = personalApp._diagram.getDiagramData()
     assert diagramData.people[0]["name"] == "Alice"
-    assert diagramData.pdp.committed_edits == []
+    assert diagramData.pdp.people == []
     assert personalApp._undoStack.canUndo()
 
     personalApp._undoStack.undo()
     diagramData = personalApp._diagram.getDiagramData()
-    assert len(diagramData.pdp.committed_edits) == 1
+    assert len(diagramData.pdp.people) == 1
 
 
 def test_acceptCommittedDelete_cascade_and_undoes(test_user, personalApp: PersonalAppController):
