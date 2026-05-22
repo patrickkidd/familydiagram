@@ -149,6 +149,7 @@ Page {
     readonly property var fieldWidth: 231
 
     property var dirty: false
+    property bool showTime: false
 
     // TODO: Re-add migration logic
 
@@ -193,7 +194,8 @@ Page {
         addPage.scrollToTop()
         tagsEditItem.clear()
         kindBox.forceActiveFocus()
-        root.dirty = false;
+        root.dirty = false
+        root.showTime = false
     }
 
     function currentTab() { return 0 }
@@ -874,6 +876,7 @@ Page {
                         id: startDateButtons
                         datePicker: startDatePicker
                         timePicker: startTimePicker
+                        hideTime: !root.showTime
                         // dateTime: root.startDateTime
                         backTabItem: descriptionField.backTabItem
                         tabItem: endDateButtons.firstTabItem
@@ -920,6 +923,16 @@ Page {
                             target: root
                             function onStartDateTimeChanged() { if(startTimePicker.dateTime != root.startDateTime) startTimePicker.dateTime = root.startDateTime }
                         }                               
+                    }
+
+                    PK.Text {
+                        visible: !root.showTime && Global.isValidDateTime(root.startDateTime)
+                    }
+
+                    PK.Button {
+                        text: "Add time"
+                        visible: !root.showTime && Global.isValidDateTime(root.startDateTime)
+                        onClicked: root.showTime = true
                     }
 
                     PK.Text {

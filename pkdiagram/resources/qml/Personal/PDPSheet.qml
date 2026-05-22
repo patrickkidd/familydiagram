@@ -273,6 +273,14 @@ Drawer {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         anchors.topMargin: 8
+
+        MouseArea {
+            anchors.centerIn: parent
+            width: 80
+            height: 32
+            onClicked: root.close()
+            cursorShape: Qt.PointingHandCursor
+        }
     }
 
     ColumnLayout {
@@ -306,6 +314,12 @@ Drawer {
                 text: "Accept All"
                 pill: true
                 onClicked: root.acceptAllClicked()
+            }
+
+            PK.Button {
+                objectName: "dismissButton"
+                text: "✕"
+                onClicked: root.close()
             }
         }
 

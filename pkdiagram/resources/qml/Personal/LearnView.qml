@@ -1353,17 +1353,21 @@ Page {
                     }
 
                     Text {
-                        x: 14
+                        id: heroTitleText
+                        anchors.left: parent.left
+                        anchors.leftMargin: 14
+                        anchors.right: heroEventCount.left
+                        anchors.rightMargin: 8
                         anchors.verticalCenter: parent.verticalCenter
                         text: focusedCluster ? focusedCluster.title : ""
                         font.pixelSize: 14
                         font.bold: true
                         color: "white"
                         elide: Text.ElideRight
-                        width: parent.width - 110
                     }
 
                     Text {
+                        id: heroEventCount
                         anchors.right: heroCloseButton.left
                         anchors.rightMargin: 8
                         anchors.verticalCenter: parent.verticalCenter
@@ -1870,18 +1874,22 @@ Page {
                 z: 100
 
                 // Navigation arrows for cycling clusters (shown when focused)
-                Row {
+                RowLayout {
                     visible: isFocused
-                    anchors.centerIn: parent
-                    spacing: 16
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: 8
+                    anchors.rightMargin: 8
+                    anchors.verticalCenter: parent.verticalCenter
                     height: parent.height
+                    spacing: 16
 
                 // Prev button
                 Rectangle {
                     objectName: "clusterPrevButton"
                     width: 40; height: 40; radius: 20
                     color: util.IS_UI_DARK_MODE ? "#333340" : "#e0e0e8"
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Qt.AlignVCenter
 
                     Text {
                         anchors.centerIn: parent
@@ -1892,34 +1900,34 @@ Page {
 
                     MouseArea {
                         anchors.fill: parent
-                        anchors.margins: -2  // Extend tap area to 44pt
+                        anchors.margins: -2
                         cursorShape: Qt.PointingHandCursor
                         onClicked: focusPrevCluster()
                     }
                 }
 
-                // Current cluster title and count (fixed width to prevent button movement)
+                // Current cluster title and count
                 Column {
-                    width: 160
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignVCenter
                     spacing: 3
 
                     Text {
-                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: parent.width
                         text: focusedCluster ? focusedCluster.title : ""
                         font.pixelSize: 14
                         font.bold: true
                         color: focusedCluster ? clusterColor(focusedCluster.id) : textPrimary
                         elide: Text.ElideRight
-                        width: parent.width
                         horizontalAlignment: Text.AlignHCenter
                     }
 
                     Text {
-                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: parent.width
                         text: (focusedClusterIndex + 1) + " / " + (clusterModel ? clusterModel.count : 0)
                         font.pixelSize: 13
                         color: textSecondary
+                        horizontalAlignment: Text.AlignHCenter
                     }
                 }
 
@@ -1928,7 +1936,7 @@ Page {
                     objectName: "clusterNextButton"
                     width: 40; height: 40; radius: 20
                     color: util.IS_UI_DARK_MODE ? "#333340" : "#e0e0e8"
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Qt.AlignVCenter
 
                     Text {
                         anchors.centerIn: parent
@@ -1939,7 +1947,7 @@ Page {
 
                     MouseArea {
                         anchors.fill: parent
-                        anchors.margins: -2  // Extend tap area to 44pt
+                        anchors.margins: -2
                         cursorShape: Qt.PointingHandCursor
                         onClicked: focusNextCluster()
                     }

@@ -61,6 +61,15 @@ def test_clear_Shift(view):
     assert view.view.targetsEntries() == []
 
 
+def test_clear_resets_showTime(view):
+    view.set_kind(EventKind.Birth)
+    view.set_startDateTime(START_DATETIME)
+    view.item.setProperty("showTime", True)
+    assert view.item.property("showTime") == True
+    view.clickClearButton()
+    assert view.item.property("showTime") == False
+
+
 def test_clear_spouse_child(view):
     view.set_kind(EventKind.Birth)
     view.personPicker.set_new_person("John Done")
