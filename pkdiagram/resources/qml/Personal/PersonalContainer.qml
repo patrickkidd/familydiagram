@@ -802,6 +802,8 @@ Page {
         function onJournalImportStarted() { importOverlay.visible = true }
         function onJournalImportCompleted(summary) {
             importOverlay.visible = false
+            pasteTextEdit.text = ""
+            pasteTextDrawer.close()
             util.informationBox("Import Complete",
                 "Added " + summary.people + " people, " + summary.events + " events to pending items.")
         }
@@ -897,12 +899,7 @@ Page {
                     MouseArea {
                         anchors.fill: parent
                         enabled: pasteTextEdit.text.trim().length > 0
-                        onClicked: {
-                            var txt = pasteTextEdit.text
-                            pasteTextEdit.text = ""
-                            pasteTextDrawer.close()
-                            personalApp.importJournalNotes(txt)
-                        }
+                        onClicked: personalApp.importJournalNotes(pasteTextEdit.text)
                     }
                 }
             }

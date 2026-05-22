@@ -1745,7 +1745,7 @@ class PersonalAppController(QObject):
         try:
             with open(path, encoding="utf-8") as f:
                 text = f.read()
-        except OSError as e:
+        except (OSError, UnicodeDecodeError) as e:
             self.journalImportFailed.emit(str(e))
             return
         self.importJournalNotes(text)
