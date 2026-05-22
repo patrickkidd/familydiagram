@@ -692,7 +692,7 @@ Page {
         anchors.right: parent.right
         anchors.rightMargin: 8
         width: 250
-        height: importDropdownColumn.implicitHeight + 16
+        height: importDropdownColumn.implicitHeight
         radius: 13
         color: itemBg
         border.width: 1
@@ -744,7 +744,7 @@ Page {
                     anchors.left: parent.left
                     anchors.leftMargin: 16
                     text: "Attach file..."
-                    font.pixelSize: 17
+                    font.pixelSize: 15
                     color: textColor
                 }
                 MouseArea {
@@ -774,7 +774,7 @@ Page {
                     anchors.left: parent.left
                     anchors.leftMargin: 16
                     text: "Paste text..."
-                    font.pixelSize: 17
+                    font.pixelSize: 15
                     color: textColor
                 }
                 MouseArea {
@@ -816,7 +816,9 @@ Page {
         height: parent.height
         edge: Qt.BottomEdge
         interactive: false
+        closePolicy: Popup.CloseOnEscape
         background: Rectangle { color: drawerBg }
+        onClosed: pasteTextEdit.text = ""
 
         Item {
             anchors.fill: parent
@@ -849,10 +851,10 @@ Page {
                 }
 
                 Rectangle {
-                    anchors.right: parent.right
-                    anchors.rightMargin: 16
+                    anchors.left: parent.left
+                    anchors.leftMargin: 16
                     anchors.verticalCenter: parent.verticalCenter
-                    width: 44
+                    width: 64
                     height: 44
                     color: "transparent"
                     Text {
@@ -871,10 +873,10 @@ Page {
                 }
 
                 Rectangle {
-                    anchors.left: parent.left
-                    anchors.leftMargin: 16
+                    anchors.right: parent.right
+                    anchors.rightMargin: 16
                     anchors.verticalCenter: parent.verticalCenter
-                    width: 44
+                    width: 64
                     height: 44
                     color: "transparent"
                     Text {
@@ -897,59 +899,40 @@ Page {
                 }
             }
 
-            // Subhead
-            Text {
-                id: pasteDrawerSubhead
+            // Text edit area — fills all space below header
+            Flickable {
+                id: pasteFlickable
                 anchors.top: pasteDrawerHeader.bottom
-                anchors.topMargin: 12
                 anchors.left: parent.left
-                anchors.leftMargin: 16
                 anchors.right: parent.right
-                anchors.rightMargin: 16
-                text: "Paste session notes, interview text, or any case narrative."
-                font.pixelSize: 13
-                color: secondaryText
-                wrapMode: Text.WordWrap
-            }
-
-            // Text edit area
-            Rectangle {
-                anchors.top: pasteDrawerSubhead.bottom
-                anchors.topMargin: 12
-                anchors.left: parent.left
-                anchors.leftMargin: 16
-                anchors.right: parent.right
-                anchors.rightMargin: 16
                 anchors.bottom: parent.bottom
-                anchors.bottomMargin: 16
-                radius: 10
-                color: util.IS_UI_DARK_MODE ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"
-                border.width: 1
-                border.color: borderColor
+                clip: true
+                contentWidth: width
+                contentHeight: pasteTextEdit.height
 
-                ScrollView {
-                    anchors.fill: parent
-                    anchors.margins: 12
-                    clip: true
-
-                    TextEdit {
-                        id: pasteTextEdit
-                        width: parent.width
-                        wrapMode: TextEdit.WordWrap
-                        font.pixelSize: 15
-                        color: textColor
-                        selectByMouse: true
-                    }
-                }
-
-                Text {
-                    anchors.top: parent.top
-                    anchors.left: parent.left
-                    anchors.margins: 16
-                    text: "Paste your notes here..."
+                TextEdit {
+                    id: pasteTextEdit
+                    width: pasteFlickable.width
+                    height: Math.max(pasteFlickable.height, implicitHeight)
+                    leftPadding: 16
+                    rightPadding: 16
+                    topPadding: 16
+                    bottomPadding: 16
+                    wrapMode: TextEdit.WordWrap
                     font.pixelSize: 15
-                    color: secondaryText
-                    visible: pasteTextEdit.text.length === 0
+                    color: textColor
+                    selectByMouse: true
+
+                    Text {
+                        anchors.top: parent.top
+                        anchors.left: parent.left
+                        anchors.topMargin: parent.topPadding
+                        anchors.leftMargin: parent.leftPadding
+                        text: "Paste your notes here..."
+                        font.pixelSize: 15
+                        color: secondaryText
+                        visible: pasteTextEdit.text.length === 0
+                    }
                 }
             }
         }
@@ -1287,4 +1270,15 @@ Page {
     }
 
     focus: true
+    Keys.onEscapePressed: {
+        discussionMenuOpen = false
+        storyMenuOpen = false
+        importMenuOpen = false
+        if (pasteTextDrawer.position > 0) {
+            pasteTextEdit.text = ""
+            pasteTextDrawer.close()
+        }
+        if (drawer.position > 0)
+            drawer.close()
+    }
 }
