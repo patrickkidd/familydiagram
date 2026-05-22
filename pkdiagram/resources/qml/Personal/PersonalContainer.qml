@@ -7,6 +7,7 @@ import QtQuick 2.15
 import QtQml.Models 2.12
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
+import Qt.labs.platform 1.0
 import "../PK" 1.0 as PK
 import ".." 1.0 as Root
 import "." 1.0 as Personal
@@ -751,7 +752,7 @@ Page {
                     anchors.fill: parent
                     onClicked: {
                         importMenuOpen = false
-                        personalApp.importFromFile()
+                        importFileDialog.open()
                     }
                 }
             }
@@ -786,6 +787,13 @@ Page {
                 }
             }
         }
+    }
+
+    FileDialog {
+        id: importFileDialog
+        title: "Import Notes"
+        nameFilters: ["Text files (*.txt *.md)", "All files (*)"]
+        onAccepted: personalApp.importFromFile(file)
     }
 
     // Import signal handlers (triggered from Learn tab; overlay is app-level)

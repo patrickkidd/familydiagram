@@ -3,9 +3,7 @@ import json
 import logging
 import os
 import pickle
-import subprocess
 import tempfile
-import threading
 from typing import Callable
 
 from btcopilot.schema import (
@@ -42,7 +40,7 @@ from pkdiagram.pyqt import (
     QUndoStack,
     QVariant,
 )
-from PyQt5.QtCore import QLocale, QByteArray
+from PyQt5.QtCore import QLocale, QByteArray, QUrl
 from pkdiagram.app import Session, Analytics
 from pkdiagram.personal.models import Discussion
 from pkdiagram.server_types import Diagram
@@ -54,23 +52,6 @@ from pkdiagram.personal.shakedetector import ShakeDetector
 from pkdiagram.personal.clustermodel import ClusterModel
 
 _log = logging.getLogger(__name__)
-
-
-class _FilePicker(QObject):
-    picked = pyqtSignal(str)
-
-    def open(self):
-        def _run():
-            script = (
-                'POSIX path of (choose file with prompt "Import Notes" '
-                'of type {"public.plain-text", "txt", "md"})'
-            )
-            r = subprocess.run(["osascript", "-e", script],
-                               capture_output=True, text=True)
-            path = r.stdout.strip()
-            if path:
-                self.picked.emit(path)
-        threading.Thread(target=_run, daemon=True).start()
 
 
 class PersonalAppController(QObject):
@@ -1756,14 +1737,11 @@ class PersonalAppController(QObject):
             from_root=True,
         )
 
-    @pyqtSlot()
-    def importFromFile(self):
-        picker = _FilePicker(self)
-        picker.picked.connect(self._onFilePicked)
-        picker.open()
+    @pyqtSlot(QUrl)
+    def importFromFile(self, file_url: QUrl):
+        self._onFilePicked(file_url.toLocalFile())
 
-    @pyqtSlot(str)
-    def _onFilePicked(self, path):
+    def _onFilePicked(self, path: str):
         try:
             with open(path, encoding="utf-8") as f:
                 text = f.read()
