@@ -40,7 +40,7 @@ from pkdiagram.pyqt import (
     QUndoStack,
     QVariant,
 )
-from PyQt5.QtCore import QLocale, QByteArray, QUrl
+from PyQt5.QtCore import QLocale, QByteArray
 from pkdiagram.app import Session, Analytics
 from pkdiagram.personal.models import Discussion
 from pkdiagram.server_types import Diagram
