@@ -976,6 +976,11 @@ included = true
 is_directory = false
 
 [[Application.Package.Content.Content]]
+name = "paper-clip-white.png"
+included = true
+is_directory = false
+
+[[Application.Package.Content.Content]]
 name = "pencil-button-white.png"
 included = true
 is_directory = false

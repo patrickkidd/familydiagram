@@ -28,6 +28,7 @@ Page {
 
     property bool discussionMenuOpen: false
     property bool storyMenuOpen: false
+    property bool importMenuOpen: false
     property int pdpCount: 0
     property real safeAreaTop: 0
     property real safeAreaBottom: 0
@@ -282,8 +283,36 @@ Page {
             }
         }
 
+        // Import button (Learn tab only)
+        Rectangle {
+            id: importButton
+            objectName: "importButton"
+            anchors.right: addEventButton.left
+            anchors.rightMargin: 8
+            anchors.verticalCenter: parent.verticalCenter
+            width: 28
+            height: 28
+            radius: 14
+            color: accentColor
+            visible: tabBar.currentIndex === 1
+
+            Image {
+                anchors.centerIn: parent
+                width: 16
+                height: 16
+                source: "../../paper-clip-white.png"
+                fillMode: Image.PreserveAspectFit
+                smooth: true
+            }
+            MouseArea {
+                anchors.fill: parent
+                onClicked: importMenuOpen = !importMenuOpen
+            }
+        }
+
         // Add Event button (Learn tab only)
         Rectangle {
+            id: addEventButton
             anchors.right: parent.right
             anchors.rightMargin: 12
             anchors.verticalCenter: parent.verticalCenter
@@ -407,6 +436,7 @@ Page {
                             tabBar.currentIndex = index
                             discussionMenuOpen = false
                             storyMenuOpen = false
+                            importMenuOpen = false
                         }
                     }
                 }
@@ -417,11 +447,13 @@ Page {
     // Invisible tap catcher for dropdown dismissal
     MouseArea {
         anchors.fill: parent
-        visible: discussionMenuOpen || storyMenuOpen
+
+        visible: discussionMenuOpen || storyMenuOpen || importMenuOpen
         z: 55
         onClicked: {
             discussionMenuOpen = false
             storyMenuOpen = false
+            importMenuOpen = false
         }
     }
 
@@ -647,6 +679,277 @@ Page {
                         storyMenuOpen = false
                         clearDataDialog.open()
                     }
+                }
+            }
+        }
+    }
+
+    // Import dropdown (Learn tab)
+    Rectangle {
+        id: importDropdownRect
+        anchors.top: header.bottom
+        anchors.topMargin: 4
+        anchors.right: parent.right
+        anchors.rightMargin: 8
+        width: 250
+        height: importDropdownColumn.implicitHeight + 16
+        radius: 13
+        color: itemBg
+        border.width: 1
+        border.color: borderColor
+        visible: opacity > 0
+        opacity: importMenuOpen ? 1 : 0
+        scale: importMenuOpen ? 1 : 0.92
+        transformOrigin: Item.TopRight
+        z: 60
+
+        Behavior on opacity {
+            NumberAnimation { duration: 150; easing.type: Easing.OutQuad }
+        }
+        Behavior on scale {
+            NumberAnimation { duration: 150; easing.type: Easing.OutBack; easing.overshoot: 1.5 }
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            anchors.topMargin: 4
+            anchors.margins: -1
+            radius: parent.radius + 1
+            color: "transparent"
+            border.width: 0
+            z: -1
+            Rectangle {
+                anchors.fill: parent
+                anchors.topMargin: 4
+                radius: parent.radius
+                color: util.IS_UI_DARK_MODE ? "rgba(0,0,0,0.4)" : "rgba(0,0,0,0.15)"
+                z: -1
+            }
+        }
+
+        Column {
+            id: importDropdownColumn
+            width: parent.width
+            topPadding: 8
+            bottomPadding: 8
+            spacing: 0
+
+            Rectangle {
+                objectName: "attachFileButton"
+                width: parent.width
+                height: 44
+                color: "transparent"
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.left: parent.left
+                    anchors.leftMargin: 16
+                    text: "Attach file..."
+                    font.pixelSize: 17
+                    color: textColor
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        importMenuOpen = false
+                        personalApp.importFromFile()
+                    }
+                }
+            }
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.leftMargin: 16
+                anchors.right: parent.right
+                height: 1
+                color: borderColor
+            }
+
+            Rectangle {
+                objectName: "pasteTextButton"
+                width: parent.width
+                height: 44
+                color: "transparent"
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.left: parent.left
+                    anchors.leftMargin: 16
+                    text: "Paste text..."
+                    font.pixelSize: 17
+                    color: textColor
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        importMenuOpen = false
+                        pasteTextDrawer.open()
+                    }
+                }
+            }
+        }
+    }
+
+    // Import signal handlers (triggered from Learn tab; overlay is app-level)
+    Connections {
+        target: personalApp
+        function onJournalImportStarted() { importOverlay.visible = true }
+        function onJournalImportCompleted(summary) {
+            importOverlay.visible = false
+            util.informationBox("Import Complete",
+                "Added " + summary.people + " people, " + summary.events + " events to pending items.")
+        }
+        function onJournalImportFailed(error) {
+            importOverlay.visible = false
+            util.criticalBox("Import Failed", error)
+        }
+    }
+
+    Personal.LoadingOverlay {
+        id: importOverlay
+        objectName: "importOverlay"
+        text: "Importing notes..."
+    }
+
+    // Paste text drawer (full-height bottom sheet)
+    Drawer {
+        id: pasteTextDrawer
+        width: parent.width
+        height: parent.height
+        edge: Qt.BottomEdge
+        interactive: false
+        background: Rectangle { color: drawerBg }
+
+        Item {
+            anchors.fill: parent
+            anchors.topMargin: root.safeAreaTop
+            anchors.bottomMargin: Qt.inputMethod.visible ? 0 : root.safeAreaBottom
+
+            // Header
+            Rectangle {
+                id: pasteDrawerHeader
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 56
+                color: "transparent"
+
+                Rectangle {
+                    anchors.bottom: parent.bottom
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 1
+                    color: borderColor
+                }
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "Import Notes"
+                    font.pixelSize: 17
+                    font.weight: Font.SemiBold
+                    color: textColor
+                }
+
+                Rectangle {
+                    anchors.right: parent.right
+                    anchors.rightMargin: 16
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 44
+                    height: 44
+                    color: "transparent"
+                    Text {
+                        anchors.centerIn: parent
+                        text: "Cancel"
+                        font.pixelSize: 17
+                        color: accentColor
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            pasteTextEdit.text = ""
+                            pasteTextDrawer.close()
+                        }
+                    }
+                }
+
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.leftMargin: 16
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 44
+                    height: 44
+                    color: "transparent"
+                    Text {
+                        anchors.centerIn: parent
+                        text: "Import"
+                        font.pixelSize: 17
+                        font.weight: Font.SemiBold
+                        color: pasteTextEdit.text.trim().length > 0 ? accentColor : secondaryText
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        enabled: pasteTextEdit.text.trim().length > 0
+                        onClicked: {
+                            var txt = pasteTextEdit.text
+                            pasteTextEdit.text = ""
+                            pasteTextDrawer.close()
+                            personalApp.importJournalNotes(txt)
+                        }
+                    }
+                }
+            }
+
+            // Subhead
+            Text {
+                id: pasteDrawerSubhead
+                anchors.top: pasteDrawerHeader.bottom
+                anchors.topMargin: 12
+                anchors.left: parent.left
+                anchors.leftMargin: 16
+                anchors.right: parent.right
+                anchors.rightMargin: 16
+                text: "Paste session notes, interview text, or any case narrative."
+                font.pixelSize: 13
+                color: secondaryText
+                wrapMode: Text.WordWrap
+            }
+
+            // Text edit area
+            Rectangle {
+                anchors.top: pasteDrawerSubhead.bottom
+                anchors.topMargin: 12
+                anchors.left: parent.left
+                anchors.leftMargin: 16
+                anchors.right: parent.right
+                anchors.rightMargin: 16
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 16
+                radius: 10
+                color: util.IS_UI_DARK_MODE ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"
+                border.width: 1
+                border.color: borderColor
+
+                ScrollView {
+                    anchors.fill: parent
+                    anchors.margins: 12
+                    clip: true
+
+                    TextEdit {
+                        id: pasteTextEdit
+                        width: parent.width
+                        wrapMode: TextEdit.WordWrap
+                        font.pixelSize: 15
+                        color: textColor
+                        selectByMouse: true
+                    }
+                }
+
+                Text {
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.margins: 16
+                    text: "Paste your notes here..."
+                    font.pixelSize: 15
+                    color: secondaryText
+                    visible: pasteTextEdit.text.length === 0
                 }
             }
         }
