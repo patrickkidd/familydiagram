@@ -856,7 +856,7 @@ Page {
                     anchors.centerIn: parent
                     text: "Import Notes"
                     font.pixelSize: 17
-                    font.weight: Font.SemiBold
+                    font.weight: Font.DemiBold
                     color: textColor
                 }
 
@@ -893,7 +893,7 @@ Page {
                         anchors.centerIn: parent
                         text: "Import"
                         font.pixelSize: 17
-                        font.weight: Font.SemiBold
+                        font.weight: Font.DemiBold
                         color: pasteTextEdit.text.trim().length > 0 ? accentColor : secondaryText
                     }
                     MouseArea {
