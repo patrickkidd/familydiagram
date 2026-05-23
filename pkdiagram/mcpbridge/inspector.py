@@ -1654,9 +1654,11 @@ class QtInspector:
 
         # Scene info
         scene = controller.scene
+        people = list(scene.people()) if scene else []
         result["scene"] = {
-            "personCount": len(list(scene.people())) if scene else 0,
+            "personCount": len(people),
             "eventCount": len(list(scene.events())) if scene else 0,
+            "people": [{"id": p.id, "name": p.fullNameOrAlias()} for p in people],
         }
 
         # Current tab from QML
@@ -1848,6 +1850,7 @@ class QtInspector:
                 "personCount": len(people),
                 "eventCount": len(events),
                 "pairBondCount": len(pairBonds),
+                "deleteCount": len(pdp.delete),
             },
         }
 

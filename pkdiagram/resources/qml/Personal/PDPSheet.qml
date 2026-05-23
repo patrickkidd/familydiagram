@@ -46,7 +46,7 @@ Drawer {
 
     edge: Qt.BottomEdge
     width: parent.width
-    height: parent.height * 0.75
+    height: parent.height * 0.62
     dragMargin: 0
 
     onOpened: {
@@ -91,11 +91,12 @@ Drawer {
                 })
             }
         }
-        if (pdp.delete) {
-            for (var i = 0; i < pdp.delete.length; i++) {
+        var deletes = pdp["delete"]
+        if (deletes) {
+            for (var i = 0; i < deletes.length; i++) {
                 itemsModel.append({
                     "itemType": "committed_delete",
-                    "itemId": pdp.delete[i]
+                    "itemId": deletes[i]
                 })
             }
         }
@@ -156,25 +157,25 @@ Drawer {
 
     function handleAcceptCommittedEdit(id) {
         root.committedEditAccepted(id)
-        advanceTimer.targetIndex = Math.min(cardStack.currentIndex + 1, itemsModel.count - 1)
+        advanceTimer.targetIndex = Math.min(cardStack.currentIndex, itemsModel.count - 1)
         advanceTimer.start()
     }
 
     function handleRejectCommittedEdit(id) {
         root.committedEditRejected(id)
-        advanceTimer.targetIndex = Math.min(cardStack.currentIndex + 1, itemsModel.count - 1)
+        advanceTimer.targetIndex = Math.min(cardStack.currentIndex, itemsModel.count - 1)
         advanceTimer.start()
     }
 
     function handleAcceptCommittedDelete(id) {
         root.committedDeleteAccepted(id)
-        advanceTimer.targetIndex = Math.min(cardStack.currentIndex + 1, itemsModel.count - 1)
+        advanceTimer.targetIndex = Math.min(cardStack.currentIndex, itemsModel.count - 1)
         advanceTimer.start()
     }
 
     function handleRejectCommittedDelete(id) {
         root.committedDeleteRejected(id)
-        advanceTimer.targetIndex = Math.min(cardStack.currentIndex + 1, itemsModel.count - 1)
+        advanceTimer.targetIndex = Math.min(cardStack.currentIndex, itemsModel.count - 1)
         advanceTimer.start()
     }
 
@@ -407,7 +408,7 @@ Drawer {
                     Loader {
                         id: cardLoader
                         anchors.fill: parent
-                        anchors.margins: 16
+                        anchors.margins: 8
 
                         sourceComponent: {
                             if (model.itemType === "person") {
@@ -688,7 +689,7 @@ Drawer {
                         visible: root.editingItemType === "person"
 
                         Text {
-                            text: "Name"
+                            text: "First Name"
                             font.pixelSize: 14
                             font.bold: true
                             color: util.QML_TEXT_COLOR
@@ -1089,12 +1090,18 @@ Drawer {
             signal horizontalWheel(real deltaX)
 
             readonly property string entityName: personalApp && editData
-                ? personalApp.resolvePersonName(editData.id)
+                ? personalApp.scenePersonName(editData.id)
                 : (editData ? "" + editData.id : "")
+            readonly property bool nameChanged: !!(editData && editData.name !== undefined
+                && editData.name !== "" && personalApp
+                && editData.name !== personalApp.scenePersonName(editData.id))
+            readonly property bool kindChanged: !!(editData && editData.gender !== undefined
+                && editData.gender !== "" && personalApp
+                && personalApp.kindLabel(editData.gender) !== personalApp.scenePersonKind(editData.id))
 
             ColumnLayout {
                 anchors.fill: parent
-                spacing: 12
+                spacing: 8
 
                 Rectangle {
                     Layout.fillWidth: true
@@ -1106,18 +1113,18 @@ Drawer {
 
                     ColumnLayout {
                         anchors.fill: parent
-                        anchors.margins: 16
-                        spacing: 8
+                        anchors.margins: 12
+                        spacing: 6
 
                         Text {
                             text: "Update"
-                            font.pixelSize: 11
+                            font.pixelSize: util.QML_SMALL_TITLE_FONT_SIZE
                             font.bold: true
                             color: util.QML_HIGHLIGHT_COLOR
                         }
 
                         Text {
-                            text: entityName
+                            text: "Person"
                             font.pixelSize: util.QML_TITLE_FONT_SIZE
                             font.family: util.FONT_FAMILY_TITLE
                             color: util.QML_TEXT_COLOR
@@ -1125,12 +1132,60 @@ Drawer {
                             Layout.fillWidth: true
                         }
 
-                        Text {
-                            text: "Apply AI-suggested field changes to this committed entry."
-                            font.pixelSize: 13
-                            color: util.QML_INACTIVE_TEXT_COLOR
-                            wrapMode: Text.WordWrap
+                        Rectangle {
                             Layout.fillWidth: true
+                            height: 1
+                            color: util.QML_ITEM_BORDER_COLOR
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 2
+                            visible: !!(editData && editData.name !== undefined && editData.name !== "")
+
+                            Text {
+                                text: "First Name"
+                                font.pixelSize: 10
+                                font.bold: true
+                                color: util.QML_TEXT_COLOR
+                                opacity: 0.7
+                            }
+                            Text {
+                                text: (personalApp && editData)
+                                    ? (nameChanged
+                                        ? personalApp.scenePersonName(editData.id) + " → " + editData.name
+                                        : editData.name)
+                                    : ""
+                                font.pixelSize: util.TEXT_FONT_SIZE
+                                color: util.QML_TEXT_COLOR
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
+                            }
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 2
+                            visible: !!(editData && editData.gender !== undefined && editData.gender !== "")
+
+                            Text {
+                                text: "Kind"
+                                font.pixelSize: 10
+                                font.bold: true
+                                color: util.QML_TEXT_COLOR
+                                opacity: 0.7
+                            }
+                            Text {
+                                text: (personalApp && editData)
+                                    ? (kindChanged
+                                        ? personalApp.scenePersonKind(editData.id) + " → " + personalApp.kindLabel(editData.gender)
+                                        : personalApp.kindLabel(editData.gender))
+                                    : ""
+                                font.pixelSize: util.TEXT_FONT_SIZE
+                                color: util.QML_TEXT_COLOR
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
+                            }
                         }
 
                         Item { Layout.fillHeight: true }
@@ -1180,7 +1235,7 @@ Drawer {
 
             ColumnLayout {
                 anchors.fill: parent
-                spacing: 12
+                spacing: 8
 
                 Rectangle {
                     Layout.fillWidth: true
@@ -1192,18 +1247,18 @@ Drawer {
 
                     ColumnLayout {
                         anchors.fill: parent
-                        anchors.margins: 16
-                        spacing: 8
+                        anchors.margins: 12
+                        spacing: 6
 
                         Text {
                             text: "Remove"
-                            font.pixelSize: 11
+                            font.pixelSize: util.QML_SMALL_TITLE_FONT_SIZE
                             font.bold: true
                             color: "#FF4500"
                         }
 
                         Text {
-                            text: entityName
+                            text: "Person"
                             font.pixelSize: util.QML_TITLE_FONT_SIZE
                             font.family: util.FONT_FAMILY_TITLE
                             color: util.QML_TEXT_COLOR
@@ -1211,9 +1266,35 @@ Drawer {
                             Layout.fillWidth: true
                         }
 
+                        Rectangle {
+                            Layout.fillWidth: true
+                            height: 1
+                            color: util.QML_ITEM_BORDER_COLOR
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 2
+
+                            Text {
+                                text: "First Name"
+                                font.pixelSize: 10
+                                font.bold: true
+                                color: util.QML_TEXT_COLOR
+                                opacity: 0.7
+                            }
+                            Text {
+                                text: entityName
+                                font.pixelSize: util.TEXT_FONT_SIZE
+                                color: util.QML_TEXT_COLOR
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
+                            }
+                        }
+
                         Text {
-                            text: "Delete this committed entry and all dependent events and relationships."
-                            font.pixelSize: 13
+                            text: "Delete this person and all their events and relationships."
+                            font.pixelSize: util.TEXT_FONT_SIZE
                             color: util.QML_INACTIVE_TEXT_COLOR
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true

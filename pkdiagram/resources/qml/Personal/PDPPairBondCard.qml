@@ -3,10 +3,8 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import "../PK" 1.0 as PK
 
-Rectangle {
+Item {
     id: root
-
-    anchors.fill: parent
 
     property var pairBondData
     property var pdp
@@ -15,176 +13,173 @@ Rectangle {
     signal rejected(int id)
     signal horizontalWheel(real deltaX)
 
-    color: util.QML_ITEM_BG
-    radius: 12
-    border.color: util.QML_ITEM_BORDER_COLOR
-    border.width: 1
-
     readonly property string personAName: personalApp && pairBondData ? personalApp.resolvePersonName(pairBondData.person_a) : ""
     readonly property string personBName: personalApp && pairBondData ? personalApp.resolvePersonName(pairBondData.person_b) : ""
     readonly property string childNames: personalApp && pairBondData ? personalApp.resolvePairBondChildren(pairBondData.id) : ""
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 12
         spacing: 8
 
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 8
-
-            Rectangle {
-                Layout.preferredWidth: 28
-                Layout.preferredHeight: 28
-                radius: 14
-                color: util.QML_HIGHLIGHT_COLOR
-                opacity: 0.2
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "⚭"
-                    font.pixelSize: 16
-                    color: util.QML_TEXT_COLOR
-                }
-            }
-
-            Text {
-                text: "Pair Bond"
-                font.pixelSize: util.QML_SMALL_TITLE_FONT_SIZE
-                font.family: util.FONT_FAMILY_TITLE
-                color: util.QML_TEXT_COLOR
-                Layout.fillWidth: true
-            }
-        }
-
         Rectangle {
-            Layout.fillWidth: true
-            height: 1
-            color: util.QML_ITEM_BORDER_COLOR
-        }
-
-        Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            radius: 12
+            color: util.QML_ITEM_BG
+            border.color: util.QML_ITEM_BORDER_COLOR
+            border.width: 1
 
-            MouseArea {
+            ColumnLayout {
                 anchors.fill: parent
-                z: 1
-                acceptedButtons: Qt.NoButton
-                onWheel: function(event) {
-                    if (Math.abs(event.angleDelta.y) > Math.abs(event.angleDelta.x)) {
-                        flickable.contentY = Math.max(0,
-                            Math.min(flickable.contentHeight - flickable.height,
-                                flickable.contentY - event.angleDelta.y))
-                    } else {
-                        root.horizontalWheel(event.angleDelta.x)
-                    }
-                    event.accepted = true
-                }
-            }
+                anchors.margins: 12
+                spacing: 6
 
-            Flickable {
-                id: flickable
-                anchors.fill: parent
-                contentHeight: fieldsColumn.height
-                clip: true
-                flickableDirection: Flickable.VerticalFlick
-                boundsBehavior: Flickable.StopAtBounds
-
-                ScrollBar.vertical: ScrollBar {
-                    policy: ScrollBar.AlwaysOn
-                    visible: flickable.contentHeight > flickable.height
+                Text {
+                    text: pairBondData && pairBondData.id > 0 ? "Update" : "Add"
+                    font.pixelSize: util.QML_SMALL_TITLE_FONT_SIZE
+                    font.bold: true
+                    color: util.QML_HIGHLIGHT_COLOR
                 }
 
-                ColumnLayout {
-                    id: fieldsColumn
-                    width: flickable.width - 12
-                    spacing: 6
+                Text {
+                    text: "Pair Bond"
+                    font.pixelSize: util.QML_TITLE_FONT_SIZE
+                    font.family: util.FONT_FAMILY_TITLE
+                    color: util.QML_TEXT_COLOR
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                }
 
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 2
-                        visible: root.personAName !== "" || root.personBName !== ""
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 1
+                    color: util.QML_ITEM_BORDER_COLOR
+                }
 
-                        Text {
-                            text: "Partners"
-                            font.pixelSize: 10
-                            font.bold: true
-                            color: util.QML_TEXT_COLOR
-                            opacity: 0.7
-                        }
-                        Text {
-                            text: {
-                                if (root.personAName && root.personBName)
-                                    return root.personAName + " & " + root.personBName
-                                return root.personAName || root.personBName
+                Item {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+
+                    MouseArea {
+                        anchors.fill: parent
+                        z: 1
+                        acceptedButtons: Qt.NoButton
+                        onWheel: function(event) {
+                            if (Math.abs(event.angleDelta.y) > Math.abs(event.angleDelta.x)) {
+                                flickable.contentY = Math.max(0,
+                                    Math.min(flickable.contentHeight - flickable.height,
+                                        flickable.contentY - event.angleDelta.y))
+                            } else {
+                                root.horizontalWheel(event.angleDelta.x)
                             }
-                            font.pixelSize: util.TEXT_FONT_SIZE
-                            color: util.QML_TEXT_COLOR
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
+                            event.accepted = true
                         }
                     }
 
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 2
-                        visible: root.childNames !== ""
+                    Flickable {
+                        id: flickable
+                        anchors.fill: parent
+                        contentHeight: fieldsColumn.height
+                        clip: true
+                        flickableDirection: Flickable.VerticalFlick
+                        boundsBehavior: Flickable.StopAtBounds
 
-                        Text {
-                            text: "Parents of"
-                            font.pixelSize: 10
-                            font.bold: true
-                            color: util.QML_TEXT_COLOR
-                            opacity: 0.7
+                        ScrollBar.vertical: ScrollBar {
+                            policy: ScrollBar.AlwaysOn
+                            visible: flickable.contentHeight > flickable.height
                         }
-                        Text {
-                            text: root.childNames
-                            font.pixelSize: util.TEXT_FONT_SIZE
-                            color: util.QML_TEXT_COLOR
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
+
+                        ColumnLayout {
+                            id: fieldsColumn
+                            width: flickable.width - 12
+                            spacing: 6
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 2
+                                visible: root.personAName !== ""
+
+                                Text {
+                                    text: "Person A"
+                                    font.pixelSize: 10
+                                    font.bold: true
+                                    color: util.QML_TEXT_COLOR
+                                    opacity: 0.7
+                                }
+                                Text {
+                                    text: root.personAName
+                                    font.pixelSize: util.TEXT_FONT_SIZE
+                                    color: util.QML_TEXT_COLOR
+                                    wrapMode: Text.WordWrap
+                                    Layout.fillWidth: true
+                                }
+                            }
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 2
+                                visible: root.personBName !== ""
+
+                                Text {
+                                    text: "Person B"
+                                    font.pixelSize: 10
+                                    font.bold: true
+                                    color: util.QML_TEXT_COLOR
+                                    opacity: 0.7
+                                }
+                                Text {
+                                    text: root.personBName
+                                    font.pixelSize: util.TEXT_FONT_SIZE
+                                    color: util.QML_TEXT_COLOR
+                                    wrapMode: Text.WordWrap
+                                    Layout.fillWidth: true
+                                }
+                            }
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 2
+                                visible: root.childNames !== ""
+
+                                Text {
+                                    text: "Parents of"
+                                    font.pixelSize: 10
+                                    font.bold: true
+                                    color: util.QML_TEXT_COLOR
+                                    opacity: 0.7
+                                }
+                                Text {
+                                    text: root.childNames
+                                    font.pixelSize: util.TEXT_FONT_SIZE
+                                    color: util.QML_TEXT_COLOR
+                                    wrapMode: Text.WordWrap
+                                    Layout.fillWidth: true
+                                }
+                            }
                         }
                     }
                 }
             }
-        }
-
-        Rectangle {
-            Layout.fillWidth: true
-            height: 1
-            color: util.QML_ITEM_BORDER_COLOR
         }
 
         RowLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: 36
-            spacing: 8
+            spacing: 12
 
             PK.Button {
-                id: rejectButton
-                objectName: "pdpRejectButton"
-                source: '../../clear-button.png'
-                Layout.preferredWidth: 36
-                Layout.preferredHeight: 36
-                onClicked: {
-                    if (pairBondData)
-                        root.rejected(pairBondData.id)
-                }
-            }
-
-            Item { Layout.fillWidth: true }
-
-            PK.Button {
-                id: acceptButton
                 objectName: "pdpAcceptButton"
-                source: '../../plus-button.png'
-                Layout.preferredWidth: 36
-                Layout.preferredHeight: 36
-                onClicked: {
-                    if (pairBondData)
-                        root.accepted(pairBondData.id)
-                }
+                text: "Accept"
+                Layout.fillWidth: true
+                pill: true
+                onClicked: pairBondData && root.accepted(pairBondData.id)
+            }
+            PK.Button {
+                objectName: "pdpRejectButton"
+                text: "Reject"
+                Layout.fillWidth: true
+                pill: true
+                textColor: "#FF4500"
+                onClicked: pairBondData && root.rejected(pairBondData.id)
             }
         }
     }

@@ -724,6 +724,7 @@ class TestInstance:
 
             # 4. Build app command
             workspace_root = _uv_workspace_root(self.project_root)
+
             cmd = [
                 "uv",
                 "run",
@@ -735,7 +736,7 @@ class TestInstance:
                 "pkdiagram",
             ]
             if personal:
-                cmd.append("--personal")
+                cmd.extend(["--personal"])
 
             self._bridge_port = _find_free_port()
             if enable_bridge:
@@ -756,7 +757,8 @@ class TestInstance:
             if headless:
                 env["QT_QPA_PLATFORM"] = "offscreen"
             env["QT_QUICK_BACKEND"] = "software"
-            # Ensure subprocess loads this worktree's pkdiagram, not the main repo's editable install.
+            # PYTHONPATH must come first so the worktree's pkdiagram is found after
+            # the editable MetaPathFinder is removed by the launcher script above.
             existing_pythonpath = env.get("PYTHONPATH", "")
             env["PYTHONPATH"] = (
                 str(self.project_root) + (":" + existing_pythonpath if existing_pythonpath else "")

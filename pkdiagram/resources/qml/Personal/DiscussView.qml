@@ -786,19 +786,19 @@ Page {
             personalApp.updatePDPItem(id, field, value)
         }
         onCommittedEditAccepted: function(id) {
-            personalApp.acceptCommittedEdit(id)
+            personalApp.acceptPDPItem(id)
             pdpSheet.removeItemById(id)
         }
         onCommittedEditRejected: function(id) {
-            personalApp.rejectCommittedEdit(id)
+            personalApp.rejectPDPItem(id)
             pdpSheet.removeItemById(id)
         }
         onCommittedDeleteAccepted: function(id) {
-            personalApp.acceptCommittedDelete(id)
+            personalApp.acceptPDPItem(id)
             pdpSheet.removeItemById(id)
         }
         onCommittedDeleteRejected: function(id) {
-            personalApp.rejectCommittedDelete(id)
+            personalApp.rejectPDPItem(id)
             pdpSheet.removeItemById(id)
         }
     }

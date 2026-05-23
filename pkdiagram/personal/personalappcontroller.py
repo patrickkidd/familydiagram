@@ -39,6 +39,7 @@ from pkdiagram.pyqt import (
     QInputDialog,
     QUndoStack,
     QVariant,
+    QFileDialog,
 )
 from PyQt5.QtCore import QLocale, QByteArray
 from pkdiagram.app import Session, Analytics
@@ -78,6 +79,7 @@ class PersonalAppController(QObject):
     ttsPlayingIndexChanged = pyqtSignal()
     ttsFinished = pyqtSignal()
     ttsVoiceChanged = pyqtSignal()
+    autoReadAloudChanged = pyqtSignal()
     responseModelChanged = pyqtSignal()
 
     transcriptionReady = pyqtSignal(str, arguments=["text"])
@@ -126,15 +128,22 @@ class PersonalAppController(QObject):
         self._saving = False
         self._saveQueue = []
         self._settings = Settings(self.app.prefs(), self)
-        self._tts = QTextToSpeech(self)
+        self._tts = None
         self._ttsPlayingIndex = -1
-        self._tts.stateChanged.connect(self._onTtsStateChanged)
-        self._initTtsVoice()
+        if self._settings.value("autoReadAloud", False):
+            self._ensureTts()
 
-        # Voice recording
-        self._audioRecorder = QAudioRecorder(self)
+        # Voice recording — lazy init to avoid activating AVAudioSession at startup
+        self._audioRecorder = None
         self._recordingFilePath = ""
         self._networkManager = QNetworkAccessManager(self)
+
+    def _ensureTts(self):
+        if self._tts is not None:
+            return
+        self._tts = QTextToSpeech(self)
+        self._tts.stateChanged.connect(self._onTtsStateChanged)
+        self._initTtsVoice()
 
     def _initTtsVoice(self):
         saved = self._settings.value("ttsVoiceName")
@@ -163,6 +172,8 @@ class PersonalAppController(QObject):
         return None, None
 
     def _collectVoices(self):
+        if self._tts is None:
+            return []
         origLocale = self._tts.locale()
         origVoice = self._tts.voice()
         voices = []
@@ -437,8 +448,20 @@ class PersonalAppController(QObject):
     def ttsPlayingIndex(self):
         return self._ttsPlayingIndex
 
+    @pyqtProperty(bool, notify=autoReadAloudChanged)
+    def autoReadAloud(self):
+        return bool(self._settings.value("autoReadAloud", False))
+
+    @pyqtSlot(bool)
+    def setAutoReadAloud(self, enabled):
+        self._settings.setValue("autoReadAloud", enabled)
+        if enabled:
+            self._ensureTts()
+        self.autoReadAloudChanged.emit()
+
     @pyqtSlot(str, int)
     def sayAtIndex(self, text, index):
+        self._ensureTts()
         self._tts.stop()
         self._ttsPlayingIndex = index
         self.ttsPlayingIndexChanged.emit()
@@ -446,7 +469,8 @@ class PersonalAppController(QObject):
 
     @pyqtSlot()
     def stopSpeaking(self):
-        self._tts.stop()
+        if self._tts is not None:
+            self._tts.stop()
 
     @pyqtProperty("QVariantList", constant=True)
     def ttsVoices(self):
@@ -454,10 +478,13 @@ class PersonalAppController(QObject):
 
     @pyqtProperty(str, notify=ttsVoiceChanged)
     def ttsVoiceName(self):
+        if self._tts is None:
+            return ""
         return self._tts.voice().name()
 
     @pyqtSlot(str)
     def setTtsVoice(self, name):
+        self._ensureTts()
         voice, locale = self._findVoice(name)
         if voice:
             self._tts.setLocale(locale)
@@ -468,6 +495,7 @@ class PersonalAppController(QObject):
 
     @pyqtSlot(str)
     def previewVoice(self, name):
+        self._ensureTts()
         self.setTtsVoice(name)
         self._tts.say("Hello, this is a preview of my voice.")
 
@@ -487,9 +515,14 @@ class PersonalAppController(QObject):
 
     # Voice Recording & Transcription
 
+    def _ensureAudioRecorder(self):
+        if self._audioRecorder is None:
+            self._audioRecorder = QAudioRecorder(self)
+
     @pyqtSlot()
     def startRecording(self):
         """Start recording audio via QAudioRecorder."""
+        self._ensureAudioRecorder()
         try:
             tmpFile = tempfile.NamedTemporaryFile(
                 suffix=".wav", delete=False, prefix="fd_voice_"
@@ -515,6 +548,8 @@ class PersonalAppController(QObject):
     @pyqtSlot()
     def cancelRecording(self):
         """Stop recording WITHOUT transcribing (e.g. short tap or drag-off)."""
+        if self._audioRecorder is None:
+            return
         self._audioRecorder.stop()
         _log.info(f"Cancelled recording: {self._recordingFilePath}")
         self._cleanupRecording(self._recordingFilePath)
@@ -523,6 +558,9 @@ class PersonalAppController(QObject):
     @pyqtSlot()
     def stopRecording(self):
         """Stop recording and begin transcription."""
+        if self._audioRecorder is None:
+            self.transcriptionFailed.emit("Recording file not found")
+            return
         self._audioRecorder.stop()
         _log.info(f"Stopped recording: {self._recordingFilePath}")
 
@@ -1022,8 +1060,10 @@ class PersonalAppController(QObject):
 
     @pyqtSlot(int, result=bool)
     def acceptPDPItem(self, id: int, undo=True):
-        if id >= 0:
-            _log.error(f"acceptPDPItem called with non-PDP id {id}, ignoring")
+        if id > 0:
+            return self._withSaveGuard(lambda: self._doHandleCommittedItem(id, accept=True, undo=undo))
+        if id == 0:
+            _log.error(f"acceptPDPItem called with id 0, ignoring")
             return False
 
         def _do():
@@ -1040,8 +1080,10 @@ class PersonalAppController(QObject):
 
     @pyqtSlot(int, result=bool)
     def rejectPDPItem(self, id: int, undo=True):
-        if id >= 0:
-            _log.error(f"rejectPDPItem called with non-PDP id {id}, ignoring")
+        if id > 0:
+            return self._withSaveGuard(lambda: self._doHandleCommittedItem(id, accept=False, undo=undo))
+        if id == 0:
+            _log.error(f"rejectPDPItem called with id 0, ignoring")
             return False
 
         def _do():
@@ -1212,6 +1254,76 @@ class PersonalAppController(QObject):
             self.scene.isInitializing = False
             self.scene.setBatchAddingRemovingItems(False)
 
+    def _doHandleCommittedItem(self, id: int, accept: bool, undo: bool = True) -> bool:
+        """Accept or reject a committed item (positive id in pdp.people or pdp.delete)."""
+        prev_data = self._diagram.getDiagramData() if undo else None
+        result: dict = {"is_delete": False, "edit_fields": {}}
+
+        def applyChange(diagramData: DiagramData):
+            if not diagramData.pdp:
+                return diagramData
+            is_delete = id in (diagramData.pdp.delete or [])
+            result["is_delete"] = is_delete
+            if accept:
+                if is_delete:
+                    diagramData.accept_committed_delete(id)
+                else:
+                    pdp_person = next((p for p in diagramData.pdp.people if p.id == id), None)
+                    if pdp_person is not None:
+                        if pdp_person.name is not None:
+                            result["edit_fields"]["name"] = pdp_person.name
+                        if pdp_person.gender is not None:
+                            result["edit_fields"]["gender"] = pdp_person.gender
+                    diagramData.accept_committed_edit(id)
+            else:
+                if is_delete:
+                    diagramData.reject_committed_delete(id)
+                else:
+                    diagramData.reject_committed_edit(id)
+            return diagramData
+
+        success = self._diagram.save(
+            self.session.server(), applyChange, lambda d: True, useJson=True
+        )
+
+        if success:
+            if self.scene is not None and accept:
+                if result["is_delete"]:
+                    person = self.scene.find(id=id)
+                    if person is not None:
+                        self.scene.removeItem(person)
+                elif result["edit_fields"]:
+                    person = self.scene.find(id=id)
+                    if person is not None:
+                        if "name" in result["edit_fields"]:
+                            person.setName(result["edit_fields"]["name"])
+                        if "gender" in result["edit_fields"]:
+                            person.setGender(result["edit_fields"]["gender"])
+            self.pdpChanged.emit()
+            if undo and prev_data:
+                action = PDPAction.Accept if accept else PDPAction.Reject
+                self._undoStack.push(HandlePDPItem(action, self, id, prev_data))
+        else:
+            _log.warning(f"Failed to handle committed item {id}")
+
+        return success
+
+    @pyqtSlot(int, result=bool)
+    def acceptCommittedEdit(self, id: int) -> bool:
+        return bool(self._withSaveGuard(lambda: self._doHandleCommittedItem(id, accept=True)))
+
+    @pyqtSlot(int, result=bool)
+    def rejectCommittedEdit(self, id: int) -> bool:
+        return bool(self._withSaveGuard(lambda: self._doHandleCommittedItem(id, accept=False)))
+
+    @pyqtSlot(int, result=bool)
+    def acceptCommittedDelete(self, id: int) -> bool:
+        return bool(self._withSaveGuard(lambda: self._doHandleCommittedItem(id, accept=True)))
+
+    @pyqtSlot(int, result=bool)
+    def rejectCommittedDelete(self, id: int) -> bool:
+        return bool(self._withSaveGuard(lambda: self._doHandleCommittedItem(id, accept=False)))
+
     def _doRejectPDPItem(self, id: int) -> bool:
         _log.info(f"Rejecting PDP item with id: {id}")
 
@@ -1282,6 +1394,26 @@ class PersonalAppController(QObject):
 
     @pyqtSlot(int, result=str)
     @pyqtSlot("QVariant", result=str)
+    def scenePersonKind(self, personId: int | None) -> str:
+        if personId is None:
+            return ""
+        if self._diagram:
+            for p in self._diagram.getDiagramData().people:
+                if p.get("id") == personId:
+                    kind = p.get("gender")
+                    return util.personKindNameFromKind(kind) or "" if kind else ""
+        if self.scene:
+            for person in self.scene.people():
+                if person.id == personId:
+                    return util.personKindNameFromKind(person.gender()) or ""
+        return ""
+
+    @pyqtSlot(str, result=str)
+    def kindLabel(self, kind: str) -> str:
+        return util.personKindNameFromKind(kind) or ""
+
+    @pyqtSlot(int, result=str)
+    @pyqtSlot("QVariant", result=str)
     def resolveParentNames(self, parentsId: int | None) -> str:
         if parentsId is None:
             return ""
@@ -1298,26 +1430,6 @@ class PersonalAppController(QObject):
                     return f"{nameA} & {nameB}"
                 return nameA or nameB
         return ""
-
-    @pyqtSlot(int, result=str)
-    @pyqtSlot("QVariant", result=str)
-    def resolvePairBondChildren(self, pairBondId: int | None) -> str:
-        """Names of people whose parents point at this pair bond — surfaces
-        the structural change a pair-bond card applies (e.g. setting an
-        already-committed person's parents)."""
-        if pairBondId is None or not self._diagram:
-            return ""
-        names = []
-        diagramData = self._diagram.getDiagramData()
-        if diagramData.pdp:
-            for p in diagramData.pdp.people:
-                if p.parents == pairBondId:
-                    names.append(p.name or p.last_name or f"Person #{p.id}")
-        if self.scene:
-            for person in self.scene.people():
-                if person.parents() and person.parents().id == pairBondId:
-                    names.append(person.fullNameOrAlias())
-        return ", ".join(n for n in names if n)
 
     @pyqtSlot(str, result=str)
     @pyqtSlot("QVariant", result=str)
@@ -1382,40 +1494,29 @@ class PersonalAppController(QObject):
             if not diagramData.pdp:
                 return
 
-            negativeIds = []
+            newIds = []
             for person in diagramData.pdp.people:
                 if person.id is not None and person.id < 0:
-                    negativeIds.append(person.id)
+                    newIds.append(person.id)
             for event in diagramData.pdp.events:
                 if event.id < 0:
-                    negativeIds.append(event.id)
+                    newIds.append(event.id)
             for pair_bond in diagramData.pdp.pair_bonds:
                 if pair_bond.id is not None and pair_bond.id < 0:
-                    negativeIds.append(pair_bond.id)
+                    newIds.append(pair_bond.id)
 
-            positiveEditIds = [
-                p.id for p in diagramData.pdp.people if p.id is not None and p.id > 0
-            ] + [
-                e.id for e in diagramData.pdp.events if e.id > 0
-            ] + [
-                pb.id for pb in diagramData.pdp.pair_bonds if pb.id is not None and pb.id > 0
-            ]
-            deleteIds = list(diagramData.pdp.delete)
+            committedEdits = [p for p in diagramData.pdp.people if p.id is not None and p.id > 0]
+            deleteIds = list(diagramData.pdp.delete or [])
 
-            if not negativeIds and not positiveEditIds and not deleteIds:
-                # Empty PDP (re-extraction produced nothing to stage). This is
-                # still a full accept — advance the cursor so the discussion is
-                # marked covered and the Extract button clears.
+            if not newIds and not committedEdits and not deleteIds:
                 self._postCommitPdp([], True)
                 return
 
-            _log.info(
-                f"Accepting all PDP items: neg={negativeIds} edits={positiveEditIds} deletes={deleteIds}"
-            )
+            _log.info(f"Accepting all PDP items: new={newIds}, edits={[p.id for p in committedEdits]}, deletes={deleteIds}")
 
-            prev_data = self._diagram.getDiagramData()
-            committedItems = {"people": [], "events": [], "pair_bonds": [], "emotions": []}
-            removedIds: set[int] = set()
+            newItems = {"people": [], "events": [], "pair_bonds": [], "emotions": []}
+            editFields: dict[int, dict] = {}
+            drained = {}
 
             def applyChange(diagramData: DiagramData):
                 if not diagramData.pdp:
@@ -1426,207 +1527,56 @@ class PersonalAppController(QObject):
                         diagramData.lastItemId, self.scene.lastItemId()
                     )
 
-                if negativeIds:
+                if newIds:
                     prevPeopleIds = {p["id"] for p in diagramData.people}
                     prevEventIds = {e["id"] for e in diagramData.events}
                     prevPairBondIds = {pb["id"] for pb in diagramData.pair_bonds}
-                    diagramData.commit_pdp_items(negativeIds)
-                    committedItems["people"] = [
-                        p for p in diagramData.people if p["id"] not in prevPeopleIds
-                    ]
-                    committedItems["events"] = [
-                        e for e in diagramData.events if e["id"] not in prevEventIds
-                    ]
-                    committedItems["pair_bonds"] = [
-                        pb for pb in diagramData.pair_bonds if pb["id"] not in prevPairBondIds
-                    ]
+                    diagramData.commit_pdp_items(newIds)
+                    newItems["people"] = [p for p in diagramData.people if p["id"] not in prevPeopleIds]
+                    newItems["events"] = [e for e in diagramData.events if e["id"] not in prevEventIds]
+                    newItems["pair_bonds"] = [pb for pb in diagramData.pair_bonds if pb["id"] not in prevPairBondIds]
 
-                for eid in positiveEditIds:
-                    diagramData.accept_committed_edit(eid)
+                for pdp_person in committedEdits:
+                    if pdp_person.name is not None:
+                        editFields.setdefault(pdp_person.id, {})["name"] = pdp_person.name
+                    if pdp_person.gender is not None:
+                        editFields.setdefault(pdp_person.id, {})["gender"] = pdp_person.gender
+                    diagramData.accept_committed_edit(pdp_person.id)
 
-                for did in deleteIds:
-                    bp = {p["id"] for p in diagramData.people}
-                    be = {e["id"] for e in diagramData.events}
-                    bb = {pb["id"] for pb in diagramData.pair_bonds}
-                    diagramData.accept_committed_delete(did)
-                    removedIds.update(
-                        (bp - {p["id"] for p in diagramData.people})
-                        | (be - {e["id"] for e in diagramData.events})
-                        | (bb - {pb["id"] for pb in diagramData.pair_bonds})
-                    )
+                for del_id in deleteIds:
+                    diagramData.accept_committed_delete(del_id)
 
-                return diagramData
-
-            success = self._diagram.save(
-                self.session.server(), applyChange, lambda d: True, useJson=True
-            )
-
-            if success:
-                if negativeIds:
-                    self._addCommittedItemsToScene(committedItems)
-                for eid in positiveEditIds:
-                    self._syncCommittedEditToScene(eid, prev_data)
-                if removedIds:
-                    self._removeCommittedItemsFromScene(removedIds)
-                self.pdpChanged.emit()
-                self.clusterModel.detect()
-                self._postCommitPdp(negativeIds, True)
-            else:
-                _log.warning("Failed to accept all PDP items after retries")
-
-        self._withSaveGuard(_do)
-
-    @pyqtSlot(int, result=bool)
-    def acceptCommittedEdit(self, id: int) -> bool:
-        if id <= 0:
-            _log.error(f"acceptCommittedEdit called with non-positive id {id}, ignoring")
-            return False
-
-        def _do():
-            prev_data = self._diagram.getDiagramData()
-
-            def applyChange(diagramData: DiagramData):
-                diagramData.accept_committed_edit(id)
-                return diagramData
-
-            success = self._diagram.save(
-                self.session.server(), applyChange, lambda d: True, useJson=True
-            )
-            if success:
-                self._syncCommittedEditToScene(id, prev_data)
-                cmd = HandlePDPItem(PDPAction.Accept, self, id, prev_data)
-                self._undoStack.push(cmd)
-                self.pdpChanged.emit()
-            return success
-
-        return self._withSaveGuard(_do)
-
-    @pyqtSlot(int, result=bool)
-    def rejectCommittedEdit(self, id: int) -> bool:
-        if id <= 0:
-            _log.error(f"rejectCommittedEdit called with non-positive id {id}, ignoring")
-            return False
-
-        def _do():
-            prev_data = self._diagram.getDiagramData()
-
-            def applyChange(diagramData: DiagramData):
-                diagramData.reject_committed_edit(id)
-                return diagramData
-
-            success = self._diagram.save(
-                self.session.server(), applyChange, lambda d: True, useJson=True
-            )
-            if success:
-                cmd = HandlePDPItem(PDPAction.Reject, self, id, prev_data)
-                self._undoStack.push(cmd)
-                self.pdpChanged.emit()
-            return success
-
-        return self._withSaveGuard(_do)
-
-    @pyqtSlot(int, result=bool)
-    def acceptCommittedDelete(self, id: int) -> bool:
-        if id <= 0:
-            _log.error(f"acceptCommittedDelete called with non-positive id {id}, ignoring")
-            return False
-
-        def _do():
-            prev_data = self._diagram.getDiagramData()
-            removed_ids: set[int] = set()
-
-            def applyChange(diagramData: DiagramData):
-                before_people = {p["id"] for p in diagramData.people}
-                before_events = {e["id"] for e in diagramData.events}
-                before_bonds = {pb["id"] for pb in diagramData.pair_bonds}
-                diagramData.accept_committed_delete(id)
-                removed_ids.update(
-                    (before_people - {p["id"] for p in diagramData.people})
-                    | (before_events - {e["id"] for e in diagramData.events})
-                    | (before_bonds - {pb["id"] for pb in diagramData.pair_bonds})
+                drained["v"] = not (
+                    diagramData.pdp.people or diagramData.pdp.events or diagramData.pdp.pair_bonds
                 )
                 return diagramData
 
             success = self._diagram.save(
                 self.session.server(), applyChange, lambda d: True, useJson=True
             )
+
             if success:
-                self._removeCommittedItemsFromScene(removed_ids)
-                cmd = HandlePDPItem(PDPAction.Accept, self, id, prev_data)
-                self._undoStack.push(cmd)
+                self._addCommittedItemsToScene(newItems)
+                if self.scene is not None:
+                    for person_id, fields in editFields.items():
+                        person = self.scene.find(id=person_id)
+                        if person is not None:
+                            if "name" in fields:
+                                person.setName(fields["name"])
+                            if "gender" in fields:
+                                person.setGender(fields["gender"])
+                    for del_id in deleteIds:
+                        person = self.scene.find(id=del_id)
+                        if person is not None:
+                            self.scene.removeItem(person)
                 self.pdpChanged.emit()
-            return success
+                self.clusterModel.detect()
+                allIds = newIds + [p.id for p in committedEdits] + deleteIds
+                self._postCommitPdp(allIds, drained.get("v", True))
+            else:
+                _log.warning("Failed to accept all PDP items after retries")
 
-        return self._withSaveGuard(_do)
-
-    @pyqtSlot(int, result=bool)
-    def rejectCommittedDelete(self, id: int) -> bool:
-        if id <= 0:
-            _log.error(f"rejectCommittedDelete called with non-positive id {id}, ignoring")
-            return False
-
-        def _do():
-            prev_data = self._diagram.getDiagramData()
-
-            def applyChange(diagramData: DiagramData):
-                diagramData.reject_committed_delete(id)
-                return diagramData
-
-            success = self._diagram.save(
-                self.session.server(), applyChange, lambda d: True, useJson=True
-            )
-            if success:
-                cmd = HandlePDPItem(PDPAction.Reject, self, id, prev_data)
-                self._undoStack.push(cmd)
-                self.pdpChanged.emit()
-            return success
-
-        return self._withSaveGuard(_do)
-
-    def _syncCommittedEditToScene(self, id: int, prev_data: DiagramData):
-        """Apply the accepted field-edit to the matching scene item."""
-        if not self.scene:
-            return
-        diagramData = self._diagram.getDiagramData()
-        chunk = next(
-            (p for p in diagramData.people if p.get("id") == id),
-            None,
-        ) or next(
-            (e for e in diagramData.events if e.get("id") == id),
-            None,
-        ) or next(
-            (pb for pb in diagramData.pair_bonds if pb.get("id") == id),
-            None,
-        )
-        if chunk is None:
-            return
-
-        def byId(eid):
-            return self.scene.itemRegistry.get(eid)
-
-        item = self.scene.itemRegistry.get(id)
-        if item is not None:
-            item.read(chunk, byId)
-
-    def _removeCommittedItemsFromScene(self, ids: set[int]):
-        """Remove scene items whose ids were cascade-deleted."""
-        if not self.scene or not ids:
-            return
-        self.scene.setBatchAddingRemovingItems(True)
-        try:
-            for item_id in list(ids):
-                item = self.scene.itemRegistry.get(item_id)
-                if item is not None:
-                    self.scene.removeItem(item)
-        finally:
-            self.scene.setBatchAddingRemovingItems(False)
-
-    @pyqtSlot()
-    def dismissEmptyExtraction(self):
-        """An extraction produced nothing to review. Nothing is committed, but
-        the conversation must still be marked covered so the Extract button
-        clears — same cursor advance as a full accept of an empty pool."""
-        self._postCommitPdp([], True)
+        self._withSaveGuard(_do)
 
     @pyqtSlot(int, str, "QVariant")
     def updatePDPItem(self, id: int, field: str, value):
@@ -1766,6 +1716,24 @@ class PersonalAppController(QObject):
             headers={"Content-Type": "application/json", "Accept": "application/json"},
             from_root=True,
         )
+
+    @pyqtSlot()
+    def importFromFile(self):
+        path, _ = QFileDialog.getOpenFileName(
+            QApplication.activeWindow(),
+            "Import Notes",
+            "",
+            "Text Files (*.txt *.md);;All Files (*)",
+        )
+        if not path:
+            return
+        try:
+            with open(path, encoding="utf-8") as f:
+                text = f.read()
+        except OSError as e:
+            self.journalImportFailed.emit(str(e))
+            return
+        self.importJournalNotes(text)
 
     ## Extract Full
 
