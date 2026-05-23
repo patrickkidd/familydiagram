@@ -1394,6 +1394,23 @@ class PersonalAppController(QObject):
 
     @pyqtSlot(int, result=str)
     @pyqtSlot("QVariant", result=str)
+    def resolvePairBondChildren(self, pairBondId) -> str:
+        if pairBondId is None:
+            return ""
+        if not self._diagram:
+            return ""
+        diagramData = self._diagram.getDiagramData()
+        if not diagramData.pdp:
+            return ""
+        names = [
+            p.name or ""
+            for p in diagramData.pdp.people
+            if p.parents == pairBondId and p.name
+        ]
+        return ", ".join(names)
+
+    @pyqtSlot(int, result=str)
+    @pyqtSlot("QVariant", result=str)
     def scenePersonKind(self, personId: int | None) -> str:
         if personId is None:
             return ""
@@ -1483,6 +1500,10 @@ class PersonalAppController(QObject):
             DateCertainty.Certain.value: "Certain",
         }
         return labels.get(val, "")
+
+    @pyqtSlot()
+    def dismissEmptyExtraction(self) -> None:
+        self._postCommitPdp([], True)
 
     @pyqtSlot()
     def acceptAllPDPItems(self):
