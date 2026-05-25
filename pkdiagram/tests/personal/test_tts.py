@@ -13,6 +13,7 @@ pytestmark = [
 
 
 def test_sayAtIndex_sets_index_and_calls_say(personalApp: PersonalAppController):
+    personalApp._ensureTts()
     changed = util.Condition(personalApp.ttsPlayingIndexChanged)
     with (
         patch.object(personalApp._tts, "say") as say,
@@ -25,6 +26,7 @@ def test_sayAtIndex_sets_index_and_calls_say(personalApp: PersonalAppController)
 
 
 def test_stopSpeaking_calls_stop(personalApp: PersonalAppController):
+    personalApp._ensureTts()
     with patch.object(personalApp._tts, "stop") as stop:
         personalApp.stopSpeaking()
     stop.assert_called_once()
@@ -55,6 +57,7 @@ def test_state_speaking_does_not_reset_index(personalApp: PersonalAppController)
 
 
 def test_sayAtIndex_stops_previous(personalApp: PersonalAppController):
+    personalApp._ensureTts()
     with (
         patch.object(personalApp._tts, "stop") as stop,
         patch.object(personalApp._tts, "say"),
@@ -86,6 +89,7 @@ def test_setTtsVoice_persists_to_settings(personalApp: PersonalAppController):
 
 
 def test_initTtsVoice_restores_saved(personalApp: PersonalAppController):
+    personalApp._ensureTts()
     voices = personalApp.ttsVoices
     if not voices:
         pytest.skip("No TTS voices available")
@@ -102,6 +106,7 @@ def test_openSystemVoiceSettings(personalApp: PersonalAppController):
 
 
 def test_previewVoice(personalApp: PersonalAppController):
+    personalApp._ensureTts()
     voices = personalApp.ttsVoices
     if not voices:
         pytest.skip("No TTS voices available")

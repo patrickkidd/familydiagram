@@ -38,10 +38,12 @@ __attribute__((constructor)) static void setRenderLoopForIOS() {
     setenv("QSG_RENDER_LOOP", "basic", 0);
 }
 
-// AVSpeechSynthesizer requires an active audio session with playback category
+// AVSpeechSynthesizer requires playback category; MixWithOthers prevents interrupting background audio
 __attribute__((constructor)) static void setupAudioSessionForIOS() {
     AVAudioSession *session = [AVAudioSession sharedInstance];
-    [session setCategory:AVAudioSessionCategoryPlayback error:nil];
+    [session setCategory:AVAudioSessionCategoryPlayback
+             withOptions:AVAudioSessionCategoryOptionMixWithOthers
+                   error:nil];
     [session setActive:YES error:nil];
 }
 #endif
