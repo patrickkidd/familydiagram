@@ -29,6 +29,10 @@ Drawer {
 
     signal itemAccepted(int id)
     signal itemRejected(int id)
+    signal committedEditAccepted(int id)
+    signal committedEditRejected(int id)
+    signal committedDeleteAccepted(int id)
+    signal committedDeleteRejected(int id)
     signal acceptAllClicked()
     signal fieldChanged(int id, string field, var value)
 
@@ -42,7 +46,7 @@ Drawer {
 
     edge: Qt.BottomEdge
     width: parent.width
-    height: parent.height * 0.75
+    height: parent.height * 0.62
     dragMargin: 0
 
     onOpened: {
@@ -64,9 +68,10 @@ Drawer {
         // is never empty when the PDP has content.
         if (pdp.people) {
             for (var i = 0; i < pdp.people.length; i++) {
+                var pid = pdp.people[i].id
                 itemsModel.append({
-                    "itemType": "person",
-                    "itemId": pdp.people[i].id
+                    "itemType": pid > 0 ? "committed_edit" : "person",
+                    "itemId": pid
                 })
             }
         }
@@ -83,6 +88,15 @@ Drawer {
                 itemsModel.append({
                     "itemType": "event",
                     "itemId": pdp.events[i].id
+                })
+            }
+        }
+        var deletes = pdp["delete"]
+        if (deletes) {
+            for (var i = 0; i < deletes.length; i++) {
+                itemsModel.append({
+                    "itemType": "committed_delete",
+                    "itemId": deletes[i]
                 })
             }
         }
@@ -107,6 +121,10 @@ Drawer {
 
     function findPairBondById(id) {
         return findItemById(pdp ? pdp.pair_bonds : null, id)
+    }
+
+    function findCommittedEditById(id) {
+        return findItemById(pdp ? pdp.people : null, id)
     }
 
     function removeItemById(id) {
@@ -134,6 +152,30 @@ Drawer {
     function handleReject(id) {
         root.itemRejected(id)
         advanceTimer.targetIndex = Math.min(cardStack.currentIndex + 1, itemsModel.count - 1)
+        advanceTimer.start()
+    }
+
+    function handleAcceptCommittedEdit(id) {
+        root.committedEditAccepted(id)
+        advanceTimer.targetIndex = Math.min(cardStack.currentIndex, itemsModel.count - 1)
+        advanceTimer.start()
+    }
+
+    function handleRejectCommittedEdit(id) {
+        root.committedEditRejected(id)
+        advanceTimer.targetIndex = Math.min(cardStack.currentIndex, itemsModel.count - 1)
+        advanceTimer.start()
+    }
+
+    function handleAcceptCommittedDelete(id) {
+        root.committedDeleteAccepted(id)
+        advanceTimer.targetIndex = Math.min(cardStack.currentIndex, itemsModel.count - 1)
+        advanceTimer.start()
+    }
+
+    function handleRejectCommittedDelete(id) {
+        root.committedDeleteRejected(id)
+        advanceTimer.targetIndex = Math.min(cardStack.currentIndex, itemsModel.count - 1)
         advanceTimer.start()
     }
 
@@ -366,7 +408,7 @@ Drawer {
                     Loader {
                         id: cardLoader
                         anchors.fill: parent
-                        anchors.margins: 16
+                        anchors.margins: 8
 
                         sourceComponent: {
                             if (model.itemType === "person") {
@@ -375,6 +417,10 @@ Drawer {
                                 return eventCardComponent
                             } else if (model.itemType === "pair_bond") {
                                 return pairBondCardComponent
+                            } else if (model.itemType === "committed_edit") {
+                                return committedEditCardComponent
+                            } else if (model.itemType === "committed_delete") {
+                                return committedDeleteCardComponent
                             }
                             return null
                         }
@@ -389,6 +435,10 @@ Drawer {
                             } else if (model.itemType === "pair_bond") {
                                 item.pairBondData = root.findPairBondById(model.itemId)
                                 item.pdp = root.pdp
+                            } else if (model.itemType === "committed_edit") {
+                                item.editData = root.findCommittedEditById(model.itemId)
+                            } else if (model.itemType === "committed_delete") {
+                                item.entityId = model.itemId
                             }
                         }
                     }
@@ -639,7 +689,7 @@ Drawer {
                         visible: root.editingItemType === "person"
 
                         Text {
-                            text: "Name"
+                            text: "First Name"
                             font.pixelSize: 14
                             font.bold: true
                             color: util.QML_TEXT_COLOR
@@ -1029,6 +1079,258 @@ Drawer {
             onAccepted: root.handleAccept(id)
             onRejected: root.handleReject(id)
             onHorizontalWheel: root.handleHorizontalWheel(deltaX)
+        }
+    }
+
+    Component {
+        id: committedEditCardComponent
+
+        Item {
+            property var editData: null
+            signal horizontalWheel(real deltaX)
+
+            readonly property string entityName: personalApp && editData
+                ? personalApp.scenePersonName(editData.id)
+                : (editData ? "" + editData.id : "")
+            readonly property bool nameChanged: !!(editData && editData.name !== undefined
+                && editData.name !== "" && personalApp
+                && editData.name !== personalApp.scenePersonName(editData.id))
+            readonly property bool kindChanged: !!(editData && editData.gender !== undefined
+                && editData.gender !== "" && personalApp
+                && personalApp.kindLabel(editData.gender) !== personalApp.scenePersonKind(editData.id))
+
+            ColumnLayout {
+                anchors.fill: parent
+                spacing: 8
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    radius: 12
+                    color: util.QML_ITEM_BG
+                    border.color: util.QML_ITEM_BORDER_COLOR
+                    border.width: 1
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        spacing: 6
+
+                        Text {
+                            text: "Update"
+                            font.pixelSize: util.QML_SMALL_TITLE_FONT_SIZE
+                            font.bold: true
+                            color: util.QML_HIGHLIGHT_COLOR
+                        }
+
+                        Text {
+                            text: "Person"
+                            font.pixelSize: util.QML_TITLE_FONT_SIZE
+                            font.family: util.FONT_FAMILY_TITLE
+                            color: util.QML_TEXT_COLOR
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            height: 1
+                            color: util.QML_ITEM_BORDER_COLOR
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 2
+                            visible: !!(editData && editData.name !== undefined && editData.name !== "")
+
+                            Text {
+                                text: "First Name"
+                                font.pixelSize: 10
+                                font.bold: true
+                                color: util.QML_TEXT_COLOR
+                                opacity: 0.7
+                            }
+                            Text {
+                                text: (personalApp && editData)
+                                    ? (nameChanged
+                                        ? personalApp.scenePersonName(editData.id) + " → " + editData.name
+                                        : editData.name)
+                                    : ""
+                                font.pixelSize: util.TEXT_FONT_SIZE
+                                color: util.QML_TEXT_COLOR
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
+                            }
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 2
+                            visible: !!(editData && editData.gender !== undefined && editData.gender !== "")
+
+                            Text {
+                                text: "Kind"
+                                font.pixelSize: 10
+                                font.bold: true
+                                color: util.QML_TEXT_COLOR
+                                opacity: 0.7
+                            }
+                            Text {
+                                text: (personalApp && editData)
+                                    ? (kindChanged
+                                        ? personalApp.scenePersonKind(editData.id) + " → " + personalApp.kindLabel(editData.gender)
+                                        : personalApp.kindLabel(editData.gender))
+                                    : ""
+                                font.pixelSize: util.TEXT_FONT_SIZE
+                                color: util.QML_TEXT_COLOR
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
+                            }
+                        }
+
+                        Item { Layout.fillHeight: true }
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 12
+
+                    PK.Button {
+                        objectName: "pdpAcceptButton"
+                        text: "Accept"
+                        Layout.fillWidth: true
+                        pill: true
+                        onClicked: editData && root.handleAcceptCommittedEdit(editData.id)
+                    }
+                    PK.Button {
+                        objectName: "pdpRejectButton"
+                        text: "Reject"
+                        Layout.fillWidth: true
+                        pill: true
+                        textColor: "#FF4500"
+                        onClicked: editData && root.handleRejectCommittedEdit(editData.id)
+                    }
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.NoButton
+                onWheel: function(event) { parent.horizontalWheel(event.angleDelta.x) }
+            }
+        }
+    }
+
+    Component {
+        id: committedDeleteCardComponent
+
+        Item {
+            property int entityId: 0
+            signal horizontalWheel(real deltaX)
+
+            readonly property string entityName: personalApp
+                ? personalApp.resolvePersonName(entityId)
+                : "" + entityId
+
+            ColumnLayout {
+                anchors.fill: parent
+                spacing: 8
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    radius: 12
+                    color: util.QML_ITEM_BG
+                    border.color: util.QML_ITEM_BORDER_COLOR
+                    border.width: 1
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        spacing: 6
+
+                        Text {
+                            text: "Remove"
+                            font.pixelSize: util.QML_SMALL_TITLE_FONT_SIZE
+                            font.bold: true
+                            color: "#FF4500"
+                        }
+
+                        Text {
+                            text: "Person"
+                            font.pixelSize: util.QML_TITLE_FONT_SIZE
+                            font.family: util.FONT_FAMILY_TITLE
+                            color: util.QML_TEXT_COLOR
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            height: 1
+                            color: util.QML_ITEM_BORDER_COLOR
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 2
+
+                            Text {
+                                text: "First Name"
+                                font.pixelSize: 10
+                                font.bold: true
+                                color: util.QML_TEXT_COLOR
+                                opacity: 0.7
+                            }
+                            Text {
+                                text: entityName
+                                font.pixelSize: util.TEXT_FONT_SIZE
+                                color: util.QML_TEXT_COLOR
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
+                            }
+                        }
+
+                        Text {
+                            text: "Delete this person and all their events and relationships."
+                            font.pixelSize: util.TEXT_FONT_SIZE
+                            color: util.QML_INACTIVE_TEXT_COLOR
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+
+                        Item { Layout.fillHeight: true }
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 12
+
+                    PK.Button {
+                        objectName: "pdpAcceptButton"
+                        text: "Accept"
+                        Layout.fillWidth: true
+                        pill: true
+                        onClicked: root.handleAcceptCommittedDelete(entityId)
+                    }
+                    PK.Button {
+                        objectName: "pdpRejectButton"
+                        text: "Reject"
+                        Layout.fillWidth: true
+                        pill: true
+                        textColor: "#FF4500"
+                        onClicked: root.handleRejectCommittedDelete(entityId)
+                    }
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.NoButton
+                onWheel: function(event) { parent.horizontalWheel(event.angleDelta.x) }
+            }
         }
     }
 

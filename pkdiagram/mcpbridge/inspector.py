@@ -376,6 +376,14 @@ class QtInspector:
         if parent.objectName() == objectName:
             return parent
 
+        # Check currentItem first so SwipeView searches the active page before
+        # traversing all instantiated delegates (Repeater creates them all upfront).
+        currentItem = parent.property("currentItem")
+        if isinstance(currentItem, QQuickItem):
+            result = self._findQmlItemInChildren(currentItem, objectName)
+            if result is not None:
+                return result
+
         for child in parent.childItems():
             result = self._findQmlItemInChildren(child, objectName)
             if result is not None:
@@ -1646,9 +1654,11 @@ class QtInspector:
 
         # Scene info
         scene = controller.scene
+        people = list(scene.people()) if scene else []
         result["scene"] = {
-            "personCount": len(list(scene.people())) if scene else 0,
+            "personCount": len(people),
             "eventCount": len(list(scene.events())) if scene else 0,
+            "people": [{"id": p.id, "name": p.fullNameOrAlias()} for p in people],
         }
 
         # Current tab from QML
@@ -1820,7 +1830,12 @@ class QtInspector:
                 del pb["people"]
         pairBonds = [from_dict(PairBond, pb) for pb in rawPairBonds]
 
-        pdp = PDP(people=people, events=events, pair_bonds=pairBonds)
+        pdp = PDP(
+            people=people,
+            events=events,
+            pair_bonds=pairBonds,
+            delete=data.get("delete", []),
+        )
 
         diagramData = controller._diagram.getDiagramData()
         diagramData.pdp = pdp
@@ -1835,6 +1850,7 @@ class QtInspector:
                 "personCount": len(people),
                 "eventCount": len(events),
                 "pairBondCount": len(pairBonds),
+                "deleteCount": len(pdp.delete),
             },
         }
 

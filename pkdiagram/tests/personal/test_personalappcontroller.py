@@ -1278,3 +1278,110 @@ def test_acceptAll_empty_pdp_clears_extract_button(
     assert captured["path"] == "/personal/discussions/60/commit-pdp"
     assert captured["data"] == {"item_ids": [], "full_accept": True}
     assert personalApp.canExtract is False  # button cleared
+
+
+# --- FD-333: committed entity edits and deletes ---
+
+from btcopilot.schema import Event, EventKind
+
+
+def test_acceptCommittedEdit_applies_and_undoes(test_user, personalApp: PersonalAppController):
+    initial_diagram_data = DiagramData(
+        people=[{"id": 10, "name": "Alice"}],
+        pdp=PDP(people=[Person(id=10, name="Alicia")]),
+    )
+    personalApp._diagram = Diagram(
+        id=1,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(initial_diagram_data)),
+    )
+
+    result = personalApp.acceptCommittedEdit(10)
+    assert result is True
+    diagramData = personalApp._diagram.getDiagramData()
+    assert diagramData.people[0]["name"] == "Alicia"
+    assert diagramData.pdp.people == []
+    assert personalApp._undoStack.canUndo()
+
+    personalApp._undoStack.undo()
+    diagramData = personalApp._diagram.getDiagramData()
+    assert diagramData.people[0]["name"] == "Alice"
+    assert len(diagramData.pdp.people) == 1
+
+
+def test_rejectCommittedEdit_discards_and_undoes(test_user, personalApp: PersonalAppController):
+    initial_diagram_data = DiagramData(
+        people=[{"id": 10, "name": "Alice"}],
+        pdp=PDP(people=[Person(id=10, name="Alicia")]),
+    )
+    personalApp._diagram = Diagram(
+        id=1,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(initial_diagram_data)),
+    )
+
+    result = personalApp.rejectCommittedEdit(10)
+    assert result is True
+    diagramData = personalApp._diagram.getDiagramData()
+    assert diagramData.people[0]["name"] == "Alice"
+    assert diagramData.pdp.people == []
+    assert personalApp._undoStack.canUndo()
+
+    personalApp._undoStack.undo()
+    diagramData = personalApp._diagram.getDiagramData()
+    assert len(diagramData.pdp.people) == 1
+
+
+def test_acceptCommittedDelete_cascade_and_undoes(test_user, personalApp: PersonalAppController):
+    initial_diagram_data = DiagramData(
+        people=[{"id": 10, "name": "Alice"}, {"id": 11, "name": "Bob"}],
+        events=[{"id": 20, "kind": "shift", "person": 10, "description": "x", "dateTime": "2000-01-01"}],
+        pair_bonds=[{"id": 30, "person_a": 10, "person_b": 11}],
+        pdp=PDP(delete=[10]),
+    )
+    personalApp._diagram = Diagram(
+        id=1,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(initial_diagram_data)),
+    )
+
+    result = personalApp.acceptCommittedDelete(10)
+    assert result is True
+    diagramData = personalApp._diagram.getDiagramData()
+    assert all(p["id"] != 10 for p in diagramData.people)
+    assert diagramData.events == []
+    assert diagramData.pair_bonds == []
+    assert 10 not in diagramData.pdp.delete
+    assert personalApp._undoStack.canUndo()
+
+    personalApp._undoStack.undo()
+    diagramData = personalApp._diagram.getDiagramData()
+    assert any(p["id"] == 10 for p in diagramData.people)
+    assert len(diagramData.pdp.delete) == 1
+
+
+def test_rejectCommittedDelete_preserves_entity(test_user, personalApp: PersonalAppController):
+    initial_diagram_data = DiagramData(
+        people=[{"id": 10, "name": "Alice"}],
+        pdp=PDP(delete=[10]),
+    )
+    personalApp._diagram = Diagram(
+        id=1,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(initial_diagram_data)),
+    )
+
+    result = personalApp.rejectCommittedDelete(10)
+    assert result is True
+    diagramData = personalApp._diagram.getDiagramData()
+    assert any(p["id"] == 10 for p in diagramData.people)
+    assert diagramData.pdp.delete == []
+    assert personalApp._undoStack.canUndo()
