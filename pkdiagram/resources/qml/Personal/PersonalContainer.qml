@@ -67,6 +67,12 @@ Page {
         }
     }
 
+    Connections {
+        target: pdpSheet
+        function onItemAccepted() { root.pdpCount = Math.max(0, root.pdpCount - 1) }
+        function onItemRejected() { root.pdpCount = Math.max(0, root.pdpCount - 1) }
+    }
+
     // Get current discussion summary for header title
     function currentDiscussionSummary() {
         if (personalApp && personalApp.discussions) {
