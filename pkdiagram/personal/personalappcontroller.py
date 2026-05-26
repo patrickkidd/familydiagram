@@ -39,7 +39,6 @@ from pkdiagram.pyqt import (
     QInputDialog,
     QUndoStack,
     QVariant,
-    QFileDialog,
 )
 from PyQt5.QtCore import QLocale, QByteArray
 from pkdiagram.app import Session, Analytics
@@ -1738,20 +1737,15 @@ class PersonalAppController(QObject):
             from_root=True,
         )
 
-    @pyqtSlot()
-    def importFromFile(self):
-        path, _ = QFileDialog.getOpenFileName(
-            QApplication.activeWindow(),
-            "Import Notes",
-            "",
-            "Text Files (*.txt *.md);;All Files (*)",
-        )
-        if not path:
-            return
+    @pyqtSlot(QUrl)
+    def importFromFile(self, file_url: QUrl):
+        self._onFilePicked(file_url.toLocalFile())
+
+    def _onFilePicked(self, path: str):
         try:
             with open(path, encoding="utf-8") as f:
                 text = f.read()
-        except OSError as e:
+        except (OSError, UnicodeDecodeError) as e:
             self.journalImportFailed.emit(str(e))
             return
         self.importJournalNotes(text)

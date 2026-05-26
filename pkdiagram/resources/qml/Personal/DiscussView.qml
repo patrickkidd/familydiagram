@@ -129,18 +129,6 @@ Page {
                 pdpSheet.updateItems()
             }
         }
-        function onJournalImportStarted() {
-            importOverlay.visible = true
-        }
-        function onJournalImportCompleted(summary) {
-            importOverlay.visible = false
-            util.informationBox("Import Complete",
-                "Added " + summary.people + " people, " + summary.events + " events to pending items.")
-        }
-        function onJournalImportFailed(error) {
-            importOverlay.visible = false
-            util.criticalBox("Import Failed", error)
-        }
         function onExtractStarted() {
             extractOverlay.visible = true
         }
@@ -529,29 +517,6 @@ Page {
                             }
                         }
 
-                        property int prevTextLength: 0
-                        property string pendingPaste: ""
-                        property bool pasteHandlingInProgress: false
-
-                        function handlePasteDialog() {
-                            if (pendingPaste.length === 0) {
-                                pasteHandlingInProgress = false
-                                return
-                            }
-                            var pastedText = pendingPaste
-                            pendingPaste = ""
-                            text = ""
-                            prevTextLength = 0
-                            if (util.questionBox("Import Journal Notes?",
-                                "Import as bulk data instead of chat message?")) {
-                                personalApp.importJournalNotes(pastedText)
-                            } else {
-                                text = pastedText
-                                prevTextLength = pastedText.length
-                            }
-                            pasteHandlingInProgress = false
-                        }
-
                         Keys.onReturnPressed: {
                             if (event.modifiers & Qt.ShiftModifier) {
                                 event.accepted = false
@@ -561,22 +526,6 @@ Page {
                             }
                         }
 
-                        onTextChanged: {
-                            // Detect paste: large text delta in single change (works on iOS and desktop)
-                            // Defer handling via Qt.callLater to avoid crashing QTextEngine::itemize
-                            // Guard flag prevents duplicate dialogs from iOS firing multiple onTextChanged events
-                            var delta = text.length - prevTextLength
-                            if (delta > 20 && prevTextLength === 0) {
-                                if (pasteHandlingInProgress) {
-                                    return
-                                }
-                                pasteHandlingInProgress = true
-                                pendingPaste = text
-                                Qt.callLater(handlePasteDialog)
-                                return
-                            }
-                            prevTextLength = text.length
-                        }
                     }
                 }
 
@@ -802,12 +751,6 @@ Page {
             personalApp.rejectPDPItem(id)
             pdpSheet.removeItemById(id)
         }
-    }
-
-    Personal.LoadingOverlay {
-        id: importOverlay
-        objectName: "importOverlay"
-        text: "Importing journal notes..."
     }
 
     Personal.LoadingOverlay {
