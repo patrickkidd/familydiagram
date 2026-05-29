@@ -232,7 +232,16 @@ def init_logging():
 
     consoleHandler = logging.StreamHandler(sys.stdout)
     consoleHandler.addFilter(logging_allFilter)
-    consoleHandler.setFormatter(logging.Formatter(LOG_FORMAT))
+    if IS_DEV and sys.stdout.isatty():
+        import colorlog
+
+        consoleHandler.setFormatter(
+            colorlog.ColoredFormatter(
+                "%(log_color)s%(asctime)s %(levelname)-8s%(reset)s %(pk_fileloc)-26s %(message)s"
+            )
+        )
+    else:
+        consoleHandler.setFormatter(logging.Formatter(LOG_FORMAT))
     consoleHandler.setLevel(getattr(logging, FD_LOG_LEVEL))
     handlers.append(consoleHandler)
 
