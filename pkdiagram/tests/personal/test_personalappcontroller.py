@@ -1285,7 +1285,9 @@ def test_acceptAll_empty_pdp_clears_extract_button(
 from btcopilot.schema import Event, EventKind
 
 
-def test_acceptCommittedEdit_applies_and_undoes(test_user, personalApp: PersonalAppController):
+def test_acceptCommittedEdit_applies_and_undoes(
+    test_user, personalApp: PersonalAppController
+):
     initial_diagram_data = DiagramData(
         people=[{"id": 10, "name": "Alice"}],
         pdp=PDP(people=[Person(id=10, name="Alicia")]),
@@ -1311,7 +1313,9 @@ def test_acceptCommittedEdit_applies_and_undoes(test_user, personalApp: Personal
     assert len(diagramData.pdp.people) == 1
 
 
-def test_rejectCommittedEdit_discards_and_undoes(test_user, personalApp: PersonalAppController):
+def test_rejectCommittedEdit_discards_and_undoes(
+    test_user, personalApp: PersonalAppController
+):
     initial_diagram_data = DiagramData(
         people=[{"id": 10, "name": "Alice"}],
         pdp=PDP(people=[Person(id=10, name="Alicia")]),
@@ -1336,10 +1340,20 @@ def test_rejectCommittedEdit_discards_and_undoes(test_user, personalApp: Persona
     assert len(diagramData.pdp.people) == 1
 
 
-def test_acceptCommittedDelete_cascade_and_undoes(test_user, personalApp: PersonalAppController):
+def test_acceptCommittedDelete_cascade_and_undoes(
+    test_user, personalApp: PersonalAppController
+):
     initial_diagram_data = DiagramData(
         people=[{"id": 10, "name": "Alice"}, {"id": 11, "name": "Bob"}],
-        events=[{"id": 20, "kind": "shift", "person": 10, "description": "x", "dateTime": "2000-01-01"}],
+        events=[
+            {
+                "id": 20,
+                "kind": "shift",
+                "person": 10,
+                "description": "x",
+                "dateTime": "2000-01-01",
+            }
+        ],
         pair_bonds=[{"id": 30, "person_a": 10, "person_b": 11}],
         pdp=PDP(delete=[10]),
     )
@@ -1366,7 +1380,9 @@ def test_acceptCommittedDelete_cascade_and_undoes(test_user, personalApp: Person
     assert len(diagramData.pdp.delete) == 1
 
 
-def test_rejectCommittedDelete_preserves_entity(test_user, personalApp: PersonalAppController):
+def test_rejectCommittedDelete_preserves_entity(
+    test_user, personalApp: PersonalAppController
+):
     initial_diagram_data = DiagramData(
         people=[{"id": 10, "name": "Alice"}],
         pdp=PDP(delete=[10]),
@@ -1385,3 +1401,208 @@ def test_rejectCommittedDelete_preserves_entity(test_user, personalApp: Personal
     assert any(p["id"] == 10 for p in diagramData.people)
     assert diagramData.pdp.delete == []
     assert personalApp._undoStack.canUndo()
+
+
+# --- FD-338: rebuildDiagram ---
+
+
+def _rebuild_diagram(user_id=1):
+    return Diagram(
+        id=42,
+        user_id=user_id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(DiagramData(people=[{"id": 1, "name": "Alice"}]))),
+    )
+
+
+def test_rebuildDiagram_posts_correct_k(qApp):
+    controller = PersonalAppController()
+    controller._diagram = _rebuild_diagram()
+    controller._currentDiscussion = Discussion(id=7, user_id=1, diagram_id=42)
+    server = MagicMock()
+    server.nonBlockingRequest.return_value = MagicMock()
+
+    with patch.object(controller.session, "server", return_value=server):
+        controller.rebuildDiagram(8)
+
+    server.nonBlockingRequest.assert_called_once()
+    args, kwargs = server.nonBlockingRequest.call_args
+    assert args[0] == "POST"
+    assert args[1] == "/personal/discussions/7/deep-reextract"
+    assert kwargs["data"] == {"k": 8}
+
+
+def test_rebuildDiagram_posts_k4(qApp):
+    controller = PersonalAppController()
+    controller._diagram = _rebuild_diagram()
+    controller._currentDiscussion = Discussion(id=7, user_id=1, diagram_id=42)
+    server = MagicMock()
+    server.nonBlockingRequest.return_value = MagicMock()
+
+    with patch.object(controller.session, "server", return_value=server):
+        controller.rebuildDiagram(4)
+
+    args, kwargs = server.nonBlockingRequest.call_args
+    assert kwargs["data"] == {"k": 4}
+
+
+def test_rebuildDiagram_emits_extractStarted_and_rebuildProgress(qApp):
+    controller = PersonalAppController()
+    controller._diagram = _rebuild_diagram()
+    controller._currentDiscussion = Discussion(id=7, user_id=1, diagram_id=42)
+    started = util.Condition(controller.extractStarted)
+    progress = util.Condition(controller.rebuildProgress)
+
+    server = MagicMock()
+    server.nonBlockingRequest.return_value = MagicMock()
+
+    with patch.object(controller.session, "server", return_value=server):
+        controller.rebuildDiagram(8)
+
+    assert started.callCount == 1
+    assert progress.callCount >= 1
+    assert progress.callArgs[0][0] == 0  # first percent is 0
+
+
+def test_rebuildDiagram_no_discussion_emits_extractFailed(qApp):
+    controller = PersonalAppController()
+    controller._currentDiscussion = None
+    failed = util.Condition(controller.extractFailed)
+    controller.rebuildDiagram(8)
+    assert failed.callCount == 1
+
+
+def test_rebuildDiagram_no_diagram_emits_extractFailed(qApp):
+    controller = PersonalAppController()
+    controller._diagram = None
+    controller._currentDiscussion = Discussion(id=7, user_id=1, diagram_id=42)
+    failed = util.Condition(controller.extractFailed)
+    controller.rebuildDiagram(8)
+    assert failed.callCount == 1
+
+
+def _fake_poll_sequence(responses):
+    """Return a nonBlockingRequest side_effect that serves responses in order,
+    calling success with each dict in turn."""
+    call_index = {"i": 0}
+
+    def side_effect(verb, path, success=None, error=None, **kwargs):
+        i = call_index["i"]
+        call_index["i"] += 1
+        if i < len(responses):
+            success(responses[i])
+        return MagicMock()
+
+    return side_effect
+
+
+def test_pollRebuild_progress_to_complete_applies_pdp_and_emits_signals(qApp):
+    """_pollRebuild: progress→complete applies the PDP and emits pdpChanged+extractCompleted.
+    We call _pollRebuild directly to avoid the 1-second QTimer between polls."""
+    controller = PersonalAppController()
+    controller._diagram = _rebuild_diagram()
+    controller._currentDiscussion = Discussion(id=7, user_id=1, diagram_id=42)
+
+    rebuilt_pdp = PDP(people=[Person(id=-1, name="Bob")])
+    complete_response = {
+        "status": "complete",
+        "people_count": 1,
+        "events_count": 0,
+        "pair_bonds_count": 0,
+        "pdp": asdict(rebuilt_pdp),
+        "lcc_pct": 100,
+        "k": 6,
+    }
+    progress_response = {
+        "status": "progress",
+        "current": 3,
+        "total": 6,
+        "label": "Rebuild 3 of 6",
+    }
+
+    pdpChanged = util.Condition(controller.pdpChanged)
+    completed = util.Condition(controller.extractCompleted)
+    rebuildProgress = util.Condition(controller.rebuildProgress)
+
+    # Two poll calls: first returns progress, second returns complete.
+    call_index = {"i": 0}
+    responses = [progress_response, complete_response]
+
+    def fake_nbr(verb, path, success=None, error=None, **kwargs):
+        i = call_index["i"]
+        call_index["i"] += 1
+        if i < len(responses):
+            success(responses[i])
+        return MagicMock()
+
+    server = MagicMock()
+    server.nonBlockingRequest.side_effect = fake_nbr
+
+    with (
+        patch.object(controller.session, "server", return_value=server),
+        patch.object(controller._diagram, "save", return_value=True),
+    ):
+        # Call _pollRebuild directly; the progress handler schedules a QTimer for
+        # the second poll. Run event loop inside the mock context to fire the timer.
+        controller._pollRebuild(7, "task-abc")
+        # First poll fires synchronously: emits rebuildProgress(50, ...) and
+        # schedules QTimer(1000) for second poll.
+        assert rebuildProgress.callCount >= 1
+        progress_args = rebuildProgress.callArgs[0]
+        assert progress_args[0] == 50
+        assert progress_args[1] == "Rebuild 3 of 6"
+
+        # Wait for the 1-second timer to fire and complete the second poll.
+        assert completed.wait(maxMS=2000)
+        summary = completed.callArgs[0][0]
+        assert summary["people"] == 1
+        assert summary["events"] == 0
+        assert summary["pairBonds"] == 0
+
+        assert pdpChanged.callCount >= 1
+
+
+def test_pollRebuild_error_emits_extractFailed(qApp):
+    """_pollRebuild: error status emits extractFailed with the error message."""
+    controller = PersonalAppController()
+    failed = util.Condition(controller.extractFailed)
+
+    def fake_nbr(verb, path, success=None, error=None, **kwargs):
+        success({"status": "error", "error": "Model overload"})
+        return MagicMock()
+
+    server = MagicMock()
+    server.nonBlockingRequest.side_effect = fake_nbr
+
+    with patch.object(controller.session, "server", return_value=server):
+        controller._pollRebuild(7, "task-xyz")
+
+    assert failed.callCount == 1
+    assert "Model overload" in failed.callArgs[0][0]
+
+
+def test_canRebuild_false_without_discussion(qApp):
+    controller = PersonalAppController()
+    controller._currentDiscussion = None
+    assert controller.canRebuild is False
+
+
+def test_canRebuild_false_without_people(qApp):
+    controller = PersonalAppController()
+    controller._diagram = Diagram(
+        id=42,
+        user_id=1,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(DiagramData())),
+    )
+    controller._currentDiscussion = Discussion(id=7, user_id=1, diagram_id=42)
+    assert controller.canRebuild is False
+
+
+def test_canRebuild_true_with_people(qApp):
+    controller = PersonalAppController()
+    controller._diagram = _rebuild_diagram()
+    controller._currentDiscussion = Discussion(id=7, user_id=1, diagram_id=42)
+    assert controller.canRebuild is True
