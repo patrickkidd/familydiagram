@@ -1582,6 +1582,44 @@ def test_pollRebuild_error_emits_extractFailed(qApp):
     assert "Model overload" in failed.callArgs[0][0]
 
 
+def test_rebuild_watchdog_fails_when_progress_stalls(qApp):
+    """A crashed/killed worker never advances progress; the poller must fail
+    after REBUILD_STALL_MS instead of spinning on a dead task forever."""
+    from pkdiagram.personal.personalappcontroller import REBUILD_STALL_MS
+
+    controller = PersonalAppController()
+    base = 1000
+    controller._rebuildLastProgressMs = base
+    failed = util.Condition(controller.extractFailed)
+
+    assert controller._rebuildStalled(base + REBUILD_STALL_MS - 1) is False
+    assert failed.callCount == 0
+    assert controller._rebuildStalled(base + REBUILD_STALL_MS + 1) is True
+    assert failed.callCount == 1
+    assert "stopped responding" in failed.callArgs[0][0]
+
+
+def test_cancelRebuild_stops_polling_posts_cancel_and_emits(qApp):
+    """Cancel stops the poll loop, tells the server to abort, and emits
+    rebuildCancelled so the overlay dismisses without an error dialog."""
+    controller = PersonalAppController()
+    controller._diagram = _rebuild_diagram()
+    controller._currentDiscussion = Discussion(id=7, user_id=1, diagram_id=42)
+    controller._rebuildTaskId = "task-abc"
+    cancelled = util.Condition(controller.rebuildCancelled)
+    server = MagicMock()
+    server.nonBlockingRequest.return_value = MagicMock()
+
+    with patch.object(controller.session, "server", return_value=server):
+        controller.cancelRebuild()
+
+    assert controller._rebuildCancelled is True
+    assert cancelled.callCount == 1
+    args, kwargs = server.nonBlockingRequest.call_args
+    assert args[0] == "POST"
+    assert "/deep-reextract/task-abc/cancel" in args[1]
+
+
 def test_canRebuild_false_without_discussion(qApp):
     controller = PersonalAppController()
     controller._currentDiscussion = None

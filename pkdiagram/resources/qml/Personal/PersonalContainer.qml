@@ -1106,7 +1106,7 @@ Page {
     }
 
     // TEMPORARY: remove this cost-confirmation dialog once a customer pricing model is added to the app.
-    property bool maxFidelity: true
+    property bool maxFidelity: false
     Popup {
         id: rebuildDialog
         objectName: "rebuildDialog"
@@ -1149,7 +1149,7 @@ Page {
 
             Text {
                 width: rebuildDialog.width - 40
-                text: "This re-runs the AI several times to reconstruct a more complete, better-connected diagram from your discussions. It costs Alaska Family Systems about $0.60 each time. Please check with patrick@alaskafamilysystems.com before continuing."
+                text: "This re-runs the AI several times to reconstruct a more complete, better-connected diagram from your discussions. It costs Alaska Family Systems about " + (root.maxFidelity ? "$0.60" : "$0.30") + " each time. Please check with patrick@alaskafamilysystems.com before continuing."
                 wrapMode: Text.WordWrap
                 font.pixelSize: 14
                 color: secondaryText

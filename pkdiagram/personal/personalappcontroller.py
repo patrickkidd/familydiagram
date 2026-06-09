@@ -40,7 +40,11 @@ from pkdiagram.pyqt import (
     QUndoStack,
     QVariant,
 )
-from PyQt5.QtCore import QLocale, QByteArray, QTimer
+from PyQt5.QtCore import QLocale, QByteArray, QTimer, QDateTime
+
+# Rebuild fails if no progress advance arrives within this window — catches a
+# crashed/killed worker or a lost task, which otherwise poll a dead task forever.
+REBUILD_STALL_MS = 180_000
 from pkdiagram.app import Session, Analytics
 from pkdiagram.personal.models import Discussion
 from pkdiagram.server_types import Diagram
@@ -75,6 +79,13 @@ class PersonalAppController(QObject):
     extractCompleted = pyqtSignal(QVariant, arguments=["summary"])
     extractFailed = pyqtSignal(str, arguments=["error"])
     rebuildProgress = pyqtSignal(int, str, arguments=["percent", "message"])
+    rebuildCancelled = pyqtSignal()
+
+    # Rebuild watchdog/cancel state (set live by rebuildDiagram); 0 = inactive.
+    _rebuildLastProgressMs = 0
+    _rebuildPrevCurrent = -1
+    _rebuildTaskId = ""
+    _rebuildCancelled = False
 
     ttsPlayingIndexChanged = pyqtSignal()
     ttsFinished = pyqtSignal()
@@ -1848,6 +1859,14 @@ class PersonalAppController(QObject):
 
         discussionId = self._currentDiscussion.id
 
+        # Watchdog / cancel state for this run. A frozen task never advances,
+        # so the poller fails it after REBUILD_STALL_MS instead of spinning
+        # forever; cancel stops the poll loop and tells the server to abort.
+        self._rebuildLastProgressMs = QDateTime.currentMSecsSinceEpoch()
+        self._rebuildPrevCurrent = -1
+        self._rebuildCancelled = False
+        self._rebuildTaskId = ""
+
         # Set overlay to determinate mode at 0 before showing
         self.rebuildProgress.emit(0, "Starting rebuild...")
         self.extractStarted.emit()
@@ -1857,6 +1876,7 @@ class PersonalAppController(QObject):
             if not taskId:
                 self.extractFailed.emit("Server did not return a task ID")
                 return
+            self._rebuildTaskId = taskId
             self._pollRebuild(discussionId, taskId)
 
         def onError():
@@ -1874,13 +1894,21 @@ class PersonalAppController(QObject):
 
     def _pollRebuild(self, discussionId: int, taskId: str):
         def onSuccess(data):
+            if self._rebuildCancelled:
+                return
             status = data.get("status", "")
+            now = QDateTime.currentMSecsSinceEpoch()
             if status == "progress":
                 current = data.get("current", 0)
                 total = data.get("total", 1)
                 label = data.get("label", "Rebuilding...")
                 percent = round(current / total * 100) if total else 0
+                if current > self._rebuildPrevCurrent:
+                    self._rebuildPrevCurrent = current
+                    self._rebuildLastProgressMs = now
                 self.rebuildProgress.emit(percent, label)
+                if self._rebuildStalled(now):
+                    return
                 QTimer.singleShot(1000, lambda: self._pollRebuild(discussionId, taskId))
             elif status == "complete":
                 if self._diagram:
@@ -1910,7 +1938,9 @@ class PersonalAppController(QObject):
             elif status == "error":
                 self.extractFailed.emit(data.get("error", "Rebuild failed"))
             else:
-                # pending or unknown — keep polling
+                # pending or unknown — keep polling unless it has gone stale
+                if self._rebuildStalled(now):
+                    return
                 QTimer.singleShot(1000, lambda: self._pollRebuild(discussionId, taskId))
 
         def onError():
@@ -1925,3 +1955,41 @@ class PersonalAppController(QObject):
             headers={"Content-Type": "application/json", "Accept": "application/json"},
             from_root=True,
         )
+
+    def _rebuildStalled(self, now_ms: int) -> bool:
+        """True (and emits the failure) if no progress has advanced within
+        REBUILD_STALL_MS — i.e. the worker crashed/was killed or the task was
+        lost. Stops the poll loop so the overlay can't spin on a dead task."""
+        if self._rebuildLastProgressMs <= 0:
+            return False  # no rebuild active
+        if now_ms - self._rebuildLastProgressMs <= REBUILD_STALL_MS:
+            return False
+        self.extractFailed.emit(
+            "The rebuild stopped responding — the server may have crashed. "
+            "Please try again."
+        )
+        return True
+
+    @pyqtSlot()
+    def cancelRebuild(self):
+        """Stop polling, tell the server to abort the background task and release
+        the lock, and dismiss the overlay. Quitting the app has the same
+        server-side effect: polling stops, the heartbeat expires, and the worker
+        aborts the run on its own — so no orphaned rebuild keeps running."""
+        self._rebuildCancelled = True
+        taskId = self._rebuildTaskId
+        discussionId = self._currentDiscussion.id if self._currentDiscussion else None
+        if taskId and discussionId:
+            self.session.server().nonBlockingRequest(
+                "POST",
+                f"/personal/discussions/{discussionId}/deep-reextract/{taskId}/cancel",
+                data={},
+                error=lambda: None,
+                success=lambda d: None,
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
+                from_root=True,
+            )
+        self.rebuildCancelled.emit()
