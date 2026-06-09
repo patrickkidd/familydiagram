@@ -133,6 +133,7 @@ Page {
 
         // Discussion title (tappable dropdown) - only on Discuss tab
         Rectangle {
+            objectName: "discussionHeaderDropdown"
             anchors.centerIn: parent
             width: titleRow.width + 16
             height: 36
@@ -610,6 +611,7 @@ Page {
             }
 
             Rectangle {
+                objectName: "newDiscussionItem"
                 width: parent.width - 16
                 height: 44
                 radius: 8
@@ -1183,6 +1185,7 @@ Page {
                 }
 
                 Switch {
+                    objectName: "rebuildMaxFidelitySwitch"
                     anchors.right: parent.right
                     anchors.rightMargin: 8
                     anchors.verticalCenter: parent.verticalCenter
@@ -1198,6 +1201,7 @@ Page {
                 anchors.horizontalCenter: parent.horizontalCenter
 
                 Rectangle {
+                    objectName: "rebuildCancelButton"
                     width: (rebuildDialog.width - 50) / 2
                     height: 44
                     radius: 10
@@ -1215,6 +1219,7 @@ Page {
                 }
 
                 Rectangle {
+                    objectName: "rebuildContinueButton"
                     width: (rebuildDialog.width - 50) / 2
                     height: 44
                     radius: 10
