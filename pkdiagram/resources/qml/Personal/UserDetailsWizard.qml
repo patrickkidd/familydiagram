@@ -31,6 +31,8 @@ Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: bar.top
+        // Pre-fill from the account name (own diagram) so the user just confirms it.
+        Component.onCompleted: loadProfile(personalApp.userProfile)
     }
 
     Rectangle {

@@ -443,9 +443,29 @@ class PersonalAppController(QObject):
             self.appConfig.write()
         self.userProfileChanged.emit()
 
+    def _isOwnDiagram(self) -> bool:
+        """True iff the active scene is the user's own (free) diagram, where the
+        primary node IS the account holder. The account name is linked only here.
+        A loaded client file (other owned/shared diagram, e.g. a clinician's
+        client) is NOT own; nothing-loaded is the fresh Personal default scene,
+        which IS the user's own (their free diagram is created on first save)."""
+        user = self.session.user if self.session else None
+        if user is None or user.free_diagram_id is None:
+            return False
+        if self._diagram is None:
+            return True
+        return self._diagram.id == user.free_diagram_id
+
     @pyqtProperty("QVariantMap", notify=userProfileChanged)
     def userProfile(self) -> dict:
         person = self._primaryPerson()
+        name = person.name() if person else None
+        if not name and self._isOwnDiagram():
+            # On the user's own diagram, pre-fill from the account name (set at
+            # signup) so the average self-user just confirms it and adds a birth date.
+            user = self.session.user
+            return {"firstName": user.first_name or "", "lastName": user.last_name or "",
+                    "birthYear": "", "birthMonth": "", "birthDay": ""}
         if not person:
             return {"firstName": "", "lastName": "", "birthYear": "", "birthMonth": "", "birthDay": ""}
         birth = person.birthDateTime()
@@ -498,6 +518,13 @@ class PersonalAppController(QObject):
             self.scene.removeItem(birthEvent)
 
         self.saveDiagram()
+
+        # On the user's OWN (free) diagram the primary node is the account holder,
+        # so keep the account name in sync. Never touch the account from a client
+        # file (other owned/shared diagrams), whose node is a different person.
+        if self._isOwnDiagram():
+            self.session.updateName(firstName.strip(), lastName.strip())
+
         self.markProfilePrompted()
         self.userProfileChanged.emit()
         return True

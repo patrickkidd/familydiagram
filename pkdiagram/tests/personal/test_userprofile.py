@@ -18,6 +18,28 @@ pytestmark = [
 ]
 
 
+@pytest.fixture(autouse=True)
+def _stub_account_sync(monkeypatch):
+    """The account write-back (Session.updateName) hits the server. Stub it by
+    default so node-behavior tests stay offline; the dedicated link tests patch
+    it on the instance to assert the call."""
+    from pkdiagram.app.session import Session
+
+    monkeypatch.setattr(Session, "updateName", lambda self, f, l: True)
+
+
+def _give_client_diagram(personalApp, test_user):
+    """A diagram that is NOT the user's free diagram — e.g. a clinician's client
+    file. The account name must never be read from or written to here."""
+    personalApp._diagram = Diagram(
+        id=(test_user.free_diagram_id or 0) + 1000,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(asdict(DiagramData(pdp=PDP()))),
+    )
+
+
 def _give_diagram(personalApp, test_user):
     """Attach a server Diagram so saveDiagram() has something to write to; its
     save() is patched off in tests so no network happens."""
@@ -117,9 +139,22 @@ def test_userProfile_reads_back_primary(
     assert profile["birthDay"] == "3"
 
 
-def test_userProfile_empty_when_no_people(
+def test_userProfile_prefills_account_name_on_own_diagram(
     test_user, personalApp: PersonalAppController
 ):
+    """On the user's own (free) diagram with an unnamed primary, the profile
+    pre-fills from the account name set at signup."""
+    profile = personalApp.userProfile
+    assert profile["firstName"] == test_user.first_name
+    assert profile["lastName"] == test_user.last_name
+    assert profile["birthYear"] == ""
+
+
+def test_userProfile_does_not_prefill_on_client_diagram(
+    test_user, personalApp: PersonalAppController
+):
+    """A client file (not the free diagram) never pre-fills from the account."""
+    _give_client_diagram(personalApp, test_user)
     profile = personalApp.userProfile
     assert profile == {
         "firstName": "",
@@ -128,6 +163,31 @@ def test_userProfile_empty_when_no_people(
         "birthMonth": "",
         "birthDay": "",
     }
+
+
+def test_saveUserProfile_syncs_account_name_on_own_diagram(
+    test_user, personalApp: PersonalAppController
+):
+    """Saving on the free diagram writes the name back to the account."""
+    _give_diagram(personalApp, test_user)
+    with patch.object(personalApp, "saveDiagram"), patch.object(
+        personalApp.session, "updateName"
+    ) as updateName:
+        personalApp.saveUserProfile("Dana", "Reed", 0, 0, 0)
+    updateName.assert_called_once_with("Dana", "Reed")
+
+
+def test_saveUserProfile_does_not_sync_account_on_client_diagram(
+    test_user, personalApp: PersonalAppController
+):
+    """Saving on a client file must NOT touch the account name."""
+    _give_client_diagram(personalApp, test_user)
+    with patch.object(personalApp, "saveDiagram"), patch.object(
+        personalApp.session, "updateName"
+    ) as updateName:
+        personalApp.saveUserProfile("Client", "Person", 0, 0, 0)
+    updateName.assert_not_called()
+    assert personalApp._primaryPerson().name() == "Client"
 
 
 def test_primaryPerson_falls_back_when_none_marked(
@@ -243,6 +303,10 @@ def test_userDetailsForm_validates_on_first_name(qApp, test_session):
 
     form = _findChild(root, "userDetailsForm")
     assert form is not None, "wizard form did not mount"
+    # The wizard pre-fills the first name from the account; clear it to exercise
+    # the empty-name gate.
+    assert form.property("firstName") != ""
+    form.setProperty("firstName", "")
     assert form.property("valid") is False
     form.setProperty("firstName", "Patrick")
     assert form.property("valid") is True

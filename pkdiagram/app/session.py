@@ -417,6 +417,27 @@ class Session(QObject, QObjectHelper):
         if self._data and self._data["session"]["token"]:
             self.login(token=self._data["session"]["token"])
 
+    @pyqtSlot(str, str, result=bool)
+    def updateName(self, first_name: str, last_name: str) -> bool:
+        """Write the user's account name to the server, then re-pull the session
+        so userDict (e.g. the account drawer) reflects it. Used by the Personal
+        app profile wizard to keep the account name in sync with the user's own
+        (free) diagram node; the caller scopes this to the free diagram only."""
+        if not (self._data and self._user):
+            return False
+        args = {
+            "session": self.token,
+            "first_name": first_name,
+            "last_name": last_name,
+        }
+        try:
+            self.server().blockingRequest("POST", f"/users/{self._user.id}", data=args)
+        except HTTPError:
+            log.error("Session.updateName failed", exc_info=True)
+            return False
+        self.update()
+        return True
+
     def error(self, etype, value, tb):
         import traceback
         from pkdiagram.app import DatadogLog
