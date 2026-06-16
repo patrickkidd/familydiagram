@@ -45,6 +45,7 @@ Flickable {
         }
 
         Rectangle {
+            objectName: "accountEntry"
             width: parent.width - 32
             height: 60
             radius: 12
