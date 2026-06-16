@@ -190,6 +190,33 @@ def test_saveUserProfile_does_not_sync_account_on_client_diagram(
     assert personalApp._primaryPerson().name() == "Client"
 
 
+def test_saveUserProfile_clears_account_last_name(
+    test_user, personalApp: PersonalAppController
+):
+    """Clearing the last name propagates the empty value to the account so node
+    and account do not silently diverge."""
+    _give_diagram(personalApp, test_user)
+    with patch.object(personalApp, "saveDiagram"), patch.object(
+        personalApp.session, "updateName"
+    ) as updateName:
+        personalApp.saveUserProfile("Dana", "", 0, 0, 0)
+    updateName.assert_called_once_with("Dana", "")
+
+
+def test_userProfile_prefill_preserves_existing_birth(
+    test_user, personalApp: PersonalAppController
+):
+    """An unnamed primary that already carries a birth event keeps that date in
+    the account-prefill, so opening then saving the form does not wipe it."""
+    person = personalApp.scene.addItem(Person(primary=True))
+    personalApp.scene.addItem(
+        Event(EventKind.Birth, person=person, child=person, dateTime=util.Date(1990, 5, 20))
+    )
+    profile = personalApp.userProfile
+    assert profile["firstName"] == test_user.first_name
+    assert (profile["birthYear"], profile["birthMonth"], profile["birthDay"]) == ("1990", "5", "20")
+
+
 def test_primaryPerson_falls_back_when_none_marked(
     test_user, personalApp: PersonalAppController
 ):

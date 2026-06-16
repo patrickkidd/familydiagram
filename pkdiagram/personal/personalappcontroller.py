@@ -464,8 +464,14 @@ class PersonalAppController(QObject):
             # On the user's own diagram, pre-fill from the account name (set at
             # signup) so the average self-user just confirms it and adds a birth date.
             user = self.session.user
+            year, month, day = "", "", ""
+            if person:
+                birth = person.birthDateTime()
+                if birth and birth.isValid():
+                    d = birth.date()
+                    year, month, day = str(d.year()), str(d.month()), str(d.day())
             return {"firstName": user.first_name or "", "lastName": user.last_name or "",
-                    "birthYear": "", "birthMonth": "", "birthDay": ""}
+                    "birthYear": year, "birthMonth": month, "birthDay": day}
         if not person:
             return {"firstName": "", "lastName": "", "birthYear": "", "birthMonth": "", "birthDay": ""}
         birth = person.birthDateTime()

@@ -435,7 +435,17 @@ class Session(QObject, QObjectHelper):
         except HTTPError:
             log.error("Session.updateName failed", exc_info=True)
             return False
-        self.update()
+        # Refresh the local user/userDict from the submitted values instead of
+        # re-pulling the whole session: a transient re-pull failure would call
+        # setData(None) and log the user out as a side effect of a name save.
+        self._user.first_name = first_name
+        self._user.last_name = last_name
+        self._userDict = dataclasses.asdict(self._user)
+        if self._data and self._data.get("session"):
+            self._data["session"]["user"]["first_name"] = first_name
+            self._data["session"]["user"]["last_name"] = last_name
+        self.refreshAllProperties()
+        self.changed.emit(self._activeFeatures, self._activeFeatures)
         return True
 
     def error(self, etype, value, tb):
