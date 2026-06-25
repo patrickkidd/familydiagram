@@ -36,14 +36,14 @@ Prototype: `doc/ui-prototyping/5-Rebuild-Diagram/1-rebuild-A.qml`.
 - Content (Column, padding 20):
   - Title "Rebuild Diagram" (17px bold).
   - Body (14px secondary, wrapped, no exclamation points): explains it re-runs the
-    AI several times to reconstruct a more complete diagram, costs Alaska Family
-    Systems about $0.50 each time, and to check with
+    AI to reconstruct a more complete diagram, costs Alaska Family
+    Systems about $0.10 ($0.60 max fidelity) each time, and to check with
     patrick@alaskafamilysystems.com before continuing.
   - **Max-fidelity row** (rounded `QML_ITEM_ALTERNATE_BG`): label "Max fidelity"
-    + caption that flips with state ("Best accuracy, about $0.50" when ON /
-    "Faster, about $0.25" when OFF) and a `Switch`, default **checked = K=6**.
+    + caption that flips with state ("Best accuracy, about $0.60" when ON /
+    "Faster, about $0.10" when OFF) and a `Switch`, default **unchecked = K=1**.
   - Buttons row: "Cancel" (neutral) closes; "Continue" (accent) calls
-    `personalApp.rebuildDiagram(maxFidelity ? 6 : 4)` then closes.
+    `personalApp.rebuildDiagram(maxFidelity ? 8 : 1)` then closes.
 - **In-code comment** above the dialog: `TEMPORARY: remove this cost-confirmation
   dialog once a customer pricing model is added to the app.`
 
@@ -82,6 +82,6 @@ Prototype: `doc/ui-prototyping/5-Rebuild-Diagram/1-rebuild-A.qml`.
   machine handles progress→complete (PDP applied, signals emitted) and
   progress→error (extractFailed), with the server mocked.
 - Component test: rebuild button opens modal; Continue invokes
-  `rebuildDiagram(6)` by default and `rebuildDiagram(4)` when toggle off.
+  `rebuildDiagram(1)` by default and `rebuildDiagram(8)` when toggle on.
 - Note (rules I017): the Personal app has no person/event list view — any check
   of the *committed* result after accept must be done in the Pro app.

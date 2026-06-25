@@ -10,8 +10,10 @@ from btcopilot.schema import (
     EventKind,
     DiagramData,
     PDP,
+    Person as SchemaPerson,
     asdict,
     from_dict,
+    is_parents_edit,
     VariableShift,
     RelationshipKind,
     DateCertainty,
@@ -1152,6 +1154,16 @@ class PersonalAppController(QObject):
             from_root=True,
         )
 
+    @staticmethod
+    def _pdpDrained(diagramData: DiagramData) -> bool:
+        """Parents-only edit rows are the server-applied channel (applied by
+        commit-pdp on full accept), so they never block a full accept."""
+        return not (
+            any(not is_parents_edit(p) for p in diagramData.pdp.people)
+            or diagramData.pdp.events
+            or diagramData.pdp.pair_bonds
+        )
+
     def _doAcceptPDPItem(self, id: int) -> bool:
         _log.info(f"Accepting PDP item with id: {id}")
 
@@ -1184,11 +1196,7 @@ class PersonalAppController(QObject):
             committedItems["pair_bonds"] = [
                 pb for pb in diagramData.pair_bonds if pb["id"] not in prevPairBondIds
             ]
-            drained["v"] = not (
-                diagramData.pdp.people
-                or diagramData.pdp.events
-                or diagramData.pdp.pair_bonds
-            )
+            drained["v"] = self._pdpDrained(diagramData)
 
             return diagramData
 
@@ -1279,7 +1287,7 @@ class PersonalAppController(QObject):
     def _doHandleCommittedItem(self, id: int, accept: bool, undo: bool = True) -> bool:
         """Accept or reject a committed item (positive id in pdp.people or pdp.delete)."""
         prev_data = self._diagram.getDiagramData() if undo else None
-        result: dict = {"is_delete": False, "edit_fields": {}}
+        result: dict = {"is_delete": False, "edit_fields": {}, "drained": False}
 
         def applyChange(diagramData: DiagramData):
             if not diagramData.pdp:
@@ -1304,6 +1312,7 @@ class PersonalAppController(QObject):
                     diagramData.reject_committed_delete(id)
                 else:
                     diagramData.reject_committed_edit(id)
+            result["drained"] = self._pdpDrained(diagramData)
             return diagramData
 
         success = self._diagram.save(
@@ -1324,6 +1333,10 @@ class PersonalAppController(QObject):
                         if "gender" in result["edit_fields"]:
                             person.setGender(result["edit_fields"]["gender"])
             self.pdpChanged.emit()
+            if accept:
+                # The route acknowledges echoed positive ids as no-ops; the
+                # flag is what advances the cursor when this was the last card.
+                self._postCommitPdp([id], result["drained"])
             if undo and prev_data:
                 action = PDPAction.Accept if accept else PDPAction.Reject
                 self._undoStack.push(HandlePDPItem(action, self, id, prev_data))
@@ -1398,6 +1411,12 @@ class PersonalAppController(QObject):
         return {}
 
     # PDP helper slots - model lookups and enum mappings
+
+    @pyqtSlot("QVariantMap", result=bool)
+    def isParentsEdit(self, person: dict) -> bool:
+        """Parents-only rows render no card; PDPSheet and the badge count both
+        filter through this so they can't disagree."""
+        return is_parents_edit(from_dict(SchemaPerson, person))
 
     @pyqtSlot(int, result=str)
     @pyqtSlot("QVariant", result=str)
@@ -1559,7 +1578,9 @@ class PersonalAppController(QObject):
                     newIds.append(pair_bond.id)
 
             committedEdits = [
-                p for p in diagramData.pdp.people if p.id is not None and p.id > 0
+                p
+                for p in diagramData.pdp.people
+                if p.id is not None and p.id > 0 and not is_parents_edit(p)
             ]
             deleteIds = list(diagramData.pdp.delete or [])
 
@@ -1615,11 +1636,7 @@ class PersonalAppController(QObject):
                 for del_id in deleteIds:
                     diagramData.accept_committed_delete(del_id)
 
-                drained["v"] = not (
-                    diagramData.pdp.people
-                    or diagramData.pdp.events
-                    or diagramData.pdp.pair_bonds
-                )
+                drained["v"] = self._pdpDrained(diagramData)
                 return diagramData
 
             success = self._diagram.save(

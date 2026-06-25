@@ -57,8 +57,14 @@ Page {
                 // Every PDP entry is a reviewable pending change; the badge
                 // must match the card count in PDPSheet (people + pair bonds
                 // + events), or a non-empty PDP can show a "0" badge.
+                // Parents-only edit rows render no card (PDPSheet filter).
                 var count = 0
-                if (pdp.people) count += pdp.people.length
+                if (pdp.people) {
+                    for (var i = 0; i < pdp.people.length; i++) {
+                        if (!personalApp.isParentsEdit(pdp.people[i]))
+                            count += 1
+                    }
+                }
                 if (pdp.pair_bonds) count += pdp.pair_bonds.length
                 if (pdp.events) count += pdp.events.length
                 if (pdp.delete) count += pdp.delete.length
@@ -1149,7 +1155,7 @@ Page {
 
             Text {
                 width: rebuildDialog.width - 40
-                text: "This re-runs the AI several times to reconstruct a more complete, better-connected diagram from your discussions. It costs Alaska Family Systems about " + (root.maxFidelity ? "$0.60" : "$0.30") + " each time. Please check with patrick@alaskafamilysystems.com before continuing."
+                text: "This re-runs the AI to reconstruct a more complete, better-connected diagram from your discussions. It costs Alaska Family Systems about " + (root.maxFidelity ? "$0.60" : "$0.10") + " each time. Please check with patrick@alaskafamilysystems.com before continuing."
                 wrapMode: Text.WordWrap
                 font.pixelSize: 14
                 color: secondaryText
@@ -1178,7 +1184,7 @@ Page {
                         color: textColor
                     }
                     Text {
-                        text: root.maxFidelity ? "Best accuracy, about $0.60" : "Faster, about $0.30"
+                        text: root.maxFidelity ? "Best accuracy, about $0.60" : "Faster, about $0.10"
                         font.pixelSize: 11
                         color: secondaryText
                     }
@@ -1233,7 +1239,7 @@ Page {
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
-                            personalApp.rebuildDiagram(root.maxFidelity ? 8 : 4)
+                            personalApp.rebuildDiagram(root.maxFidelity ? 8 : 1)
                             rebuildDialog.close()
                         }
                     }

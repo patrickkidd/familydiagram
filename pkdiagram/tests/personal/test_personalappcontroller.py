@@ -1403,6 +1403,103 @@ def test_rejectCommittedDelete_preserves_entity(
     assert personalApp._undoStack.canUndo()
 
 
+# --- FD-338: parents-only edit rows are the server-applied channel ---
+
+
+def test_isParentsEdit_slot(personalApp: PersonalAppController):
+    assert personalApp.isParentsEdit({"id": 10, "parents": 30}) is True
+    assert (
+        personalApp.isParentsEdit({"id": 10, "name": "Alicia", "parents": 30}) is False
+    )
+    assert personalApp.isParentsEdit({"id": -1, "name": "Mom"}) is False
+
+
+def _diagram_with_pdp(test_user, pdp):
+    return Diagram(
+        id=1,
+        user_id=test_user.id,
+        access_rights=[],
+        created_at=datetime.utcnow(),
+        data=pickle.dumps(
+            asdict(DiagramData(people=[{"id": 10, "name": "Alice"}], pdp=pdp))
+        ),
+    )
+
+
+def test_acceptAll_excludes_parents_only_row(
+    test_user, personalApp: PersonalAppController
+):
+    """Parents-only rows are not user-reviewable: not applied client-side, not
+    echoed in item_ids, and don't block full_accept. The row stays staged for
+    the server to apply on full accept."""
+    personalApp._diagram = _diagram_with_pdp(
+        test_user,
+        PDP(people=[Person(id=-1, name="Mom"), Person(id=10, parents=30)]),
+    )
+    with (
+        patch.object(personalApp, "_addCommittedItemsToScene"),
+        patch.object(personalApp.clusterModel, "detect"),
+        patch.object(personalApp, "_postCommitPdp") as post,
+    ):
+        personalApp.acceptAllPDPItems()
+
+    post.assert_called_once_with([-1], True)
+    diagramData = personalApp._diagram.getDiagramData()
+    assert [p.id for p in diagramData.pdp.people] == [10]
+    alice = next(p for p in diagramData.people if p["id"] == 10)
+    assert alice.get("parents") is None  # application is the server's job
+
+
+def test_acceptPDPItem_last_negative_full_accept_with_parents_row_staged(
+    test_user, personalApp: PersonalAppController
+):
+    personalApp._diagram = _diagram_with_pdp(
+        test_user,
+        PDP(people=[Person(id=-1, name="Mom"), Person(id=10, parents=30)]),
+    )
+    with (
+        patch.object(personalApp, "_addCommittedItemsToScene"),
+        patch.object(personalApp, "_postCommitPdp") as post,
+    ):
+        personalApp._doAcceptPDPItem(-1)
+
+    post.assert_called_once_with([-1], True)
+
+
+def test_acceptAll_name_edit_row_still_echoed(
+    test_user, personalApp: PersonalAppController
+):
+    """FD-333 Update-card contract unchanged: rows with name/gender are
+    applied client-side and echoed in item_ids."""
+    personalApp._diagram = _diagram_with_pdp(
+        test_user, PDP(people=[Person(id=10, name="Alicia")])
+    )
+    with (
+        patch.object(personalApp, "_addCommittedItemsToScene"),
+        patch.object(personalApp.clusterModel, "detect"),
+        patch.object(personalApp, "_postCommitPdp") as post,
+    ):
+        personalApp.acceptAllPDPItems()
+
+    post.assert_called_once_with([10], True)
+    diagramData = personalApp._diagram.getDiagramData()
+    assert next(p for p in diagramData.people if p["id"] == 10)["name"] == "Alicia"
+
+
+def test_acceptCommittedEdit_posts_full_accept_when_last_card(
+    test_user, personalApp: PersonalAppController
+):
+    """Per-item review ending on an Update card must still advance the cursor:
+    accepting it POSTs commit-pdp with full_accept True."""
+    personalApp._diagram = _diagram_with_pdp(
+        test_user, PDP(people=[Person(id=10, name="Alicia")])
+    )
+    with patch.object(personalApp, "_postCommitPdp") as post:
+        assert personalApp.acceptCommittedEdit(10) is True
+
+    post.assert_called_once_with([10], True)
+
+
 # --- FD-338: rebuildDiagram ---
 
 
@@ -1433,7 +1530,7 @@ def test_rebuildDiagram_posts_correct_k(qApp):
     assert kwargs["data"] == {"k": 8}
 
 
-def test_rebuildDiagram_posts_k4(qApp):
+def test_rebuildDiagram_posts_k1(qApp):
     controller = PersonalAppController()
     controller._diagram = _rebuild_diagram()
     controller._currentDiscussion = Discussion(id=7, user_id=1, diagram_id=42)
@@ -1441,10 +1538,10 @@ def test_rebuildDiagram_posts_k4(qApp):
     server.nonBlockingRequest.return_value = MagicMock()
 
     with patch.object(controller.session, "server", return_value=server):
-        controller.rebuildDiagram(4)
+        controller.rebuildDiagram(1)
 
     args, kwargs = server.nonBlockingRequest.call_args
-    assert kwargs["data"] == {"k": 4}
+    assert kwargs["data"] == {"k": 1}
 
 
 def test_rebuildDiagram_emits_extractStarted_and_rebuildProgress(qApp):
