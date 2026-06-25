@@ -1270,7 +1270,10 @@ Page {
                 drawer.close()
                 session.logout()
             }
-            onAccountClicked: console.log("Open account settings")
+            onAccountClicked: {
+                drawer.close()
+                profilePopup.open()
+            }
             onDiagramClicked: function(diagram) {
                 drawer.close()
                 personalApp.loadDiagram(diagram.id)
@@ -1438,6 +1441,48 @@ Page {
         Personal.VoiceSettingsPage {
             anchors.fill: parent
             onBackClicked: voicePopup.close()
+        }
+    }
+
+    // Profile settings popup (FD-321) — opened from the AccountDrawer ACCOUNT entry
+    Popup {
+        id: profilePopup
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: root.width
+        height: root.height
+        modal: true
+        closePolicy: Popup.NoAutoClose
+        padding: 0
+        background: Rectangle { color: "transparent" }
+
+        enter: Transition {
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 150 }
+        }
+        exit: Transition {
+            NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 150 }
+        }
+
+        Personal.ProfileSettingsPage {
+            anchors.fill: parent
+            onBackClicked: profilePopup.close()
+        }
+    }
+
+    // First-launch user-details wizard (FD-321). Shown once when the
+    // profile-prompt pref is unset AND the primary node has no name. Save or
+    // Skip sets the pref so it never reappears.
+    Loader {
+        id: wizardLoader
+        anchors.fill: parent
+        active: session && session.loggedIn && personalApp && personalApp.shouldPromptProfile
+        z: 100
+
+        sourceComponent: Personal.UserDetailsWizard {
+            objectName: "userDetailsWizard"
+            safeAreaTop: root.safeAreaTop
+            safeAreaBottom: root.safeAreaBottom
+            onDone: wizardLoader.active = false
         }
     }
 

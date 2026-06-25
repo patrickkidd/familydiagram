@@ -374,6 +374,9 @@ class PersonalAppController(QObject):
             self.eventForm.setScene(scene)
         # Re-emit pdpChanged so committedPeople gets populated from the scene
         self.pdpChanged.emit()
+        # New scene -> the wizard gate and profile values depend on its primary
+        # node, so re-evaluate them (FD-321).
+        self.userProfileChanged.emit()
 
     def exec(self, mw):
         self.app.exec()
@@ -420,6 +423,131 @@ class PersonalAppController(QObject):
     @pyqtProperty(QObject, constant=True)
     def settings(self):
         return self._settings
+
+    # User profile (FD-321)
+
+    userProfileChanged = pyqtSignal()
+
+    def _primaryPerson(self) -> Person | None:
+        """The user's own node. The one marked primary, else a deterministic
+        fallback (lowest id) so a pre-existing diagram with no primary marked is
+        still editable. None only when the scene has no people."""
+        if not self.scene:
+            return None
+        primary = self.scene.query1(primary=True)
+        if primary is not None:
+            return primary
+        people = sorted(self.scene.people(), key=lambda p: p.id)
+        return people[0] if people else None
+
+    @pyqtProperty(bool, notify=userProfileChanged)
+    def shouldPromptProfile(self) -> bool:
+        """First-launch wizard gate: the prompt pref is unset AND the primary
+        node has no name. Either a completed save or an explicit skip sets the
+        pref, so the wizard never reappears."""
+        if self.appConfig.get("personalProfilePrompted"):
+            return False
+        person = self._primaryPerson()
+        return not (person and person.name())
+
+    @pyqtSlot()
+    def markProfilePrompted(self):
+        self.appConfig.set("personalProfilePrompted", True)
+        if self.appConfig.filePath:
+            self.appConfig.write()
+        self.userProfileChanged.emit()
+
+    def _isOwnDiagram(self) -> bool:
+        """True iff the active scene is the user's own (free) diagram, where the
+        primary node IS the account holder. The account name is linked only here.
+        A loaded client file (other owned/shared diagram, e.g. a clinician's
+        client) is NOT own; nothing-loaded is the fresh Personal default scene,
+        which IS the user's own (their free diagram is created on first save)."""
+        user = self.session.user if self.session else None
+        if user is None or user.free_diagram_id is None:
+            return False
+        if self._diagram is None:
+            return True
+        return self._diagram.id == user.free_diagram_id
+
+    @pyqtProperty("QVariantMap", notify=userProfileChanged)
+    def userProfile(self) -> dict:
+        person = self._primaryPerson()
+        name = person.name() if person else None
+        if not name and self._isOwnDiagram():
+            # On the user's own diagram, pre-fill from the account name (set at
+            # signup) so the average self-user just confirms it and adds a birth date.
+            user = self.session.user
+            year, month, day = "", "", ""
+            if person:
+                birth = person.birthDateTime()
+                if birth and birth.isValid():
+                    d = birth.date()
+                    year, month, day = str(d.year()), str(d.month()), str(d.day())
+            return {"firstName": user.first_name or "", "lastName": user.last_name or "",
+                    "birthYear": year, "birthMonth": month, "birthDay": day}
+        if not person:
+            return {"firstName": "", "lastName": "", "birthYear": "", "birthMonth": "", "birthDay": ""}
+        birth = person.birthDateTime()
+        if birth and birth.isValid():
+            d = birth.date()
+            year, month, day = str(d.year()), str(d.month()), str(d.day())
+        else:
+            year, month, day = "", "", ""
+        return {
+            "firstName": person.name() or "",
+            "lastName": person.lastName() or "",
+            "birthYear": year,
+            "birthMonth": month,
+            "birthDay": day,
+        }
+
+    @pyqtSlot(str, str, int, int, int, result=bool)
+    def saveUserProfile(
+        self, firstName: str, lastName: str, year: int, month: int, day: int
+    ) -> bool:
+        """Land name on the primary Person and birth date as a Birth event on
+        it, then persist via the normal save path. A primary person is created
+        if the diagram has none. Returns False if there is no scene to write to.
+        year<=0 means no birth date (the event is removed if one exists)."""
+        if not self.scene:
+            _log.warning("saveUserProfile called with no scene")
+            return False
+
+        person = self._primaryPerson()
+        if person is None:
+            person = Person(primary=True)
+            self.scene.addItem(person)
+        elif not person.primary():
+            person.setPrimary(True)
+
+        person.setName(firstName.strip() or None)
+        person.setLastName(lastName.strip() or None)
+
+        birthEvent = person.birthEvent()
+        if year > 0:
+            dateTime = util.Date(year, month, day)
+            if birthEvent is None:
+                # A person's own birth event keys on child(), so the subject is
+                # the child of the event (parents unknown -> no person/spouse).
+                birthEvent = Event(EventKind.Birth, person=person, child=person, dateTime=dateTime)
+                self.scene.addItem(birthEvent)
+            else:
+                birthEvent.setDateTime(dateTime)
+        elif birthEvent is not None:
+            self.scene.removeItem(birthEvent)
+
+        self.saveDiagram()
+
+        # On the user's OWN (free) diagram the primary node is the account holder,
+        # so keep the account name in sync. Never touch the account from a client
+        # file (other owned/shared diagrams), whose node is a different person.
+        if self._isOwnDiagram():
+            self.session.updateName(firstName.strip(), lastName.strip())
+
+        self.markProfilePrompted()
+        self.userProfileChanged.emit()
+        return True
 
     # Model selection
 
