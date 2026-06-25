@@ -57,8 +57,14 @@ Page {
                 // Every PDP entry is a reviewable pending change; the badge
                 // must match the card count in PDPSheet (people + pair bonds
                 // + events), or a non-empty PDP can show a "0" badge.
+                // Parents-only edit rows render no card (PDPSheet filter).
                 var count = 0
-                if (pdp.people) count += pdp.people.length
+                if (pdp.people) {
+                    for (var i = 0; i < pdp.people.length; i++) {
+                        if (!personalApp.isParentsEdit(pdp.people[i]))
+                            count += 1
+                    }
+                }
                 if (pdp.pair_bonds) count += pdp.pair_bonds.length
                 if (pdp.events) count += pdp.events.length
                 if (pdp.delete) count += pdp.delete.length
@@ -133,6 +139,7 @@ Page {
 
         // Discussion title (tappable dropdown) - only on Discuss tab
         Rectangle {
+            objectName: "discussionHeaderDropdown"
             anchors.centerIn: parent
             width: titleRow.width + 16
             height: 36
@@ -209,11 +216,11 @@ Page {
             visible: tabBar.currentIndex === 2
         }
 
-        // PDP Badge (Discuss tab, left of extract button)
+        // PDP Badge (Discuss tab, left of rebuild button if visible, else left of extract button)
         Rectangle {
             id: pdpBadge
             objectName: "pdpBadge"
-            anchors.right: extractButton.left
+            anchors.right: rebuildButton.visible ? rebuildButton.left : extractButton.left
             anchors.rightMargin: 8
             anchors.verticalCenter: parent.verticalCenter
             width: 28
@@ -232,6 +239,44 @@ Page {
             MouseArea {
                 anchors.fill: parent
                 onClicked: pdpSheet.open()
+            }
+        }
+
+        // Rebuild button (Discuss tab, when canRebuild — left of extract button)
+        Rectangle {
+            id: rebuildButton
+            objectName: "rebuildButton"
+            anchors.right: extractButton.left
+            anchors.rightMargin: 8
+            anchors.verticalCenter: parent.verticalCenter
+            width: 28
+            height: 28
+            radius: 14
+            color: util.IS_UI_DARK_MODE ? "#3A3938" : "#E9E9EB"
+            visible: tabBar.currentIndex === 0 && !!personalApp && personalApp.canRebuild
+            Canvas {
+                anchors.centerIn: parent
+                width: 16
+                height: 16
+                onPaint: {
+                    var ctx = getContext("2d")
+                    ctx.clearRect(0, 0, width, height)
+                    ctx.strokeStyle = textColor
+                    ctx.lineWidth = 1.5
+                    ctx.lineCap = "round"
+                    ctx.beginPath()
+                    ctx.arc(8, 8, 5.2, -0.6, 3.6)
+                    ctx.stroke()
+                    ctx.beginPath()
+                    ctx.moveTo(11.6, 3.2)
+                    ctx.lineTo(13.2, 5.2)
+                    ctx.lineTo(10.6, 5.6)
+                    ctx.stroke()
+                }
+            }
+            MouseArea {
+                anchors.fill: parent
+                onClicked: rebuildDialog.open()
             }
         }
 
@@ -572,6 +617,7 @@ Page {
             }
 
             Rectangle {
+                objectName: "newDiscussionItem"
                 width: parent.width - 16
                 height: 44
                 radius: 8
@@ -1060,6 +1106,143 @@ Page {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: clearDataDialog.close()
+                }
+            }
+        }
+    }
+
+    // TEMPORARY: remove this cost-confirmation dialog once a customer pricing model is added to the app.
+    property bool maxFidelity: false
+    Popup {
+        id: rebuildDialog
+        objectName: "rebuildDialog"
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: Math.min(root.width - 40, 340)
+        modal: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        padding: 0
+
+        background: Rectangle {
+            radius: 14
+            color: itemBg
+            border.width: 1
+            border.color: borderColor
+        }
+
+        enter: Transition {
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 150 }
+            NumberAnimation { property: "scale"; from: 0.9; to: 1; duration: 150; easing.type: Easing.OutBack }
+        }
+        exit: Transition {
+            NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 100 }
+        }
+
+        contentItem: Column {
+            spacing: 0
+            padding: 20
+            width: rebuildDialog.width
+
+            Text {
+                text: "Rebuild Diagram"
+                font.pixelSize: 17
+                font.bold: true
+                color: textColor
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+
+            Item { width: 1; height: 12 }
+
+            Text {
+                width: rebuildDialog.width - 40
+                text: "This re-runs the AI to reconstruct a more complete, better-connected diagram from your discussions. It costs Alaska Family Systems about " + (root.maxFidelity ? "$0.60" : "$0.10") + " each time. Please check with patrick@alaskafamilysystems.com before continuing."
+                wrapMode: Text.WordWrap
+                font.pixelSize: 14
+                color: secondaryText
+                horizontalAlignment: Text.AlignHCenter
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+
+            Item { width: 1; height: 18 }
+
+            Rectangle {
+                width: rebuildDialog.width - 40
+                height: 52
+                radius: 10
+                color: util.QML_ITEM_ALTERNATE_BG
+                anchors.horizontalCenter: parent.horizontalCenter
+
+                Column {
+                    anchors.left: parent.left
+                    anchors.leftMargin: 14
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 2
+
+                    Text {
+                        text: "Max fidelity"
+                        font.pixelSize: 15
+                        color: textColor
+                    }
+                    Text {
+                        text: root.maxFidelity ? "Best accuracy, about $0.60" : "Faster, about $0.10"
+                        font.pixelSize: 11
+                        color: secondaryText
+                    }
+                }
+
+                Switch {
+                    objectName: "rebuildMaxFidelitySwitch"
+                    anchors.right: parent.right
+                    anchors.rightMargin: 8
+                    anchors.verticalCenter: parent.verticalCenter
+                    checked: root.maxFidelity
+                    onToggled: root.maxFidelity = checked
+                }
+            }
+
+            Item { width: 1; height: 16 }
+
+            Row {
+                spacing: 10
+                anchors.horizontalCenter: parent.horizontalCenter
+
+                Rectangle {
+                    objectName: "rebuildCancelButton"
+                    width: (rebuildDialog.width - 50) / 2
+                    height: 44
+                    radius: 10
+                    color: util.QML_ITEM_ALTERNATE_BG
+                    Text {
+                        anchors.centerIn: parent
+                        text: "Cancel"
+                        font.pixelSize: 15
+                        color: textColor
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: rebuildDialog.close()
+                    }
+                }
+
+                Rectangle {
+                    objectName: "rebuildContinueButton"
+                    width: (rebuildDialog.width - 50) / 2
+                    height: 44
+                    radius: 10
+                    color: accentColor
+                    Text {
+                        anchors.centerIn: parent
+                        text: "Continue"
+                        font.pixelSize: 15
+                        color: "white"
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            personalApp.rebuildDiagram(root.maxFidelity ? 8 : 1)
+                            rebuildDialog.close()
+                        }
+                    }
                 }
             }
         }

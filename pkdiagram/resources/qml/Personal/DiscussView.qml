@@ -130,10 +130,18 @@ Page {
             }
         }
         function onExtractStarted() {
+            // progress may already be set to 0 by onRebuildProgress for the
+            // rebuild path; leave it as-is so the determinate bar is shown.
+            if (extractOverlay.progress < 0) {
+                extractOverlay.text = "Detecting data..."
+                extractOverlay.cancellable = false
+            }
             extractOverlay.visible = true
         }
         function onExtractCompleted(summary) {
             extractOverlay.visible = false
+            extractOverlay.progress = -1
+            extractOverlay.cancellable = false
             var total = (summary.people || 0) + (summary.events || 0) + (summary.pairBonds || 0)
             if (total > 0) {
                 pdpSheet.open()
@@ -145,7 +153,20 @@ Page {
         }
         function onExtractFailed(error) {
             extractOverlay.visible = false
+            extractOverlay.progress = -1
+            extractOverlay.cancellable = false
             util.criticalBox("Extraction Failed", error)
+        }
+        function onRebuildProgress(percent, message) {
+            extractOverlay.progress = percent
+            extractOverlay.text = message
+            extractOverlay.cancellable = true
+            extractOverlay.visible = true
+        }
+        function onRebuildCancelled() {
+            extractOverlay.visible = false
+            extractOverlay.progress = -1
+            extractOverlay.cancellable = false
         }
     }
 
@@ -757,5 +778,6 @@ Page {
         id: extractOverlay
         objectName: "extractOverlay"
         text: "Detecting data..."
+        onCancelClicked: personalApp.cancelRebuild()
     }
 }

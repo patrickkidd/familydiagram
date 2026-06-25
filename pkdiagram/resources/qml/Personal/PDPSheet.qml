@@ -68,7 +68,12 @@ Drawer {
         // is never empty when the PDP has content.
         if (pdp.people) {
             for (var i = 0; i < pdp.people.length; i++) {
-                var pid = pdp.people[i].id
+                var person = pdp.people[i]
+                var pid = person.id
+                // Parents-only edit rows are applied by the server on full
+                // accept, not reviewed as cards.
+                if (personalApp && personalApp.isParentsEdit(person))
+                    continue
                 itemsModel.append({
                     "itemType": pid > 0 ? "committed_edit" : "person",
                     "itemId": pid

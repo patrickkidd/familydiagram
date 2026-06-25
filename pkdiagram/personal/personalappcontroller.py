@@ -10,8 +10,10 @@ from btcopilot.schema import (
     EventKind,
     DiagramData,
     PDP,
+    Person as SchemaPerson,
     asdict,
     from_dict,
+    is_parents_edit,
     VariableShift,
     RelationshipKind,
     DateCertainty,
@@ -40,7 +42,11 @@ from pkdiagram.pyqt import (
     QUndoStack,
     QVariant,
 )
-from PyQt5.QtCore import QLocale, QByteArray
+from PyQt5.QtCore import QLocale, QByteArray, QTimer, QDateTime
+
+# Rebuild fails if no progress advance arrives within this window — catches a
+# crashed/killed worker or a lost task, which otherwise poll a dead task forever.
+REBUILD_STALL_MS = 180_000
 from pkdiagram.app import Session, Analytics
 from pkdiagram.personal.models import Discussion
 from pkdiagram.server_types import Diagram
@@ -74,6 +80,14 @@ class PersonalAppController(QObject):
     extractStarted = pyqtSignal()
     extractCompleted = pyqtSignal(QVariant, arguments=["summary"])
     extractFailed = pyqtSignal(str, arguments=["error"])
+    rebuildProgress = pyqtSignal(int, str, arguments=["percent", "message"])
+    rebuildCancelled = pyqtSignal()
+
+    # Rebuild watchdog/cancel state (set live by rebuildDiagram); 0 = inactive.
+    _rebuildLastProgressMs = 0
+    _rebuildPrevCurrent = -1
+    _rebuildTaskId = ""
+    _rebuildCancelled = False
 
     ttsPlayingIndexChanged = pyqtSignal()
     ttsFinished = pyqtSignal()
@@ -820,9 +834,6 @@ class PersonalAppController(QObject):
         self._pollTranscription(transcriptId, apiKey, filePath)
 
     def _pollTranscription(self, transcriptId: str, apiKey: str, filePath: str):
-        """Poll AssemblyAI for transcription completion."""
-        from PyQt5.QtCore import QTimer
-
         pollUrl = QUrl(f"https://api.assemblyai.com/v2/transcript/{transcriptId}")
         pollRequest = QNetworkRequest(pollUrl)
         pollRequest.setRawHeader(
@@ -841,9 +852,6 @@ class PersonalAppController(QObject):
         apiKey: str,
         filePath: str,
     ):
-        """Handle poll response; re-poll if still processing."""
-        from PyQt5.QtCore import QTimer
-
         error = reply.error()
         if error != QNetworkReply.NoError:
             errorMsg = reply.errorString()
@@ -1070,6 +1078,19 @@ class PersonalAppController(QObject):
         - partial accept / extract-without-accept: unchanged."""
         return bool(self._currentDiscussion) and self._dirty
 
+    @pyqtProperty(bool, notify=pdpChanged)
+    def canRebuild(self) -> bool:
+        """Rebuild button visibility. True when there is a current discussion
+        AND the diagram already has at least one person (something to rebuild
+        from). Independent of canExtract — a rebuild is valid even when the
+        conversation is fully extracted."""
+        if not self._currentDiscussion or not self._diagram:
+            return False
+        if self.scene and self.scene.people():
+            return True
+        diagramData = self._diagram.getDiagramData()
+        return bool(diagramData.people)
+
     @pyqtSlot()
     def createDiscussion(self):
         self._createDiscussion()
@@ -1188,7 +1209,9 @@ class PersonalAppController(QObject):
     @pyqtSlot(int, result=bool)
     def acceptPDPItem(self, id: int, undo=True):
         if id > 0:
-            return self._withSaveGuard(lambda: self._doHandleCommittedItem(id, accept=True, undo=undo))
+            return self._withSaveGuard(
+                lambda: self._doHandleCommittedItem(id, accept=True, undo=undo)
+            )
         if id == 0:
             _log.error(f"acceptPDPItem called with id 0, ignoring")
             return False
@@ -1208,7 +1231,9 @@ class PersonalAppController(QObject):
     @pyqtSlot(int, result=bool)
     def rejectPDPItem(self, id: int, undo=True):
         if id > 0:
-            return self._withSaveGuard(lambda: self._doHandleCommittedItem(id, accept=False, undo=undo))
+            return self._withSaveGuard(
+                lambda: self._doHandleCommittedItem(id, accept=False, undo=undo)
+            )
         if id == 0:
             _log.error(f"rejectPDPItem called with id 0, ignoring")
             return False
@@ -1257,6 +1282,16 @@ class PersonalAppController(QObject):
             from_root=True,
         )
 
+    @staticmethod
+    def _pdpDrained(diagramData: DiagramData) -> bool:
+        """Parents-only edit rows are the server-applied channel (applied by
+        commit-pdp on full accept), so they never block a full accept."""
+        return not (
+            any(not is_parents_edit(p) for p in diagramData.pdp.people)
+            or diagramData.pdp.events
+            or diagramData.pdp.pair_bonds
+        )
+
     def _doAcceptPDPItem(self, id: int) -> bool:
         _log.info(f"Accepting PDP item with id: {id}")
 
@@ -1289,11 +1324,7 @@ class PersonalAppController(QObject):
             committedItems["pair_bonds"] = [
                 pb for pb in diagramData.pair_bonds if pb["id"] not in prevPairBondIds
             ]
-            drained["v"] = not (
-                diagramData.pdp.people
-                or diagramData.pdp.events
-                or diagramData.pdp.pair_bonds
-            )
+            drained["v"] = self._pdpDrained(diagramData)
 
             return diagramData
 
@@ -1384,7 +1415,7 @@ class PersonalAppController(QObject):
     def _doHandleCommittedItem(self, id: int, accept: bool, undo: bool = True) -> bool:
         """Accept or reject a committed item (positive id in pdp.people or pdp.delete)."""
         prev_data = self._diagram.getDiagramData() if undo else None
-        result: dict = {"is_delete": False, "edit_fields": {}}
+        result: dict = {"is_delete": False, "edit_fields": {}, "drained": False}
 
         def applyChange(diagramData: DiagramData):
             if not diagramData.pdp:
@@ -1395,7 +1426,9 @@ class PersonalAppController(QObject):
                 if is_delete:
                     diagramData.accept_committed_delete(id)
                 else:
-                    pdp_person = next((p for p in diagramData.pdp.people if p.id == id), None)
+                    pdp_person = next(
+                        (p for p in diagramData.pdp.people if p.id == id), None
+                    )
                     if pdp_person is not None:
                         if pdp_person.name is not None:
                             result["edit_fields"]["name"] = pdp_person.name
@@ -1407,6 +1440,7 @@ class PersonalAppController(QObject):
                     diagramData.reject_committed_delete(id)
                 else:
                     diagramData.reject_committed_edit(id)
+            result["drained"] = self._pdpDrained(diagramData)
             return diagramData
 
         success = self._diagram.save(
@@ -1427,6 +1461,10 @@ class PersonalAppController(QObject):
                         if "gender" in result["edit_fields"]:
                             person.setGender(result["edit_fields"]["gender"])
             self.pdpChanged.emit()
+            if accept:
+                # The route acknowledges echoed positive ids as no-ops; the
+                # flag is what advances the cursor when this was the last card.
+                self._postCommitPdp([id], result["drained"])
             if undo and prev_data:
                 action = PDPAction.Accept if accept else PDPAction.Reject
                 self._undoStack.push(HandlePDPItem(action, self, id, prev_data))
@@ -1437,19 +1475,27 @@ class PersonalAppController(QObject):
 
     @pyqtSlot(int, result=bool)
     def acceptCommittedEdit(self, id: int) -> bool:
-        return bool(self._withSaveGuard(lambda: self._doHandleCommittedItem(id, accept=True)))
+        return bool(
+            self._withSaveGuard(lambda: self._doHandleCommittedItem(id, accept=True))
+        )
 
     @pyqtSlot(int, result=bool)
     def rejectCommittedEdit(self, id: int) -> bool:
-        return bool(self._withSaveGuard(lambda: self._doHandleCommittedItem(id, accept=False)))
+        return bool(
+            self._withSaveGuard(lambda: self._doHandleCommittedItem(id, accept=False))
+        )
 
     @pyqtSlot(int, result=bool)
     def acceptCommittedDelete(self, id: int) -> bool:
-        return bool(self._withSaveGuard(lambda: self._doHandleCommittedItem(id, accept=True)))
+        return bool(
+            self._withSaveGuard(lambda: self._doHandleCommittedItem(id, accept=True))
+        )
 
     @pyqtSlot(int, result=bool)
     def rejectCommittedDelete(self, id: int) -> bool:
-        return bool(self._withSaveGuard(lambda: self._doHandleCommittedItem(id, accept=False)))
+        return bool(
+            self._withSaveGuard(lambda: self._doHandleCommittedItem(id, accept=False))
+        )
 
     def _doRejectPDPItem(self, id: int) -> bool:
         _log.info(f"Rejecting PDP item with id: {id}")
@@ -1493,6 +1539,12 @@ class PersonalAppController(QObject):
         return {}
 
     # PDP helper slots - model lookups and enum mappings
+
+    @pyqtSlot("QVariantMap", result=bool)
+    def isParentsEdit(self, person: dict) -> bool:
+        """Parents-only rows render no card; PDPSheet and the badge count both
+        filter through this so they can't disagree."""
+        return is_parents_edit(from_dict(SchemaPerson, person))
 
     @pyqtSlot(int, result=str)
     @pyqtSlot("QVariant", result=str)
@@ -1653,14 +1705,20 @@ class PersonalAppController(QObject):
                 if pair_bond.id is not None and pair_bond.id < 0:
                     newIds.append(pair_bond.id)
 
-            committedEdits = [p for p in diagramData.pdp.people if p.id is not None and p.id > 0]
+            committedEdits = [
+                p
+                for p in diagramData.pdp.people
+                if p.id is not None and p.id > 0 and not is_parents_edit(p)
+            ]
             deleteIds = list(diagramData.pdp.delete or [])
 
             if not newIds and not committedEdits and not deleteIds:
                 self._postCommitPdp([], True)
                 return
 
-            _log.info(f"Accepting all PDP items: new={newIds}, edits={[p.id for p in committedEdits]}, deletes={deleteIds}")
+            _log.info(
+                f"Accepting all PDP items: new={newIds}, edits={[p.id for p in committedEdits]}, deletes={deleteIds}"
+            )
 
             newItems = {"people": [], "events": [], "pair_bonds": [], "emotions": []}
             editFields: dict[int, dict] = {}
@@ -1680,23 +1738,33 @@ class PersonalAppController(QObject):
                     prevEventIds = {e["id"] for e in diagramData.events}
                     prevPairBondIds = {pb["id"] for pb in diagramData.pair_bonds}
                     diagramData.commit_pdp_items(newIds)
-                    newItems["people"] = [p for p in diagramData.people if p["id"] not in prevPeopleIds]
-                    newItems["events"] = [e for e in diagramData.events if e["id"] not in prevEventIds]
-                    newItems["pair_bonds"] = [pb for pb in diagramData.pair_bonds if pb["id"] not in prevPairBondIds]
+                    newItems["people"] = [
+                        p for p in diagramData.people if p["id"] not in prevPeopleIds
+                    ]
+                    newItems["events"] = [
+                        e for e in diagramData.events if e["id"] not in prevEventIds
+                    ]
+                    newItems["pair_bonds"] = [
+                        pb
+                        for pb in diagramData.pair_bonds
+                        if pb["id"] not in prevPairBondIds
+                    ]
 
                 for pdp_person in committedEdits:
                     if pdp_person.name is not None:
-                        editFields.setdefault(pdp_person.id, {})["name"] = pdp_person.name
+                        editFields.setdefault(pdp_person.id, {})[
+                            "name"
+                        ] = pdp_person.name
                     if pdp_person.gender is not None:
-                        editFields.setdefault(pdp_person.id, {})["gender"] = pdp_person.gender
+                        editFields.setdefault(pdp_person.id, {})[
+                            "gender"
+                        ] = pdp_person.gender
                     diagramData.accept_committed_edit(pdp_person.id)
 
                 for del_id in deleteIds:
                     diagramData.accept_committed_delete(del_id)
 
-                drained["v"] = not (
-                    diagramData.pdp.people or diagramData.pdp.events or diagramData.pdp.pair_bonds
-                )
+                drained["v"] = self._pdpDrained(diagramData)
                 return diagramData
 
             success = self._diagram.save(
@@ -1922,3 +1990,151 @@ class PersonalAppController(QObject):
             headers={"Content-Type": "application/json", "Accept": "application/json"},
             from_root=True,
         )
+
+    ## Rebuild (deep re-extraction)
+
+    @pyqtSlot(int)
+    def rebuildDiagram(self, k: int):
+        if not self._currentDiscussion:
+            self.extractFailed.emit("No discussion selected")
+            return
+        if not self._diagram:
+            self.extractFailed.emit("No diagram loaded")
+            return
+
+        discussionId = self._currentDiscussion.id
+
+        # Watchdog / cancel state for this run. A frozen task never advances,
+        # so the poller fails it after REBUILD_STALL_MS instead of spinning
+        # forever; cancel stops the poll loop and tells the server to abort.
+        self._rebuildLastProgressMs = QDateTime.currentMSecsSinceEpoch()
+        self._rebuildPrevCurrent = -1
+        self._rebuildCancelled = False
+        self._rebuildTaskId = ""
+
+        # Set overlay to determinate mode at 0 before showing
+        self.rebuildProgress.emit(0, "Starting rebuild...")
+        self.extractStarted.emit()
+
+        def onSuccess(data):
+            taskId = data.get("task_id", "")
+            if not taskId:
+                self.extractFailed.emit("Server did not return a task ID")
+                return
+            self._rebuildTaskId = taskId
+            self._pollRebuild(discussionId, taskId)
+
+        def onError():
+            self.extractFailed.emit(reply.errorString())
+
+        reply = self.session.server().nonBlockingRequest(
+            "POST",
+            f"/personal/discussions/{discussionId}/deep-reextract",
+            data={"k": k},
+            error=onError,
+            success=onSuccess,
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            from_root=True,
+        )
+
+    def _pollRebuild(self, discussionId: int, taskId: str):
+        def onSuccess(data):
+            if self._rebuildCancelled:
+                return
+            status = data.get("status", "")
+            now = QDateTime.currentMSecsSinceEpoch()
+            if status == "progress":
+                current = data.get("current", 0)
+                total = data.get("total", 1)
+                label = data.get("label", "Rebuilding...")
+                percent = round(current / total * 100) if total else 0
+                if current > self._rebuildPrevCurrent:
+                    self._rebuildPrevCurrent = current
+                    self._rebuildLastProgressMs = now
+                self.rebuildProgress.emit(percent, label)
+                if self._rebuildStalled(now):
+                    return
+                QTimer.singleShot(1000, lambda: self._pollRebuild(discussionId, taskId))
+            elif status == "complete":
+                if self._diagram:
+                    rebuilt_pdp = from_dict(PDP, data["pdp"])
+
+                    def _do():
+                        def applyChange(diagramData: DiagramData):
+                            diagramData.pdp = rebuilt_pdp
+                            return diagramData
+
+                        self._diagram.save(
+                            self.session.server(),
+                            applyChange,
+                            lambda d: True,
+                            useJson=True,
+                        )
+
+                    self._withSaveGuard(_do)
+                self.pdpChanged.emit()
+                self.extractCompleted.emit(
+                    {
+                        "people": data.get("people_count", 0),
+                        "events": data.get("events_count", 0),
+                        "pairBonds": data.get("pair_bonds_count", 0),
+                    }
+                )
+            elif status == "error":
+                self.extractFailed.emit(data.get("error", "Rebuild failed"))
+            else:
+                # pending or unknown — keep polling unless it has gone stale
+                if self._rebuildStalled(now):
+                    return
+                QTimer.singleShot(1000, lambda: self._pollRebuild(discussionId, taskId))
+
+        def onError():
+            self.extractFailed.emit(pollReply.errorString())
+
+        pollReply = self.session.server().nonBlockingRequest(
+            "GET",
+            f"/personal/discussions/{discussionId}/deep-reextract-status/{taskId}",
+            data={},
+            error=onError,
+            success=onSuccess,
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            from_root=True,
+        )
+
+    def _rebuildStalled(self, now_ms: int) -> bool:
+        """True (and emits the failure) if no progress has advanced within
+        REBUILD_STALL_MS — i.e. the worker crashed/was killed or the task was
+        lost. Stops the poll loop so the overlay can't spin on a dead task."""
+        if self._rebuildLastProgressMs <= 0:
+            return False  # no rebuild active
+        if now_ms - self._rebuildLastProgressMs <= REBUILD_STALL_MS:
+            return False
+        self.extractFailed.emit(
+            "The rebuild stopped responding — the server may have crashed. "
+            "Please try again."
+        )
+        return True
+
+    @pyqtSlot()
+    def cancelRebuild(self):
+        """Stop polling, tell the server to abort the background task and release
+        the lock, and dismiss the overlay. Quitting the app has the same
+        server-side effect: polling stops, the heartbeat expires, and the worker
+        aborts the run on its own — so no orphaned rebuild keeps running."""
+        self._rebuildCancelled = True
+        taskId = self._rebuildTaskId
+        discussionId = self._currentDiscussion.id if self._currentDiscussion else None
+        if taskId and discussionId:
+            self.session.server().nonBlockingRequest(
+                "POST",
+                f"/personal/discussions/{discussionId}/deep-reextract/{taskId}/cancel",
+                data={},
+                error=lambda: None,
+                success=lambda d: None,
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
+                from_root=True,
+            )
+        self.rebuildCancelled.emit()
