@@ -1,0 +1,46 @@
+{
+  "captured_date": "2026-07-11",
+  "method": "instrumented pickle.Unpickler.find_class over a full load() of each fixture",
+  "note": "global_class_refs = every (module name) resolved via find_class during a real unpickle (only sip._unpickle_type). sip_unpickle_type_reconstructed = the (module typename) pairs passed to sip._unpickle_type -- Qt types are embedded as these string args, not as GLOBAL opcodes. PySide6 pickles Qt types differently; both fields are load-bearing for the migration.",
+  "fixtures": {
+    "pkdiagram/tests/data/v114a7_simplefamily.pickle": {
+      "size_bytes": 3867,
+      "sha256": "5e4eb3c1b291070c30422ea16036b6ae24008ed0f121d656d1e246845857e8a2",
+      "global_class_refs": [
+        "sip _unpickle_type"
+      ],
+      "sip_unpickle_type_reconstructed": [
+        "PyQt5.QtCore QDate",
+        "PyQt5.QtCore QPointF",
+        "PyQt5.QtCore QSize",
+        "PyQt5.QtGui QColor"
+      ]
+    },
+    "pkdiagram/tests/data/stale-refs.fd/diagram.pickle": {
+      "size_bytes": 80865,
+      "sha256": "1e49cfd46ef416d717a3abf623176947bb67c5a06d7729bec5a3a5e780e5f6de",
+      "global_class_refs": [
+        "sip _unpickle_type"
+      ],
+      "sip_unpickle_type_reconstructed": [
+        "PyQt5.QtCore QDate",
+        "PyQt5.QtCore QPointF",
+        "PyQt5.QtCore QSize",
+        "PyQt5.QtGui QColor"
+      ]
+    },
+    "pkdiagram/resources/Legend-Scene.fd/diagram.pickle": {
+      "size_bytes": 17668,
+      "sha256": "e3b21e86284080efc6eb424ec2e03c9ddab9b2e438cebfb059ee1d7bc655fd2f",
+      "global_class_refs": [
+        "sip _unpickle_type"
+      ],
+      "sip_unpickle_type_reconstructed": [
+        "PyQt5.QtCore QDate",
+        "PyQt5.QtCore QPointF",
+        "PyQt5.QtCore QSize",
+        "PyQt5.QtGui QColor"
+      ]
+    }
+  }
+}
