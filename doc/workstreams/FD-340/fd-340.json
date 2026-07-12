@@ -426,7 +426,7 @@
     "merge": {
       "status": "pending",
       "at": null,
-      "pr_url": null
+      "pr_url": "https://github.com/patrickkidd/familydiagram/pull/149"
     }
   },
   "gate_definitions_path": "doc/workstreams/gates/FD-340/gates.json",
@@ -509,6 +509,12 @@
       "entered": "2026-07-12",
       "exited": null,
       "note": "CORRECTION: bindings ask was rebind-not-delete (shiboken6, C++ kept) \u2014 proposal premise fixed; decisions 2,3 answered; 4 deferred pending format; unit paused by owner; flushing to draft PR"
+    },
+    {
+      "gate": "ground",
+      "entered": "2026-07-12",
+      "exited": null,
+      "note": "draft PR #149 opened (mechanical port + state flush); unit paused; suite baseline chunks still running, will land as follow-up commit"
     }
   ],
   "ticket_status_sync": {
