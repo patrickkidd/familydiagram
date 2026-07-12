@@ -1,0 +1,56 @@
+{
+  "ticket": "FD-340",
+  "title": "Port to PySide6",
+  "base_branch": "master",
+  "worktree": "/Users/patrick/worktrees/FD-340/familydiagram",
+  "branch": "FD-340",
+  "subfolder_namespaced": true,
+  "human_track_skip": {
+    "proposed": false,
+    "skip_question": null,
+    "human_answer": null,
+    "answer_bundled_with": null,
+    "confirmed_by_human": false
+  },
+  "state": "gate-ground",
+  "oracle": {
+    "path": null,
+    "committed": false,
+    "content_hash": null
+  },
+  "oracle_proposal": {
+    "depth": "team",
+    "note": "whole-app port: 170 files import the Qt shim, 456 PyQt-specific idioms, sip C++ extension, PyQt-only bundler (pyqtdeploy), 68 QML files, Qt5->Qt6 major version jump, universal-binary build requirement - highest blast radius in the repo",
+    "posted_to": null,
+    "proposed_criteria": [],
+    "pending_ratification": true,
+    "ratified_by_human": false,
+    "ratified_criteria": []
+  },
+  "criteria": [],
+  "gates": {
+    "ground": {"status": "active", "at": "2026-07-11T00:00:00-08:00", "artifact": null},
+    "build": {"status": "pending", "at": null, "artifact": null},
+    "validate": {
+      "agent_track": {"status": "pending", "at": null, "token": null},
+      "human_track": {"status": "pending", "at": null, "script": null}
+    },
+    "merge": {"status": "pending", "at": null, "pr_url": null}
+  },
+  "gate_definitions_path": "doc/workstreams/gates/FD-340/gates.json",
+  "handoff_path": "doc/workstreams/FD-340/fd-340-handoff.md",
+  "act_step_runs": [],
+  "findings": [],
+  "deferred_risk": [],
+  "history": [
+    {"gate": "ground", "entered": "2026-07-11T00:00:00-08:00", "exited": null, "note": "new unit opened on Patrick's 'ground it'; worktree created off master 9179ca3; Qt 6.8.3 universal install verified (x86_64+arm64) and bound per Patrick's mid-turn directive; origin clone carries 2 unrelated uncommitted Qt5-era build tweaks (not adopted; origin-clean guard flags them until Patrick resolves); adopt/branch-match/subfolder guards pass; adversarial team (6 lenses) dispatched"}
+  ],
+  "ticket_status_sync": {
+    "gate": "gate-ground",
+    "target_status": "In Progress",
+    "result": "synced",
+    "error": null,
+    "at": "2026-07-11T00:00:00-08:00"
+  },
+  "parked_on": "oracle ratification (adversarial proposal in progress)"
+}

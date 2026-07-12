@@ -1,0 +1,25 @@
+{
+  "_comment": "SEED rules installed into <worktree>/doc/workstreams/rules/ground.json on first ground. BASELINE machine-check rules every unit inherits (AC-3, AC-5). ground-oracle-ratified = the adversarial-oracle-pass invariant: before the oracle commits, the skill runs an adversarial sub-agent pass (depth scaled to blast radius, never skipped) that PROPOSES a richer criteria set + the real-system test grading each, posts it back to the ticket, and BLOCKS grounding until the human gives an explicit direct yes. Only the human-ratified set becomes the committed oracle; on an unattended run with no yes, grounding stays blocked. Per-unit corrections append/supersede here; the seed is never the whole list. The skill copies this file into the worktree if ground.json is absent, then merges any unit-specific rules already present.",
+  "rules": [
+    {
+      "id": "ground-oracle-ratified",
+      "category": "oracle",
+      "rule": "ADVERSARIAL ORACLE PASS — PROPOSE, NEVER AUTHOR; THE HUMAN RATIFIES (AC-3). On EVERY unit, before the oracle is committed, run an adversarial analysis that ATTACKS the unit to surface missing criteria — a sub-agent team plus any tools at hand, reading the ticket AND the surrounding code/docs/project context: what could break, what behavior the ticket names but the draft criteria miss, what adjacent contract it touches, what the headline feature implies must be proven. DEPTH scales to blast radius — a single critic for a trivial unit, a full debate team for a high-risk one — but the pass is NEVER skipped. Its output is (a) a RICHER proposed criteria set and (b) the test suite that would grade each criterion on the real system. The pass PROPOSES; it never authors the bar — the agent must never set the bar it is later graded against. Write the proposal back to the TICKET (the durable system of record) and record it in state under oracle_proposal with pending_ratification=true. Grounding then BLOCKS until the human gives an EXPLICIT direct yes ratifying the criteria set; never auto-adopt on an unattended run — no yes means grounding stays blocked and the oracle is not committed. Only the human-RATIFIED set (never the raw proposal) becomes the committed oracle that drives the machine-graded gate. This is mechanically gated, not remembered: before committing the oracle, run this check against the unit state file. A non-zero exit means the proposal is not yet human-ratified (or the pass never ran) — do NOT commit the oracle; keep grounding blocked until the human's direct yes is recorded in oracle_proposal.",
+      "check": "python3 ~/.claude/skills/workstream/bin/check_oracle_ratified.py {state_path}",
+      "check_artifact": "state_file",
+      "check_kind": "command_exit_zero",
+      "added": "2026-06-10",
+      "supersedes": null
+    },
+    {
+      "id": "ground-ticket-subfolder",
+      "category": "artifact-namespacing",
+      "rule": "PER-UNIT ARTIFACTS ARE NAMESPACED IN A PER-TICKET SUBFOLDER, NEVER FLAT (AC-13). Every directory the skill writes per-unit artifacts into — the status/rules dir, and each config-bound dir (oracle_dir, gate_definitions_dir, token_dir, the human-docs dir) — holds a PER-TICKET SUBFOLDER named for the unit's ticket id (the same token used for the branch and the canonical worktree), and the unit's files live INSIDE that subfolder, not loose alongside other units' files. A single flat dir shared by all units accrues hundreds of ticket-prefixed files across a multi-unit epic until it is unnavigable; one subfolder per ticket keeps each unit isolated and the parent dir a clean list of units. The parent dirs stay bound in workstream_config.json (AC-13 genericity: the skill names NO concrete path, mandates only the one-subfolder-per-ticket CONVENTION inside whatever dir is bound). SCOPE: applies only to units grounded AFTER this convention lands — an already-in-flight unit keeps its flat layout (no mid-run migration that could break a referee anchor or resume); a unit opts in by recording subfolder_namespaced=true in state at grounding, and the check is a no-op pass for any unit without that flag. This is mechanically gated: run this check against the unit state file; a non-zero exit means a recorded per-unit artifact sits flat in its bound dir instead of under that dir's ticket subfolder — write it under <bound-dir>/<ticket>/ and re-check. The check is a pure function of the recorded per-unit artifact paths in state and the bound dirs in workstream_config.json — never prose, never an LLM, never a hard-coded path.",
+      "check": "python3 ~/.claude/skills/workstream/bin/check_ticket_subfolder.py {state_path}",
+      "check_artifact": "state_file",
+      "check_kind": "command_exit_zero",
+      "added": "2026-06-18",
+      "supersedes": null
+    }
+  ]
+}

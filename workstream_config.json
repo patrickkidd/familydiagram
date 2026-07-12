@@ -1,0 +1,44 @@
+{
+  "base_branch": "master",
+  "worktree_root": "/Users/patrick/worktrees",
+  "worktree_layout": "<root>/<ticket>/<repo> (project convention, overrides skill canonical <root>/<repo>-<ticket>)",
+  "test_commands": {
+    "unit": "cd /Users/patrick/worktrees/FD-340/familydiagram && uv run pytest -x -q",
+    "integration": "cd /Users/patrick/worktrees/FD-340/familydiagram && uv run pytest -vv"
+  },
+  "e2e_harness": {
+    "what": "drive the real desktop app UI end-to-end as a human would (isolated sandbox state)",
+    "command": "familydiagram-testing MCP (get_app_state() first; headless=false for screenshots)",
+    "notes": "Real Qt app instance via MCP bridge. Read adrs/0002-ai-manual-testing-strategy-personal-app.md before authoring journeys. Production Flask on 8888 is user-managed - never touch; sandbox Flask on 8889 if backend needed.",
+    "subharnesses": {
+      "desktop_app": "familydiagram-testing MCP against the FD-340 worktree build",
+      "backend_api": "curl against sandbox Flask 8889"
+    }
+  },
+  "toolchain": {
+    "qt6_install": "/Users/patrick/dev/lib/Qt-6/6.8.3/macos",
+    "qt6_ios_install": "/Users/patrick/dev/lib/Qt-6/6.8.3/ios",
+    "requirement": "universal macOS binaries (x86_64 + arm64) - Intel builds still shipped; verified QtCore.framework is universal 2026-07-11"
+  },
+  "referee": {
+    "command": null,
+    "oracle_dir": "doc/workstreams/oracles",
+    "gate_definitions_dir": "doc/workstreams/gates",
+    "token_dir": "doc/workstreams/tokens",
+    "notes": "SETUP GAP inherited from FD-321: no referee implementation exists in this project. Agent-track closure is evidence-based until one lands. Flagged to Patrick at FD-340 focus turn 2026-07-11; decision pending."
+  },
+  "jira": {
+    "project": "FD",
+    "via": "REST v2/v3, basic auth patrick@alaskafamilysystems.com + ATLASSIAN_TOKEN from /Users/patrick/theapp/.env (extract with grep|cut, not source), site https://alaskafamilysystems.atlassian.net",
+    "gate_status_map": {
+      "ground": "In Progress",
+      "merge": "Done"
+    }
+  },
+  "pr_lookup": "gh pr list --repo patrickkidd/familydiagram --head {branch} --state open --json url --jq '.[].url'",
+  "protected_paths": [],
+  "human_docs": {
+    "dir": "doc/workstreams",
+    "convention": "*-human-*.md"
+  }
+}
