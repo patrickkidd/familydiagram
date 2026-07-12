@@ -21,21 +21,300 @@
   "oracle_proposal": {
     "depth": "team",
     "note": "whole-app port: 170 files import the Qt shim, 456 PyQt-specific idioms, sip C++ extension, PyQt-only bundler (pyqtdeploy), 68 QML files, Qt5->Qt6 major version jump, universal-binary build requirement - highest blast radius in the repo",
-    "posted_to": null,
-    "proposed_criteria": [],
+    "posted_to": "https://alaskafamilysystems.atlassian.net/browse/FD-340?focusedCommentId=10488",
+    "proposed_criteria": [
+      {
+        "id": "A1",
+        "text": "A .fd saved by the shipping PyQt5 build opens in the ported app with all people, events, dates, positions, layers, and property values intact, and survives an open-save-reopen round trip without value drift. The legacy fixtures (tests/data/v114a7_simplefamily.pickle, tests/data/stale-refs.fd, resources/Legend-Scene.fd) stay byte-committed as PyQt5-era pickles \u2014 a pickletools guard asserts they still reference PyQt5 globals, so regenerating them under PySide6 voids the test \u2014 and the shipped legend resource (itself a PyQt5-era pickle) loads through the same path.",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "pickle.loads raises ModuleNotFoundError: PyQt5, the scene opens empty/partial, any property differs after the round trip, a fixture no longer contains PyQt5 refs, or the legend renders blank.",
+        "grading_test": "uv run pytest pkdiagram/tests/scene/test_scene_read_write.py -k 'legacy or stale' \u2014 new/updated tests that (1) pickletools-assert fixtures still reference PyQt5.QtCore/QtGui, (2) Scene().read() them, (3) write+reload and diff the data dicts; plus MCP journey: open a stale-refs.fd copy, get_scene_items == baseline count recorded on the master build.",
+        "from_lenses": [
+          "python-api-port",
+          "test-harness",
+          "user-behavior"
+        ]
+      },
+      {
+        "id": "A2",
+        "text": "A diagram saved by the ported build unpickles fully in a clean subprocess with PyQt5 and pkdiagram blocked from import, and the fresh pickle bytes contain zero PyQt5 module references \u2014 enacting the owner's format decision (binding-free data vs translator) instead of silently emitting PySide6-namespaced pickles old clients cannot read.",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "Subprocess exits nonzero (ModuleNotFoundError/UnpicklingError), any value round-trips differently, or any PyQt5 global appears in newly written bytes.",
+        "grading_test": "uv run pytest pkdiagram/tests/scene/test_scene_read_write.py::test_pickle_unpickles_without_custom_modules with the BlockedImporter whitelist flipped to block PyQt5 (it whitelists PyQt5 today at ~line 380), plus python -m pickletools scan of a fresh save asserting no PyQt5 opcodes.",
+        "from_lenses": [
+          "python-api-port",
+          "user-behavior"
+        ]
+      },
+      {
+        "id": "A3",
+        "text": "Full .fd document round trip through the replacement document layer preserves the whole package: open a fixture containing People/ attachments, edit, save, reopen \u2014 diagram.pickle is updated, every pre-existing People/ attachment file survives, and the edit is visible after reopen (today only the native NSDocument fileWrapper merge preserves files not in the imported list).",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "Stale/missing diagram.pickle after save, any pre-existing People/ attachment dropped from the package, a partial/corrupt bundle after kill mid-save, or reopen shows pre-edit state.",
+        "grading_test": "MCP journey: open a fixture .fd with People/ attachments, add a person, save; shell: diff `find <doc>.fd` against the pre-save manifest + unpickle diagram.pickle asserting the new person; reopen via MCP and assert the person renders.",
+        "from_lenses": [
+          "native-extension"
+        ]
+      },
+      {
+        "id": "A4",
+        "text": "Server diagram sync round-trips through a real backend: create and save a diagram to the sandbox server from the ported app, download it in a fresh clean session with identical content, and the access-rights list populates (server payloads are raw pickles in both directions).",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "Upload rejected (4xx/5xx or MD5 mismatch), the downloaded diagram fails to open or differs from the uploaded one, or the access-rights view is empty when server data exists.",
+        "grading_test": "familydiagram-testing MCP journey against sandbox Flask 8889: get_app_state(), create diagram, save-to-server, relaunch with clean local state, download, assert content via get_app_state(); confirm the server-side row via curl to 8889.",
+        "from_lenses": [
+          "user-behavior"
+        ]
+      },
+      {
+        "id": "A5",
+        "text": "Exactly one Qt binding anywhere: a fresh no-cache install (including the btcopilot wheel from the private index, which pins PyQt5 today) yields PySide6 and zero PyQt5 distributions; a suite-level guard test asserts sys.modules holds PySide6 and not PyQt5 after app + pytest-qt import, with pytest-qt bound to the same API; and a repo grep gate finds no PyQt5/pyqtSignal/pyqtSlot/pyqtProperty references (the pyuic-generated *_form.py files included).",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "Any pyqt5/pyqt5-sip/pyqt5-qt5 in the resolved env (the prior dual-Qt state produced the recorded Windows 0xC0000005 crash), PyQt5 in sys.modules during a suite run, pytest-qt API != the app's binding, or any grep hit.",
+        "grading_test": "python -m venv fresh && pip install -e '.[test]' --extra-index-url $TWINE_REPOSITORY_URL --no-cache-dir; pip list | grep -i pyqt outputs nothing; uv run pytest pkdiagram/tests -k binding_guard; grep -rE 'PyQt5|pyqt(Signal|Slot|Property)' pkdiagram --include='*.py' returns nothing.",
+        "from_lenses": [
+          "python-api-port",
+          "packaging-ci",
+          "test-harness"
+        ]
+      },
+      {
+        "id": "A6",
+        "text": "The ported app boots under PySide6/Qt 6.8.3 with a compiled Qt6-linked native _pkdiagram actually loaded \u2014 not a Python stub \u2014 the main window opens with its full menu/action set, the E2E test bridge answers, and the extension's semantics match golden values: OperatingSystem values behave as bit flags under &, and the geometry helpers (perpendicular/pointOnRay/distance/splineFromPoints/strokedPath) match PyQt5-build goldens within float tolerance.",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "ImportError/abort at launch, bridge connection refused (the bridge module itself uses the ported signal API), no native library mapped \u2014 the 16 `from _pkdiagram import` sites resolved to a stub \u2014 Qt5 linkage, missing menu actions after form regeneration, sequential enum values silently flipping OS_Mac/OS_iPhone gating, or any geometry helper diverging from goldens.",
+        "grading_test": "MCP get_app_state() confirms app + menu actions; bridge ping over TCP 9876; lsof -p <pid> | grep _pkdiagram and otool -L on that .so show Qt 6.8-only linkage; uv run pytest pkdiagram/tests -k 'cutil_enums or cutil_geometry' with a guard asserting _pkdiagram.__file__.endswith(('.so','.pyd')) \u2014 goldens captured from the current PyQt5 build before migration starts.",
+        "from_lenses": [
+          "native-extension",
+          "python-api-port",
+          "test-harness"
+        ]
+      },
+      {
+        "id": "A7",
+        "text": "No silent test loss: the worktree test environment resolves and collects at all (it fails uv workspace resolution today, so no baseline exists), and post-port per-file collected counts are >= the master baseline (1102 test functions across 111 files) with no file that collected >0 on master dropping to 0 \u2014 explicitly compensating for the CI runner treating 'no tests collected' (exit 5) as PASS \u2014 and the quarantine/deselect list does not grow.",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "uv resolution error, conftest ImportError, any file whose collected count drops to 0, total below the master baseline, or new quarantine/deselect entries.",
+        "grading_test": "cd worktree && uv run pytest --collect-only -q (exit 0) on master and on the branch; diff per-file counts via a checked-in script; assert the quarantine list in scripts/ci_run_tests_isolated.py is unchanged.",
+        "from_lenses": [
+          "test-harness"
+        ]
+      },
+      {
+        "id": "A8",
+        "text": "The Python<->QML bridge carries values, not just absence of exceptions, after the QVariant-less rewrite of the dynamic property factory (106 QVariant refs, every model property and QML method call): properties-drawer fields show real values and edits persist to the scene; QML method invocation returns declared values and never degrades to swallowed-RuntimeError None; and every indexed/overloaded signal connect delivers its payload (file-row click opens that file \u2014 str overload; slider drag delivers its int).",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "Blank/undefined drawer fields, 'not a function' or 'Unable to assign [undefined]' warnings, invoke returning None where a value is declared, or click/drag producing no state change \u2014 no traceback required to fail.",
+        "grading_test": "uv run pytest pkdiagram/tests/views pkdiagram/tests/models pkdiagram/tests/widgets (warnings-fail hook active, extended to method-resolution warnings); MCP journey: open diagram, edit person name in drawer, assert scene value via inspector; click a local-file row, assert the document view holds the opened scene.",
+        "from_lenses": [
+          "python-api-port",
+          "qml-qt6"
+        ]
+      },
+      {
+        "id": "A9",
+        "text": "QML integrity under Qt 6: all 66 QML files compile to Ready in a Qt 6.8 engine with the app's import paths \u2014 covering the 8 Loader-loaded files and 11 dynamic-creation sites that blank silently in-app \u2014 a customization-capable Controls style is explicitly pinned before any engine loads so the 26 chrome-overriding files render custom (not native) chrome, the 8 graphical-effect sites render non-blank after the Qt5Compat swap, and the timeline table lays out under Qt 6 TableView (all rows, no zero-width columns, no relayout spin).",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "Any Component.Error (missing QtGraphicalEffects/Controls.impl/Qt.labs.platform module), a native style at runtime or native chrome under customized controls, a blank effect region, combo boxes/tab bars failing to instantiate (private Controls.impl types), any timeline column at width 0, row count != event count, or relayout firing continuously.",
+        "grading_test": "New uv run pytest -k qml_compile iterating all 66 .qml through QQmlComponent asserting Ready; views suite with warnings-fail extended to customization warnings; MCP: open Account dialog, inspector asserts DropShadow exists visible + screenshot non-uniform shadow band; open 20+-event fixture, inspector reads timeline column widths (>0) and row count (==events); uv run pytest pkdiagram/tests/views/test_TimelineView.py.",
+        "from_lenses": [
+          "qml-qt6",
+          "test-harness",
+          "user-behavior"
+        ]
+      },
+      {
+        "id": "A10",
+        "text": "App-level OS integration survives the extension replacement, where a stub raises no error at all: Escape closes the active drawer app-wide, an external open of a .fd (Finder/`open` FileOpen event) and a familydiagram:// URL both reach the app, and creating/deleting a .fd in the documents folder while the app runs updates the file list without restart.",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "Escape no-ops (the native event filter is the only Escape handler), `open` produces no document load, the URL scheme never reaches the app, or the file list never updates (a stub returns an empty list and never emits) \u2014 all with zero errors anywhere.",
+        "grading_test": "MCP journey: open a drawer, inject Escape, assert closed in app state; shell `open /tmp/fixture.fd` and `open familydiagram://...`, assert the app received each within a timeout; with the docs path forced to a sandbox dir (existing test_filemanager.py pattern), shell-copy fixture.fd in (row appears) then delete (row gone).",
+        "from_lenses": [
+          "native-extension"
+        ]
+      },
+      {
+        "id": "A11",
+        "text": "Undo/redo integrity on the relocated Qt6 undo classes for the highest-stakes flows: drag a person then undo restores the exact prior position; delete a person with a marriage and events then undo restores every item and redo removes them again; and an add-undo-redo-save cycle reopened in a fresh app instance matches the saved state at every step.",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "Position drift after undo, any item missing or orphaned after undo of a delete, a save error, the reopened file differing from saved state, or a crash on redo.",
+        "grading_test": "uv run pytest pkdiagram/tests/commands -q under the new binding; MCP journey: add_person -> Ctrl+Z -> get_scene_items -> Ctrl+Shift+Z -> save -> close -> fresh TestInstance open_file -> get_scene_items; drag journey asserting exact position after undo.",
+        "from_lenses": [
+          "test-harness",
+          "user-behavior"
+        ]
+      },
+      {
+        "id": "A12",
+        "text": "Rendering and export are pixel-honest: primary persons paint the gender background fill (rect=male, ellipse=female), selecting an item paints the accent highlight stroke (both live only in native paint delegates that fail silently if stubbed), and PNG/PDF/JPG exports match Qt5-recorded pixel dimensions with substantial non-blank content (Qt6's always-on high-DPI silently changes the export math).",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "Scene-background color inside person symbols, no visible outline change on selection, a blank/uniform export, export dimensions differing from the Qt5 baseline for the same diagram, or an export exception dialog.",
+        "grading_test": "MCP journey: load fixture with primary male + female, screenshot, assert center-pixel fills differ from background; click a person, screenshot, assert new perimeter pixels; trigger PNG and PDF export; PIL one-liner compares PNG dims to a committed Qt5 baseline and counts non-transparent pixels; assert PDF page count >= 1.",
+        "from_lenses": [
+          "native-extension",
+          "user-behavior"
+        ]
+      },
+      {
+        "id": "A13",
+        "text": "Both CI pipelines run green with zero Qt5 toolchain remaining and packaged artifacts execute on clean VMs: PR tests pass on macOS and Windows with the extension rebuilt against Qt 6.8; a manually-dispatched skip-release Release run produces the DMG and Windows zip whose binaries launch (--version exit 0, startup-errors file written); the bundles ship every imported QML runtime module (Qt5Compat.GraphicalEffects, Controls + impl + pinned style, Qt.labs.platform, Shapes, QtQml.Models); and the Windows payload carries exactly one Qt generation.",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "Any job red; grep finds pyqtdeploy/PyQt5/qt@5/pyuic5 in either workflow; packaged binary nonzero exit or 0xC0000005 (the recorded dual-Qt crash); any QML module directory absent so the packaged app blanks where the dev run works \u2014 the dev-only-works failure mode.",
+        "grading_test": "gh workflow run release.yml -f skip_release=true; gh run watch asserts all four jobs 'success'; gh pr checks shows both test legs passing; grep -E 'pyqtdeploy|PyQt5|qt@5|5\\.15\\.2|pyuic5' .github/workflows/*.yml returns nothing; 7z l 'Family Diagram.zip' | grep -iE 'qt5|pyqt5' empty; find the .app bundle for Qt5Compat/labs/Shapes/impl module dirs, all present, then launch the packaged binary and MCP-verify the Account dialog renders.",
+        "from_lenses": [
+          "packaging-ci",
+          "qml-qt6"
+        ]
+      },
+      {
+        "id": "A14",
+        "text": "The shipped macOS app is universal and can reach the server: every Mach-O inside the release DMG (main executable, embedded Python, Qt frameworks, the compiled extension, every dylib) is fat x86_64+arm64 (the current pipeline is Intel-only with zero arch handling), the Qt TLS backend plugins are bundled (the binding shim aborts at import without SSL \u2014 a failure only the packaged artifact can hit), and the bundle launches to the main window and completes a live HTTPS login natively and under forced x86_64.",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "Any Mach-O reporting a single architecture, missing tls plugins, startup abort on the SSL assert, or login failing with a network/TLS error on either arch.",
+        "grading_test": "hdiutil attach the artifact; find the .app -type f -exec file + | grep Mach-O loop asserting `lipo -archs` == 'x86_64 arm64' with zero FAIL lines; ls the bundle's Qt plugins/tls dir; launch the bundle binary natively and via `arch -x86_64`, drive login through the MCP bridge or assert the session HTTP exchange completed.",
+        "from_lenses": [
+          "native-extension",
+          "packaging-ci",
+          "user-behavior"
+        ]
+      },
+      {
+        "id": "A15",
+        "text": "Personal-app voice capture is reimplemented on the Qt6 media API \u2014 the Qt5 recorder classes it uses today were removed, so this is a structural rewrite, not a rename: the controller imports cleanly and a record start/stop cycle produces a nonzero audio file on disk.",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "Controller import fails (recorder class undefined), record start raises, or the output file is absent/0 bytes (a lazily-patched no-op record button).",
+        "grading_test": "uv run pytest pkdiagram/tests/personal/test_personalappcontroller.py -k record asserting the output file exists and is nonzero (requires an audio input device on the runner \u2014 if CI has none, run locally and gate on the file assertion).",
+        "from_lenses": [
+          "python-api-port"
+        ]
+      },
+      {
+        "id": "H1",
+        "text": "An installed production Qt5 app updates itself into the first PySide6 build over Sparkle (macOS) and WinSparkle (Windows): update offered from a staging appcast, installed, and relaunched at the new version \u2014 and the installed release build carries frozen-bundle identity: no Debug menu, production server locked, bundle id set (bundle detection today is a pyqtdeploy-injected module every replacement bundler drops, and every existing CI smoke stays green with it broken).",
+        "track": "human",
+        "harness_drivable": false,
+        "fault": "The new bundle omits Sparkle.framework (embedded today via a qmake include a non-qmake bundler never reads) or WinSparkle.dll, the appcast entry is rejected on signature/version keys, the updated app fails to launch \u2014 stranding the entire installed base on the last Qt5 build with no error in CI, which only tests fresh execution \u2014 or the Debug menu is visible in the release install.",
+        "grading_test": "Manual VM journey on both OSes: install the current production DMG/zip, point the update feed at a staging appcast referencing the PySide6 artifact, accept, verify the relaunched app's version; screenshot the menu bar (Debug absent) and compare against a from-source dev run (Debug present).",
+        "from_lenses": [
+          "native-extension",
+          "packaging-ci",
+          "user-behavior"
+        ]
+      },
+      {
+        "id": "H2",
+        "text": "The iOS target's fate is enacted, not implied: either a branch build of the ported app boots to its first screen in the iOS Simulator, or FD-340 records a dated owner descope before merge and the dead pyqtdeploy iOS build path stops presenting as a working path \u2014 iOS shipped fixes in two of the last five master commits and PySide6 publishes no production iOS wheels, so 'port everything' defaults to silently killing an actively shipped platform.",
+        "track": "human",
+        "harness_drivable": false,
+        "fault": "The branch merges with the iOS path intact but unbuildable and no recorded decision.",
+        "grading_test": "Run bin/build.sh ios and bin/run_ios_sim.sh on the branch and capture a simulator boot screenshot; failing that, assert a decision-log entry explicitly descoping iOS exists and is dated before merge.",
+        "from_lenses": [
+          "packaging-ci"
+        ]
+      },
+      {
+        "id": "H3",
+        "text": "Visual parity sign-off on real displays: the same diagram in the Qt5 master build and the ported build side-by-side on a retina and a non-retina/high-DPI display (Windows 150% scaling is the risk case), in light and dark mode \u2014 fonts, symbol shapes and line weights, toolbar placement (hand-tuned DPI workaround), legend, former graphical-effects, and the pinned Controls style across all major drawers judged on-brand and unregressed.",
+        "track": "human",
+        "harness_drivable": false,
+        "fault": "Patrick flags any garbled or native-chrome control, missing shadow/effect, font or scale drift, shifted/mis-hit toolbar, clipped label, wrong-scale legend, or blank region in either color scheme.",
+        "grading_test": "Patrick opens the same .fd in the master (Qt5) build and the FD-340 build on a retina MacBook and a non-retina/150%-scaled display, toggles light/dark, walks each major drawer, and approves or rejects; agent pre-captures matching screenshot sets from both builds via the bridge to anchor the comparison.",
+        "from_lenses": [
+          "python-api-port",
+          "qml-qt6",
+          "test-harness",
+          "user-behavior"
+        ]
+      }
+    ],
     "pending_ratification": true,
     "ratified_by_human": false,
-    "ratified_criteria": []
+    "ratified_criteria": [],
+    "headline_risks": [
+      "Every existing user diagram \u2014 on disk and on the shared server \u2014 is stored in a format tied to the old Qt binding; without an explicit migration or shim the ported app cannot open any existing data, and its saves are unreadable by clients that have not upgraded yet.",
+      "The compiled native module that owns document saving, OS event handling, and core drawing cannot load under the new binding, and the tempting stub-to-unblock move turns the entire test suite green while saving, painting, file watching, and Escape/file-open handling silently die \u2014 false-green is this port's default failure mode.",
+      "The release pipeline is built entirely on a packaging tool that only works with the old binding and no replacement has been chosen, so the port can pass every dev test while the product has no way to ship \u2014 and the first shipped build must carry the auto-update machinery intact or every installed user is stranded on the last Qt5 version permanently.",
+      "Three separate Qt6 changes each blank the UI without any error: a removed graphics-effects module used by the base controls, a new default control style that ignores the app's custom styling, and a removed bridge type underlying every editable field and model property.",
+      "iOS ships today and received fixes in two of the last five commits, but the new binding has no production iOS support \u2014 porting the shared code without an explicit decision silently kills the platform.",
+      "The Intel+Apple-Silicon universal requirement has zero build-system support and no architecture check anywhere, so a single-architecture build would ship green and crash only on the other CPU family in the field."
+    ],
+    "scope_questions": [
+      "Is iOS inside FD-340 \u2014 ported, explicitly deferred on a Qt5 maintenance branch, or killed \u2014 given the new binding has no production iOS story while iOS fixes shipped in two of the last five master commits?",
+      "Old-format strategy: does FD-340 migrate document/server serialization to binding-free plain-Python values, or ship an unpickle shim for PyQt5-era data (which also covers the shipped legend resource)?",
+      "Upgrade story: must saves from the new build stay readable by still-deployed Qt5 clients sharing the server (and does the backend itself ever unpickle them), and must on-disk prefs/login/license state survive in place \u2014 or is a coordinated cutover with one-time re-login accepted?",
+      "macOS document layer: rebind the native autosave/iCloud/version-browsing document stack, or move to the plain-file implementation and accept losing iCloud sync, autosave, and version browsing?",
+      "Which bundler replaces the PyQt-only release pipeline, and is landing it \u2014 including the new frozen-bundle marker with every bundle-gated behavior preserved \u2014 inside FD-340's definition of done or a separate ticket?",
+      "Must auto-update continuity (existing Sparkle/WinSparkle installs updating in place) and crash reporting survive into the first PySide6 release, or is a one-time manual re-download accepted?",
+      "Is a universal Intel+Apple-Silicon artifact required for the first release, and does Rosetta-forced Intel testing count as verification or is physical Intel hardware required?",
+      "Is Windows fully in scope (extension build, CI, packaging), and is the single-file exe shape a hard requirement \u2014 the new binding has no supported static freeze \u2014 or is a folder/installer artifact acceptable, with its update-flow implications?",
+      "Who flips and publishes the btcopilot dependency pin to the private index, and in what order relative to this merge, since its wheel currently forces the old binding into every install?",
+      "Which Qt6 controls style gets pinned \u2014 a customizable style preserving today's look, or the native style with rework of the 26 customized controls \u2014 and may the compat effects module and private control internals remain dependencies for this ticket?",
+      "For the speed-motivated native classes: is a pure-Python port acceptable if a large-diagram pan/zoom performance bar is met (and what is that bar), and does the port preserve or fix the known shape-getter bug today's behavior is calibrated against?",
+      "Voice recording requires a rewrite against the Qt6 capture stack \u2014 inside this ticket or split out?",
+      "Test-gate boundaries: do the flag-gated integration tests and the slow e2e suites count toward the pass gate, and may the quarantine/deselect list grow during the port?"
+    ],
+    "merge_notes": [
+      "Legacy-pickle criteria from three lenses merged into A1, keeping the strongest framing (fixture byte-guard via pickletools + MCP open journey); the shipped legend resource folded into A1's fault set.",
+      "Forward-format subprocess criteria (python-api-port, user-behavior) merged into A2 \u2014 identical grading test (flipped BlockedImporter + pickletools scan).",
+      "'Boots with compiled extension', 'E2E bridge alive', enum/geometry golden parity, and menu-set-present merged into A6 \u2014 one launch gate proves not-a-stub; the standalone pyside6-uic forms criterion dropped as covered by A5's repo grep (generated files) plus A6's boot/menus fault.",
+      "Env purity, single-binding runtime guard, pytest-qt API pin, and btcopilot-wheel clean resolution merged into A5 \u2014 one clean-install + guard-test + grep pipeline.",
+      "QVariant property-factory, QML slot invocation, invokeMethod None-degradation, and overloaded/indexed-signal criteria merged into A8 \u2014 one warnings-fail suite plus one drawer/click journey grades all four.",
+      "66-file QML compile, Controls style pinning, effects rendering, the 8-effect-view instantiation check, and Qt6 TableView layout merged into A9 under count pressure \u2014 compile harness + views suite + one MCP inspection; verified the counts against the worktree (66 .qml files, 8 QtGraphicalEffects importers; the '68' figure from the user-behavior lens was wrong).",
+      "Escape/FileOpen/URL-scheme and filesystem-watcher criteria (native-extension) merged into A10 \u2014 one OS-integration journey.",
+      "Paint-delegate pixel checks (native-extension) and export-dimension checks (user-behavior) merged into A12 \u2014 one screenshot+export journey.",
+      "Release workflow, Windows artifact shape/purity, PR CI conversion, and QML-modules-in-bundle merged into A13; universal-binary + TLS-login kept separate as A14 because they assert artifact content on disk, not job status.",
+      "Baseline-runnability ('worktree env resolves today') folded into A7's collection gate rather than kept as its own criterion.",
+      "Undo/redo journeys from test-harness and user-behavior lenses merged into A11 (superset of both step lists).",
+      "Sparkle 'check for updates works' subsumed by H1's stronger update-from-installed-build journey; the frozen-bundle Debug-menu identity check folded into the same install session (same VM, same eyes).",
+      "Four visual sign-off criteria (high-DPI parity, style sign-off, two render-parity checks) merged into H2 \u2014 one side-by-side session covers all.",
+      "Dropped: 'port the MCP bridge first' (sequencing advice \u2014 A6 already gates on the bridge answering); QML import-version normalization and copy-paste parity (housekeeping / feature-flagged off); 'legacy compat test authoring in scope?' (A1 makes it mandatory, not optional); 'may PyQt5 leave the lockfile?' (A5 makes removal the gate).",
+      "Human-track count trimmed to 3 by the H1 fold; final set is 15 agent + 3 human = 18, at the cap."
+    ]
   },
   "criteria": [],
   "gates": {
-    "ground": {"status": "active", "at": "2026-07-11T00:00:00-08:00", "artifact": null},
-    "build": {"status": "pending", "at": null, "artifact": null},
-    "validate": {
-      "agent_track": {"status": "pending", "at": null, "token": null},
-      "human_track": {"status": "pending", "at": null, "script": null}
+    "ground": {
+      "status": "active",
+      "at": "2026-07-11T00:00:00-08:00",
+      "artifact": null
     },
-    "merge": {"status": "pending", "at": null, "pr_url": null}
+    "build": {
+      "status": "pending",
+      "at": null,
+      "artifact": null
+    },
+    "validate": {
+      "agent_track": {
+        "status": "pending",
+        "at": null,
+        "token": null
+      },
+      "human_track": {
+        "status": "pending",
+        "at": null,
+        "script": null
+      }
+    },
+    "merge": {
+      "status": "pending",
+      "at": null,
+      "pr_url": null
+    }
   },
   "gate_definitions_path": "doc/workstreams/gates/FD-340/gates.json",
   "handoff_path": "doc/workstreams/FD-340/fd-340-handoff.md",
@@ -43,7 +322,12 @@
   "findings": [],
   "deferred_risk": [],
   "history": [
-    {"gate": "ground", "entered": "2026-07-11T00:00:00-08:00", "exited": null, "note": "new unit opened on Patrick's 'ground it'; worktree created off master 9179ca3; Qt 6.8.3 universal install verified (x86_64+arm64) and bound per Patrick's mid-turn directive; origin clone carries 2 unrelated uncommitted Qt5-era build tweaks (not adopted; origin-clean guard flags them until Patrick resolves); adopt/branch-match/subfolder guards pass; adversarial team (6 lenses) dispatched"}
+    {
+      "gate": "ground",
+      "entered": "2026-07-11T00:00:00-08:00",
+      "exited": null,
+      "note": "new unit opened on Patrick's 'ground it'; worktree created off master 9179ca3; Qt 6.8.3 universal install verified (x86_64+arm64) and bound per Patrick's mid-turn directive; origin clone carries 2 unrelated uncommitted Qt5-era build tweaks (not adopted; origin-clean guard flags them until Patrick resolves); adopt/branch-match/subfolder guards pass; adversarial team (6 lenses) dispatched"
+    }
   ],
   "ticket_status_sync": {
     "gate": "gate-ground",
@@ -52,5 +336,9 @@
     "error": null,
     "at": "2026-07-11T00:00:00-08:00"
   },
-  "parked_on": "oracle ratification (adversarial proposal in progress)"
+  "session_directives": [
+    "coordinator context is scarce: delegate all heavy reading/building to sub-agents/workflows; coordinator holds plan frame only",
+    "model budget: finish grounding under Fable, then STOP after oracle commit so Patrick can switch the session to Opus for the build gate \u2014 do not auto-advance into build under Fable"
+  ],
+  "parked_on": "Patrick: answer 13 scope questions + ratify the 18-criterion proposal (Jira comment 10488); then switch session Fable->Opus before build"
 }
