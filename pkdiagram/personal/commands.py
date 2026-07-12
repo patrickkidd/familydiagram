@@ -1,7 +1,7 @@
 import enum
 from copy import deepcopy
 
-from pkdiagram.pyqt import QUndoCommand
+from PySide6.QtGui import QUndoCommand
 from btcopilot.schema import DiagramData
 
 

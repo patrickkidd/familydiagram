@@ -1,6 +1,7 @@
 import pytest
 
-from pkdiagram.pyqt import QObject, QWidget, QVBoxLayout, QDateTime
+from PySide6.QtCore import QObject, QDateTime
+from PySide6.QtWidgets import QWidget, QVBoxLayout
 from pkdiagram import util
 from pkdiagram.scene import Item, Scene
 from pkdiagram.models import ModelHelper

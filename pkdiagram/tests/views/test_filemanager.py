@@ -6,7 +6,8 @@ import mock
 
 import btcopilot
 from _pkdiagram import CUtil
-from pkdiagram.pyqt import QApplication, QUrl
+from PySide6.QtCore import QUrl
+from PySide6.QtWidgets import QApplication
 from pkdiagram import util
 from pkdiagram.mainwindow import FileManager
 

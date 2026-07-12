@@ -2,7 +2,8 @@ import pickle
 import logging
 
 from btcopilot.schema import EventKind
-from pkdiagram.pyqt import pyqtSlot, pyqtSignal, QObject, QNetworkRequest, QNetworkReply
+from PySide6.QtCore import Slot, Signal, QObject
+from PySide6.QtNetwork import QNetworkRequest, QNetworkReply
 from pkdiagram import util
 from pkdiagram.server_types import HTTPError
 from pkdiagram.scene import Scene, Event
@@ -33,12 +34,12 @@ class CopilotEngine(QObject):
     Simply translates the UI into a REST request.
     """
 
-    requestSent = pyqtSignal(str)
-    responseReceived = pyqtSignal(
+    requestSent = Signal(str)
+    responseReceived = Signal(
         str, str, int, arguments=["response", "sources", "numSources"]
     )
-    serverError = pyqtSignal(str)
-    serverDown = pyqtSignal()
+    serverError = Signal(str)
+    serverDown = Signal()
 
     def __init__(self, session, searchModel):
         super().__init__()
@@ -49,7 +50,7 @@ class CopilotEngine(QObject):
     def setScene(self, scene):
         self._scene = scene
 
-    @pyqtSlot(str, bool)
+    @Slot(str, bool)
     def ask(self, question: str, includeTags: bool = None):
         self._ask(question, includeTags)
 

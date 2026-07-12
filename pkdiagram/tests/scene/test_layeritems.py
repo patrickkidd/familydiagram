@@ -1,6 +1,6 @@
 import pytest
 
-from pkdiagram.pyqt import QPointF, QRectF
+from PySide6.QtCore import QPointF, QRectF
 from pkdiagram import util
 from pkdiagram.scene import Scene, Layer, Callout, LayerLabel
 

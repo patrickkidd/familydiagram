@@ -4,7 +4,8 @@ import pytest
 import mock
 
 from btcopilot.schema import RelationshipKind, EventKind
-from pkdiagram.pyqt import Qt, QGraphicsView, QPointF, QDateTime, QMessageBox
+from PySide6.QtCore import Qt, QPointF, QDateTime
+from PySide6.QtWidgets import QGraphicsView, QMessageBox
 from pkdiagram import util
 from pkdiagram.scene import (
     Scene,
@@ -491,7 +492,7 @@ def test_remove_nuclear_family_with_MultipleBirth():
 
     scene.selectAll()
     with mock.patch(
-        "PyQt5.QtWidgets.QMessageBox.question", return_value=QMessageBox.Yes
+        "PySide6.QtWidgets.QMessageBox.question", return_value=QMessageBox.Yes
     ):
         scene.removeSelection()  # 1
     assert scene.find(types=PathItem) == []
@@ -520,7 +521,7 @@ def test_undo_remove_child_selected(scene):
     person2.setSelected(True)
 
     with mock.patch(
-        "PyQt5.QtWidgets.QMessageBox.question", return_value=QMessageBox.Yes
+        "PySide6.QtWidgets.QMessageBox.question", return_value=QMessageBox.Yes
     ):
         scene.removeSelection()
     scene.undo()

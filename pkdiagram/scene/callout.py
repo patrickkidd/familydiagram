@@ -1,21 +1,25 @@
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     Qt,
+    QRectF,
+    QLineF,
+    QMarginsF,
+    QEvent,
+    QSizeF,
+    QPointF,
+)
+from PySide6.QtGui import (
+    QPen,
+    QBrush,
+    QPainterPath,
+    QColor,
+    QFont,
+    QTextCursor,
+)
+from PySide6.QtWidgets import (
     QGraphicsEllipseItem,
     QGraphicsItem,
     QGraphicsView,
-    QRectF,
-    QPen,
-    QBrush,
     QGraphicsTextItem,
-    QPainterPath,
-    QLineF,
-    QMarginsF,
-    QColor,
-    QEvent,
-    QSizeF,
-    QFont,
-    QPointF,
-    QTextCursor,
 )
 from pkdiagram import util
 from pkdiagram.scene import LayerItem

@@ -1,6 +1,7 @@
 import logging
 
-from pkdiagram.pyqt import Qt, QObject, QModelIndex, QAbstractListModel, qmlRegisterType
+from PySide6.QtCore import Qt, QObject, QModelIndex, QAbstractListModel
+from PySide6.QtQml import qmlRegisterType
 from pkdiagram import util, scene
 from .modelhelper import ModelHelper
 

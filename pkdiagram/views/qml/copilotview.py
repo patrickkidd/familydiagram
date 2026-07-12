@@ -1,6 +1,7 @@
 import logging
 
-from pkdiagram.pyqt import QQuickItem, QApplication
+from PySide6.QtQuick import QQuickItem
+from PySide6.QtWidgets import QApplication
 from pkdiagram import util
 from pkdiagram.widgets import QmlWidgetHelper
 

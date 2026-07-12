@@ -1,7 +1,7 @@
 import pytest
 
 from btcopilot.schema import RelationshipKind
-from pkdiagram.pyqt import Qt
+from PySide6.QtCore import Qt
 from pkdiagram import util
 from pkdiagram.scene import Person, Marriage, Emotion, ItemMode
 from pkdiagram.documentview import RightDrawerView

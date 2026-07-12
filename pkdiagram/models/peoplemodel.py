@@ -1,16 +1,15 @@
 import logging
 
 
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     Qt,
-    pyqtSlot,
+    Slot,
     QAbstractListModel,
     QModelIndex,
     QVariant,
     QObject,
-    qmlRegisterType,
-    QQmlEngine,
 )
+from PySide6.QtQml import qmlRegisterType, QQmlEngine
 from pkdiagram import scene, scene, util
 from .modelhelper import ModelHelper
 
@@ -153,13 +152,13 @@ class PeopleModel(QAbstractListModel, ModelHelper):
                 )
             self.updateData()
 
-    @pyqtSlot(int, result=int)
+    @Slot(int, result=int)
     def idForRow(self, row):
         if row >= 0 and row < len(self._sortedIds):
             return self._sortedIds[row]
         return -1
 
-    @pyqtSlot(int, result=int)
+    @Slot(int, result=int)
     def rowForId(self, id):
         ret = None
         if not id in self._sortedIds:  # could be blank
@@ -168,7 +167,7 @@ class PeopleModel(QAbstractListModel, ModelHelper):
             ret = self._sortedIds.index(id)
         return ret
 
-    @pyqtSlot(int, result=QObject)
+    @Slot(int, result=QObject)
     def personForRow(self, row):
         if row < 0 or row >= len(self._sortedIds):
             return None

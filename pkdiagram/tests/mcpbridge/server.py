@@ -11,7 +11,8 @@ import socket
 import threading
 from typing import Optional, Dict, Any, Callable
 
-from pkdiagram.pyqt import QObject, QTimer, pyqtSignal, QApplication, Qt
+from PySide6.QtCore import QObject, QTimer, Signal, Qt
+from PySide6.QtWidgets import QApplication
 
 from .inspector import QtInspector
 
@@ -33,7 +34,7 @@ class TestBridgeServer(QObject):
     """
 
     # Signal to execute commands on the main thread
-    _executeOnMain = pyqtSignal(object, object)
+    _executeOnMain = Signal(object, object)
 
     def __init__(
         self,
@@ -334,7 +335,7 @@ class TestBridgeServer(QObject):
         if pos:
             pos = tuple(pos)
 
-        from pkdiagram.pyqt import Qt
+        from PySide6.QtCore import Qt
 
         button = command.get("button", "left")
         buttonMap = {
@@ -356,7 +357,7 @@ class TestBridgeServer(QObject):
         if pos:
             pos = tuple(pos)
 
-        from pkdiagram.pyqt import Qt
+        from PySide6.QtCore import Qt
 
         return self._inspector.doubleClick(objectName, Qt.LeftButton, pos)
 
@@ -371,7 +372,7 @@ class TestBridgeServer(QObject):
         if not startPos or not endPos:
             return {"success": False, "error": "Missing 'startPos' or 'endPos'"}
 
-        from pkdiagram.pyqt import Qt
+        from PySide6.QtCore import Qt
 
         button = command.get("button", "left")
         buttonMap = {
@@ -466,7 +467,7 @@ class TestBridgeServer(QObject):
         if not name:
             return {"success": False, "error": "Missing 'name'"}
 
-        from pkdiagram.pyqt import Qt
+        from PySide6.QtCore import Qt
 
         button = command.get("button", "left")
         buttonMap = {"left": Qt.LeftButton, "right": Qt.RightButton}

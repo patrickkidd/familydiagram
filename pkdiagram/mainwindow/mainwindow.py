@@ -1,54 +1,58 @@
 import os.path, sys, datetime, shutil, logging, atexit
 import pickle
 
-from PyQt5.QtCore import QT_VERSION_STR
+from PySide6.QtCore import QT_VERSION_STR
 
 import btcopilot
 from _pkdiagram import CUtil, FDDocument
-from pkdiagram.pyqt import (
-    pyqtSignal,
-    tr,
+from PySide6.QtCore import (
+    Signal,
     Qt,
-    QAction,
     QAbstractAnimation,
-    QAbstractButton,
-    QApplication,
-    QCheckBox,
     QCoreApplication,
     QDateTime,
-    QDesktopServices,
-    QDialog,
     QDir,
     QFile,
-    QFileDialog,
     QFileInfo,
-    QHBoxLayout,
-    QIcon,
-    QInputDialog,
     QIODevice,
-    QKeyEvent,
-    QLineEdit,
-    QMainWindow,
     QMargins,
-    QMessageBox,
-    QNetworkAccessManager,
-    QPalette,
-    QPixmap,
     QPoint,
     QPropertyAnimation,
     QStandardPaths,
     QTimer,
-    QTextEdit,
-    QPushButton,
-    QUndoView,
     QUrl,
-    QVBoxLayout,
     QSize,
     QEasingCurve,
     QEvent,
-    QQuickWidget,
+)
+from PySide6.QtGui import (
+    QAction,
+    QDesktopServices,
+    QIcon,
+    QKeyEvent,
+    QPalette,
+    QPixmap,
+)
+from PySide6.QtWidgets import (
+    QAbstractButton,
+    QApplication,
+    QCheckBox,
+    QDialog,
+    QFileDialog,
+    QHBoxLayout,
+    QInputDialog,
+    QLineEdit,
+    QMainWindow,
+    QMessageBox,
+    QTextEdit,
+    QPushButton,
+    QUndoView,
+    QVBoxLayout,
     QWidget,
 )
+from PySide6.QtNetwork import QNetworkAccessManager
+from PySide6.QtQuickWidgets import QQuickWidget
+from pkdiagram.pyqt import tr
 from pkdiagram import version, util
 from pkdiagram.server_types import Diagram, HTTPError
 from pkdiagram.serverblockallocator import ServerBlockAllocator
@@ -87,8 +91,8 @@ class MainWindow(QMainWindow):
         1000 * 60 * 30
     )  # 30 minutes; just enough for infrequent updates
 
-    documentChanged = pyqtSignal(FDDocument, FDDocument)
-    closed = pyqtSignal()  # for app.py
+    documentChanged = Signal(FDDocument, FDDocument)
+    closed = Signal()  # for app.py
 
     def __init__(self, appConfig, session):
         super().__init__()  # None, Qt.MaximizeUsingFullscreenGeometryHint)
@@ -126,7 +130,8 @@ class MainWindow(QMainWindow):
         self.fileStatuses = {}
 
         if util.ENABLE_OPENGL:  # ios should already be OpenGL
-            from pkdiagram.pyqt import QOpenGLWidget, QSurfaceFormat
+            from PySide6.QtOpenGLWidgets import QOpenGLWidget
+            from PySide6.QtGui import QSurfaceFormat
 
             self.ui.horizontalLayout = None
             self.ui.centralWidget = QOpenGLWidget(self)

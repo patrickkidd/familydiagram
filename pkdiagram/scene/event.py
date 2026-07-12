@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from btcopilot.schema import EventKind, RelationshipKind, VariableShift, DateCertainty
-from pkdiagram.pyqt import QDateTime
+from PySide6.QtCore import QDateTime
 from pkdiagram import util, slugify
 from pkdiagram.scene import Item, Property
 

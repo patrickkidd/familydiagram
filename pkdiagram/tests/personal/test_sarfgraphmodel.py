@@ -1,6 +1,6 @@
 import pytest
 from btcopilot.schema import EventKind, VariableShift
-from pkdiagram.pyqt import QDateTime, QDate
+from PySide6.QtCore import QDateTime, QDate
 from pkdiagram.scene import Scene, Person, Event
 from pkdiagram.personal.sarfgraphmodel import SARFGraphModel
 

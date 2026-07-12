@@ -8,12 +8,8 @@ import datetime
 import pytest
 import mock
 
-from pkdiagram.pyqt import (
-    QByteArray,
-    QNetworkReply,
-    QNetworkRequest,
-    QTimer,
-)
+from PySide6.QtCore import QByteArray, QTimer
+from PySide6.QtNetwork import QNetworkReply, QNetworkRequest
 from pkdiagram import util, version
 from pkdiagram.qnam import QNAM
 from pkdiagram.app import Analytics, DatadogLog, DatadogLogStatus

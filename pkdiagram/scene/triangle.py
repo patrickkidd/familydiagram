@@ -1,7 +1,8 @@
 import math
 from typing import TYPE_CHECKING
 
-from pkdiagram.pyqt import QPointF, QGraphicsItem
+from PySide6.QtCore import QPointF
+from PySide6.QtWidgets import QGraphicsItem
 from pkdiagram import util
 
 if TYPE_CHECKING:

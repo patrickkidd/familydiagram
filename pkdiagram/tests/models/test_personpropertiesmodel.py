@@ -2,7 +2,7 @@ import pytest
 import mock
 
 from btcopilot.schema import EventKind
-from pkdiagram.pyqt import Qt, QDateTime
+from PySide6.QtCore import Qt, QDateTime
 from pkdiagram.models import PersonPropertiesModel
 from pkdiagram.scene import Scene, Person
 

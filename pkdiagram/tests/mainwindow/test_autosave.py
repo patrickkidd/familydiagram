@@ -7,7 +7,7 @@ import pytest
 from unittest import mock
 
 from pkdiagram import util
-from pkdiagram.pyqt import QApplication
+from PySide6.QtWidgets import QApplication
 from pkdiagram.scene import Person, Scene
 from pkdiagram.mainwindow import MainWindow, AutoSaveManager
 

@@ -1,15 +1,14 @@
 import logging
 
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     Qt,
     QAbstractListModel,
     QObject,
     QModelIndex,
-    pyqtSlot,
-    QMessageBox,
-    QApplication,
-    qmlRegisterType,
+    Slot,
 )
+from PySide6.QtWidgets import QMessageBox, QApplication
+from PySide6.QtQml import qmlRegisterType
 from pkdiagram import util
 from .modelhelper import ModelHelper
 from pkdiagram.models import SearchModel
@@ -119,12 +118,12 @@ class TagsModel(QAbstractListModel, ModelHelper):
     def rowForTag(self, tag: str) -> int:
         return self._sceneTags.index(tag)
 
-    @pyqtSlot()
+    @Slot()
     def addTag(self):
         tag = util.newNameOf(self._sceneTags, tmpl=self.NEW_NAME_TMPL, key=lambda x: x)
         self._scene.addTag(tag)
 
-    @pyqtSlot(int)
+    @Slot(int)
     def removeTag(self, row):
         tag = self.data(self.index(row, 0))
         items = self._scene.find(tags=tag)
@@ -165,7 +164,7 @@ class TagsModel(QAbstractListModel, ModelHelper):
                 tags.append(tag)
         return tags
 
-    @pyqtSlot()
+    @Slot()
     def resetToSceneTags(self):
         if self._items:
             self._settingItemTags = True
@@ -182,13 +181,13 @@ class TagsModel(QAbstractListModel, ModelHelper):
             self.FlagsRole: b"flags",
         }
 
-    @pyqtSlot(result=int)
+    @Slot(result=int)
     def rowCount(self, index=QModelIndex()):
         if not self._scene:
             return 0
         return len(self._sceneTags)
 
-    @pyqtSlot(result=int)
+    @Slot(result=int)
     def columnCount(self, index=QModelIndex()):
         return 1
 

@@ -1,23 +1,23 @@
-from pkdiagram.pyqt import (
-    pyqtSignal,
+from PySide6.QtCore import (
+    Signal,
     Qt,
+    QSize,
+    QRect,
+    QMimeData,
+    QUrl,
+)
+from PySide6.QtGui import QPainter, QColor, QPen
+from PySide6.QtWidgets import (
     QTabWidget,
     QTabBar,
     QStatusBar,
     QPlainTextEdit,
     QStyleOption,
-    QSize,
-    QPainter,
-    QColor,
-    QRect,
-    QPen,
     QUndoView,
     QTableView,
     QListView,
     QListWidget,
     QTableWidget,
-    QMimeData,
-    QUrl,
     QWidget,
     QStyle,
 )
@@ -118,7 +118,7 @@ LayerItemProperties QTabBar::tab {
 
 class PlainTextEdit(QPlainTextEdit):
 
-    editingFinished = pyqtSignal()
+    editingFinished = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -165,7 +165,7 @@ class TableWidget(QTableWidget):
 
 class DocTableWidget(TableWidget):
 
-    deleteSelection = pyqtSignal()
+    deleteSelection = Signal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

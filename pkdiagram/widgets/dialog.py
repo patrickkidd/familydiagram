@@ -1,16 +1,14 @@
 import logging
-from pkdiagram.pyqt import (
-    QWidget,
-    QFrame,
+from PySide6.QtCore import (
     QPropertyAnimation,
     QPoint,
     QRect,
     QEvent,
     Qt,
-    QColor,
-    QPainter,
-    pyqtSignal,
+    Signal,
 )
+from PySide6.QtGui import QColor, QPainter
+from PySide6.QtWidgets import QWidget, QFrame
 from pkdiagram import util
 
 _log = logging.getLogger(__name__)
@@ -38,8 +36,8 @@ class Dialog(QFrame):
     Animate from the top of parent
     """
 
-    shown = pyqtSignal()
-    hidden = pyqtSignal()
+    shown = Signal()
+    hidden = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)

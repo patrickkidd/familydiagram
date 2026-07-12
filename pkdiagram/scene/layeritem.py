@@ -1,4 +1,6 @@
-from pkdiagram.pyqt import Qt, QGraphicsItem, QRectF, QColor, QPen, QAbstractAnimation
+from PySide6.QtCore import Qt, QRectF, QAbstractAnimation
+from PySide6.QtGui import QColor, QPen
+from PySide6.QtWidgets import QGraphicsItem
 from pkdiagram import util
 from .pathitem import PathItem
 

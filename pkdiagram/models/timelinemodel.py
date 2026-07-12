@@ -4,20 +4,19 @@ from dataclasses import dataclass
 # from sortedcontainers import SortedList
 from btcopilot.schema import EventKind, VariableShift, RelationshipKind
 from btcopilot import schema
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     Qt,
-    QApplication,
     QVariant,
     QAbstractTableModel,
     QItemSelectionModel,
-    QMessageBox,
     QDateTime,
     QModelIndex,
     QObject,
-    pyqtProperty,
-    pyqtSlot,
-    qmlRegisterType,
+    Property,
+    Slot,
 )
+from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtQml import qmlRegisterType
 from pkdiagram import util
 from pkdiagram.scene import Event, Property, Person
 from .modelhelper import ModelHelper
@@ -729,7 +728,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
 
     ## Accessors
 
-    @pyqtProperty(QAbstractTableModel, constant=True)
+    @Property(QAbstractTableModel, constant=True)
     def headerModel(self):
         return self._headerModel
 
@@ -762,13 +761,13 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
 
     ## Row Accessors
 
-    @pyqtSlot(int, result=int)
+    @Slot(int, result=int)
     def idForRow(self, row):
         item = self.itemForRow(row)
         if item:
             return item.id
 
-    @pyqtSlot(int, result=QVariant)
+    @Slot(int, result=QVariant)
     def itemForRow(self, row):
         if row >= 0 and row < len(self._rows):
             event = self._rows[row].event
@@ -781,7 +780,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                 return i
         return -1
 
-    @pyqtSlot(int, result=QVariant)
+    @Slot(int, result=QVariant)
     def eventForRow(self, row):
         if row >= 0 and row < len(self._rows):
             return self._rows[row].event
@@ -809,14 +808,14 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     def rowIndexFor(self, timelineRow: TimelineRow) -> int:
         return self._rows.index(timelineRow)
 
-    @pyqtSlot(int, result=QDateTime)
+    @Slot(int, result=QDateTime)
     def dateTimeForRow(self, row):
         if row >= 0 and row < len(self._rows):
             return self._rows[row].dateTime()
         else:
             return QDateTime()
 
-    @pyqtSlot(QDateTime, result="QVariantList")
+    @Slot(QDateTime, result="QVariantList")
     def firstAndLastRowsForDateTime(self, dateTime: QDateTime) -> list[int]:
         firstRow = -1
         lastRow = -1
@@ -829,7 +828,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
                 break
         return [firstRow, lastRow]
 
-    @pyqtSlot(QDateTime, result=int)
+    @Slot(QDateTime, result=int)
     def dateBetweenRow(self, date):
         """Return the row that the date falls right after if not right on.
         Return -1 if an exact match is found to optimize the TimelineView algorithm.
@@ -904,7 +903,7 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
 
     ## Mutations
 
-    @pyqtSlot(QItemSelectionModel)
+    @Slot(QItemSelectionModel)
     def removeSelection(self, selectionModel):
         """Convenience for lack of a qml API for QItemSelectionModel."""
         # Collect timeline rows (not just events) to distinguish start/end markers

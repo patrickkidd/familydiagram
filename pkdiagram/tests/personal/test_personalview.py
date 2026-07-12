@@ -1,7 +1,9 @@
 import pytest
 from mock import patch
 
-from pkdiagram.pyqt import QObject, pyqtSlot, QQuickWidget, QUrl, QQuickView
+from PySide6.QtCore import QObject, Slot, QUrl
+from PySide6.QtQuick import QQuickView
+from PySide6.QtQuickWidgets import QQuickWidget
 from pkdiagram.util import Condition
 from pkdiagram.personal import PersonalAppController
 from pkdiagram.personal.models import Discussion, Statement, Speaker, SpeakerType
@@ -14,7 +16,7 @@ class MockSession(QObject):
         super().__init__()
         self._isLoggedIn = isLoggedIn
 
-    @pyqtSlot(result=bool)
+    @Slot(result=bool)
     def isLoggedIn(self):
         return bool(self._isLoggedIn)
 

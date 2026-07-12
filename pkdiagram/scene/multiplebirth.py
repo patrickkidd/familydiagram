@@ -1,4 +1,6 @@
-from pkdiagram.pyqt import Qt, QPen, QPointF, QPainterPath, QRectF, QGraphicsItem
+from PySide6.QtCore import Qt, QPointF, QRectF
+from PySide6.QtGui import QPen, QPainterPath
+from PySide6.QtWidgets import QGraphicsItem
 from pkdiagram import util
 from .pathitem import PathItem
 from .childof import ChildOf

@@ -1,4 +1,5 @@
-from pkdiagram.pyqt import QMenuBar, QMenu, QAction, QKeySequence
+from PySide6.QtWidgets import QMenuBar, QMenu
+from PySide6.QtGui import QAction, QKeySequence
 
 
 class PersonalDevMenu:

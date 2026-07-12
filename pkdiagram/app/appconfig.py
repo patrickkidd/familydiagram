@@ -1,6 +1,6 @@
 import os.path, pickle, logging
 
-from pkdiagram.pyqt import QObject
+from PySide6.QtCore import QObject
 from pkdiagram import util, version
 
 

@@ -10,7 +10,7 @@ state from the object required to undo the underlying api call.
 
 import os, shutil, logging
 
-from pkdiagram.pyqt import QUndoCommand
+from PySide6.QtGui import QUndoCommand
 from pkdiagram.scene import (
     Event,
     Emotion,

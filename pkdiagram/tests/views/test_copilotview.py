@@ -10,7 +10,8 @@ from langchain_core.documents import Document
 # from pkdiagram.tests.models.test_copilotengine import copilot
 
 from btcopilot.pro.copilot import Engine, Response
-from pkdiagram.pyqt import QWidget, QUrl, QHBoxLayout, QTimer
+from PySide6.QtCore import QUrl, QTimer
+from PySide6.QtWidgets import QWidget, QHBoxLayout
 from pkdiagram import util
 from pkdiagram.views.qml import CopilotView
 from pkdiagram.widgets import QmlWidgetHelper

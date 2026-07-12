@@ -3,7 +3,7 @@ import logging
 
 import pytest
 
-from pkdiagram.pyqt import QMessageBox
+from PySide6.QtWidgets import QMessageBox
 
 
 log = logging.getLogger(__name__)

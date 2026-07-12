@@ -1,6 +1,7 @@
 import logging
 
-from pkdiagram.pyqt import Qt, QVBoxLayout, QSize
+from PySide6.QtCore import Qt, QSize
+from PySide6.QtWidgets import QVBoxLayout
 from pkdiagram.widgets import Dialog, QmlWidgetHelper
 
 _log = logging.getLogger(__name__)

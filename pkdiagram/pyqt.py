@@ -1,5 +1,5 @@
 """
-No dependencies allowed except PyQt5.
+No dependencies allowed except PySide6.
 """
 
 try:
@@ -11,34 +11,41 @@ except:
 
 
 import os
-from PyQt5.QtCore import *
-from PyQt5 import QtCore
+from PySide6.QtCore import *
+from PySide6 import QtCore
 
 try:
-    from PyQt5.QtGui import *
-    from PyQt5.QtWidgets import *
-    from PyQt5.QtNetwork import *
-    from PyQt5 import QtCore, QtGui, QtWidgets
+    from PySide6.QtGui import *
+    from PySide6.QtWidgets import *
+    from PySide6.QtNetwork import *
+    from PySide6 import QtCore, QtGui, QtWidgets
 except:
     pass
 
-from PyQt5.QtNetwork import QSslSocket
+from PySide6.QtNetwork import QSslSocket
 
 assert QSslSocket.supportsSsl() == True
 
 
 try:
-    from PyQt5.QtQuick import *
-    from PyQt5.QtQuickWidgets import *
-    from PyQt5.QtQml import *
+    from PySide6.QtQuick import *
+    from PySide6.QtQuickWidgets import *
+    from PySide6.QtQml import *
 except:
     pass
 
 if not IS_BUNDLE:
     try:
-        from PyQt5.QtTest import *
+        from PySide6.QtTest import *
     except:
         pass
+
+# Transitional aliases for files not yet ported off the old names (FD-340).
+# Deleted when this shim dies.
+pyqtSignal = Signal
+pyqtSlot = Slot
+pyqtProperty = Property
+pyqtBoundSignal = SignalInstance
 
 from _pkdiagram import CUtil
 
@@ -60,7 +67,7 @@ _OS_WINDOWS = (
 )
 
 if _OS_MAC or _OS_WINDOWS:
-    from PyQt5.QtPrintSupport import *
+    from PySide6.QtPrintSupport import *
 
 
 def tr(s):

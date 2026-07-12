@@ -3,7 +3,8 @@ import os, os.path, pickle
 import pytest
 
 from btcopilot.schema import EventKind, RelationshipKind
-from pkdiagram.pyqt import Qt, QGraphicsView, QPointF, QRectF, QDateTime
+from PySide6.QtCore import Qt, QPointF, QRectF, QDateTime
+from PySide6.QtWidgets import QGraphicsView
 from pkdiagram import util
 from pkdiagram.scene import (
     Person,

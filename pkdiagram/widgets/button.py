@@ -1,21 +1,15 @@
 import logging
 
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     Qt,
-    QPen,
     QFileInfo,
-    QPushButton,
-    QToolButton,
-    pyqtSignal,
-    QIcon,
-    QPixmap,
+    Signal,
     QSize,
-    QPainter,
-    QColor,
     QRect,
     QMargins,
-    QPalette,
 )
+from PySide6.QtGui import QPen, QIcon, QPixmap, QPainter, QColor, QPalette
+from PySide6.QtWidgets import QPushButton, QToolButton
 from pkdiagram import util
 
 _log = logging.getLogger(__name__)

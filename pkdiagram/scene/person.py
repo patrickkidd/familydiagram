@@ -3,26 +3,30 @@ from typing import Union
 
 from btcopilot.schema import RelationshipKind, EventKind, VariableShift
 from _pkdiagram import PersonDelegate
-from pkdiagram.pyqt import (
-    pyqtSignal,
-    pyqtSlot,
+from PySide6.QtCore import (
+    Signal,
+    Slot,
     Qt,
-    QColor,
-    QBrush,
-    QPen,
     QDateTime,
-    QGraphicsView,
     QRectF,
-    QGraphicsItem,
     QFileInfo,
-    QGraphicsSimpleTextItem,
-    QGraphicsPathItem,
-    QPainterPath,
     QMarginsF,
-    QFont,
     QVariantAnimation,
     QAbstractAnimation,
     QPointF,
+)
+from PySide6.QtGui import (
+    QColor,
+    QBrush,
+    QPen,
+    QPainterPath,
+    QFont,
+)
+from PySide6.QtWidgets import (
+    QGraphicsView,
+    QGraphicsItem,
+    QGraphicsSimpleTextItem,
+    QGraphicsPathItem,
 )
 from pkdiagram import util
 from pkdiagram.scene import (
@@ -271,7 +275,7 @@ class Person(PathItem):
     # eventAdded = pyqtSignal(Event)
     # eventRemoved = pyqtSignal(Event)
     # eventChanged = pyqtSignal(Property)
-    fileAdded = pyqtSignal(str)
+    fileAdded = Signal(str)
 
     ITEM_Z = util.PERSON_Z
 
@@ -459,7 +463,7 @@ class Person(PathItem):
                 ret += " (%s)" % self.nickName()
             return ret
 
-    @pyqtSlot(result=str)
+    @Slot(result=str)
     def fullNameOrAlias(self):
         ret = ""
         if self.scene() and self.scene().hideNames():
@@ -481,13 +485,13 @@ class Person(PathItem):
                 ret += "(%s)" % self.nickName()
         return ret
 
-    @pyqtSlot(str, result=bool)
+    @Slot(str, result=bool)
     def matchesName(self, searchText: str):
         selfText = self.fullNameOrAlias().lower()
         otherText = searchText.lower()
         return otherText in selfText
 
-    @pyqtSlot(result=str)
+    @Slot(result=str)
     def listLabel(self):
         """
         Some more richer label to help identify the person when there are
@@ -678,7 +682,7 @@ class Person(PathItem):
     def notesIconPos(self):
         return QPointF(0, self._notesIcon.boundingRect().height() * -0.5)
 
-    @pyqtSlot(result=str)
+    @Slot(result=str)
     def gender(self):
         return self.prop("gender").get()
 
@@ -1717,6 +1721,6 @@ class Person(PathItem):
         self.updateDetails()
 
 
-from PyQt5.QtQml import qmlRegisterType
+from PySide6.QtQml import qmlRegisterType
 
 qmlRegisterType(Person, "Person", 1, 0, "Person")

@@ -8,7 +8,8 @@ import pytest
 from sqlalchemy import inspect
 
 import btcopilot
-from pkdiagram.pyqt import QFileInfo, QMessageBox, Qt, QApplication
+from PySide6.QtCore import QFileInfo, Qt
+from PySide6.QtWidgets import QMessageBox, QApplication
 from pkdiagram import util
 from pkdiagram.scene import Scene, Person
 from pkdiagram.documentview import DocumentController

@@ -1,7 +1,7 @@
 import pytest
 
 from btcopilot.schema import RelationshipKind, EventKind
-from pkdiagram.pyqt import QPointF, QDateTime
+from PySide6.QtCore import QPointF, QDateTime
 from pkdiagram import util
 from pkdiagram.scene import Scene, Person, Emotion, Layer, ItemMode
 from pkdiagram.scene.emotions import Jig, FannedBox
@@ -648,7 +648,8 @@ def test_emotion_ignores_layers_for_event_based():
     ],
 )
 def test_drag_create_all_emotion_modes(qtbot, item_mode, expected_kind):
-    from pkdiagram.pyqt import Qt, QGraphicsView, QPointF
+    from PySide6.QtCore import Qt, QPointF
+    from PySide6.QtWidgets import QGraphicsView
 
     class View(QGraphicsView):
         def getVisibleSceneScaleRatio(self):
@@ -678,7 +679,8 @@ def test_drag_create_all_emotion_modes(qtbot, item_mode, expected_kind):
 
 
 def test_drag_create_cutoff_emotion(qtbot):
-    from pkdiagram.pyqt import Qt, QGraphicsView, QPointF
+    from PySide6.QtCore import Qt, QPointF
+    from PySide6.QtWidgets import QGraphicsView
 
     class View(QGraphicsView):
         def getVisibleSceneScaleRatio(self):

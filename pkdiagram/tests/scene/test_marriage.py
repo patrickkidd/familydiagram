@@ -5,7 +5,7 @@ from mock import patch
 
 from btcopilot.schema import EventKind
 from pkdiagram import util
-from pkdiagram.pyqt import QDateTime, Qt
+from PySide6.QtCore import QDateTime, Qt
 from pkdiagram.scene import Scene, Event, Person, Marriage
 
 

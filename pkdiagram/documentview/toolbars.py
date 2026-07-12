@@ -1,22 +1,26 @@
 import enum
 import logging
 
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     Qt,
-    QScrollArea,
-    QWidget,
-    QPainter,
     QSize,
-    QColor,
     QPoint,
-    QApplication,
+)
+from PySide6.QtGui import (
+    QPainter,
+    QColor,
     QImage,
     QPixmap,
-    QLabel,
     QTransform,
+    QAction,
+)
+from PySide6.QtWidgets import (
+    QScrollArea,
+    QWidget,
+    QApplication,
+    QLabel,
     QSlider,
     QHBoxLayout,
-    QAction,
     QMenu,
     QWidgetAction,
 )

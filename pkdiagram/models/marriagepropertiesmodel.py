@@ -1,7 +1,8 @@
 from typing import Union
 
 from btcopilot.schema import EventKind
-from pkdiagram.pyqt import QObject, Qt, qmlRegisterType
+from PySide6.QtCore import QObject, Qt
+from PySide6.QtQml import qmlRegisterType
 from pkdiagram.scene import Item, Marriage, Property, Event
 from pkdiagram.models import ModelHelper
 

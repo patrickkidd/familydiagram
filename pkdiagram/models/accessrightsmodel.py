@@ -1,16 +1,16 @@
 import pickle
 from typing import List
 import btcopilot
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     Qt,
-    pyqtSlot,
-    pyqtProperty,
-    pyqtSignal,
+    Slot,
+    Property,
+    Signal,
     QAbstractListModel,
     QModelIndex,
     QVariant,
-    QMessageBox,
 )
+from PySide6.QtWidgets import QMessageBox
 from pkdiagram import util
 from pkdiagram.server_types import AccessRight
 
@@ -98,7 +98,7 @@ class AccessRightsModel(QAbstractListModel):
 
     # Other Verbs
 
-    @pyqtSlot(str, result=QVariant)
+    @Slot(str, result=QVariant)
     def findUser(self, username):
         ret = None
         if self._session:
@@ -111,16 +111,16 @@ class AccessRightsModel(QAbstractListModel):
             ret = None
         return ret
 
-    ownerChanged = pyqtSignal()
+    ownerChanged = Signal()
 
-    @pyqtProperty(str, notify=ownerChanged)
+    @Property(str, notify=ownerChanged)
     def owner(self):
         if self._diagram:
             return self._diagram.user.username
         else:
             return ""
 
-    @pyqtSlot(str, result=bool)
+    @Slot(str, result=bool)
     def addRight(self, username):
         if self._isAddingRight:
             return False
@@ -177,7 +177,7 @@ class AccessRightsModel(QAbstractListModel):
             self.endInsertRows()
         return True
 
-    @pyqtSlot(int)
+    @Slot(int)
     def deleteRight(self, row):
         access_right = self._diagram.access_rights[row]
         response = self._session.server().blockingRequest(

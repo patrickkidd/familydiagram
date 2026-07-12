@@ -13,7 +13,7 @@ from btcopilot.schema import (
     Person as SchemaPerson,
     asdict as schema_asdict,
 )
-from pkdiagram.pyqt import QApplication
+from PySide6.QtWidgets import QApplication
 from pkdiagram import util
 from pkdiagram.scene import Person, Event
 from pkdiagram.server_types import Diagram

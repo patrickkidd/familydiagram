@@ -25,8 +25,8 @@ from btcopilot.schema import VariableShift
 
 from _pkdiagram import CUtil
 
-from PyQt5.QtCore import QSysInfo
-from pkdiagram.pyqt import pyqtProperty
+from PySide6.QtCore import QSysInfo
+from PySide6.QtCore import Property
 
 
 log = logging.getLogger(__name__)
@@ -590,7 +590,7 @@ S_THERAPIST_NO_CHAT_TEXT = "What's on your mind?"
 QRC = QFileInfo(__file__).absolutePath() + "/resources/"
 QRC_QML = "qrc:/pkdiagram/resources/" if QRC.startswith(":") else QRC
 
-from PyQt5.QtCore import QDir
+from PySide6.QtCore import QDir
 
 QDir.addSearchPath("resources", os.path.join(os.path.dirname(__file__), "resources"))
 
@@ -1563,8 +1563,8 @@ class ClickFilter(QObject):
     """differentiate between double and single clicks for a widget
     by waiting for the double click timeout before sending single click."""
 
-    clicked = pyqtSignal()
-    doubleClicked = pyqtSignal()
+    clicked = Signal()
+    doubleClicked = Signal()
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -1960,7 +1960,7 @@ from .condition import (
 
 class SignalCollector(QObject):
 
-    triggered = pyqtSignal()
+    triggered = Signal()
 
     def __init__(self, signals):
         super().__init__()
@@ -2004,4 +2004,4 @@ def test_finish_group(group):
 
 def exec_():
     """For troubleshooting."""
-    QApplication.instance().exec_()
+    QApplication.instance().exec()

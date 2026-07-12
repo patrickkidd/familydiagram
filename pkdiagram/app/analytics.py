@@ -10,14 +10,9 @@ import platform
 from typing import Callable
 from dataclasses import dataclass
 
-from pkdiagram.pyqt import (
-    pyqtSignal,
-    QObject,
-    QApplication,
-    QNetworkRequest,
-    QNetworkReply,
-    QUrl,
-)
+from PySide6.QtCore import Signal, QObject, QUrl
+from PySide6.QtWidgets import QApplication
+from PySide6.QtNetwork import QNetworkRequest, QNetworkReply
 from pkdiagram import util, version
 from pkdiagram.qnam import QNAM
 from pkdiagram.server_types import User
@@ -77,7 +72,7 @@ class Analytics(QObject):
     RETRY_TIMER_MS = 12000
     DATADOG_BATCH_MAX = 1000
 
-    completedOneRequest = pyqtSignal(QNetworkReply)
+    completedOneRequest = Signal(QNetworkReply)
 
     def __init__(
         self,

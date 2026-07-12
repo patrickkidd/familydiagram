@@ -7,10 +7,9 @@ from mock import patch
 import flask_mail
 
 import btcopilot
-from pkdiagram.pyqt import QApplication, QMessageBox
+from PySide6.QtWidgets import QApplication, QMessageBox
 from pkdiagram import util
 from pkdiagram.views import AccountDialog
-from pkdiagram.pyqt import QMessageBox
 
 from btcopilot.extensions import mail
 from btcopilot.extensions import db

@@ -1,6 +1,6 @@
 import pytest
 
-from pkdiagram.pyqt import QPointF
+from PySide6.QtCore import QPointF
 from pkdiagram.scene import PathItem
 
 

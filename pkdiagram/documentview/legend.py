@@ -1,16 +1,18 @@
 import pickle
 
-from pkdiagram.pyqt import (
-    QGraphicsView,
+from PySide6.QtCore import (
     QPropertyAnimation,
-    pyqtSignal,
+    Signal,
     QPoint,
     Qt,
-    QHBoxLayout,
     QAbstractAnimation,
-    QTransform,
     QFile,
     QIODevice,
+)
+from PySide6.QtGui import QTransform
+from PySide6.QtWidgets import (
+    QGraphicsView,
+    QHBoxLayout,
 )
 from pkdiagram import util
 from pkdiagram.scene import Scene
@@ -23,7 +25,7 @@ class LegendView(QGraphicsView):
 
 class Legend(PopUp):
 
-    resizeDone = pyqtSignal()
+    resizeDone = Signal()
 
     def __init__(self, view=None):
         super().__init__(view, effect=None)

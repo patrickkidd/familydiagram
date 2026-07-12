@@ -1,9 +1,5 @@
-from pkdiagram.pyqt import (
-    QWidget,
-    QVBoxLayout,
-    QMessageBox,
-    pyqtSignal,
-)
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QMessageBox
 from pkdiagram.widgets import QmlWidgetHelper
 from pkdiagram.server_types import Diagram
 
@@ -18,10 +14,10 @@ class FileManager(QWidget, QmlWidgetHelper):
         "Could not connect to server. Please check your internet connection."
     )
 
-    localFileClicked = pyqtSignal(str)
-    serverFileClicked = pyqtSignal(str, Diagram)
-    newButtonClicked = pyqtSignal()
-    localFilesShownChanged = pyqtSignal(bool)
+    localFileClicked = Signal(str)
+    serverFileClicked = Signal(str, Diagram)
+    newButtonClicked = Signal()
+    localFilesShownChanged = Signal(bool)
 
     def __init__(self, engine, parent=None):
         QWidget.__init__(self, parent)

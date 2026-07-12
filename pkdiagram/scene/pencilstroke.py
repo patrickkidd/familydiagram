@@ -1,16 +1,20 @@
 from _pkdiagram import CUtil
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
+    Qt,
+    QMarginsF,
+    QRectF,
+    QPoint,
+    QRect,
+)
+from PySide6.QtGui import (
+    QColor,
+    QPen,
+    qAlpha,
+)
+from PySide6.QtWidgets import (
     QGraphicsRectItem,
     QGraphicsView,
     QGraphicsItem,
-    Qt,
-    QColor,
-    QMarginsF,
-    QRectF,
-    QPen,
-    QPoint,
-    QRect,
-    qAlpha,
 )
 from pkdiagram import util
 from pkdiagram.scene import LayerItem

@@ -1,4 +1,5 @@
-from pkdiagram.pyqt import QObject, QTime, QLineF, QPointF, QCursor
+from PySide6.QtCore import QObject, QTime, QLineF, QPointF
+from PySide6.QtGui import QCursor
 from pkdiagram import util
 
 

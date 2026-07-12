@@ -3,32 +3,31 @@ import time
 import logging
 from typing import Union
 
-from pkdiagram.pyqt import (
-    pyqtSignal,
+from PySide6.QtCore import (
+    Signal,
     Q_ARG,
     Q_RETURN_ARG,
     Qt,
     QObject,
-    QApplication,
-    QQuickWidget,
-    QQuickItem,
-    QQmlComponent,
     QUrl,
     QRectF,
     QMetaObject,
     QAbstractItemModel,
     QVariant,
-    QApplication,
     QPointF,
     QEventLoop,
     QCoreApplication,
     QEvent,
     QTimer,
 )
+from PySide6.QtWidgets import QApplication
+from PySide6.QtQuickWidgets import QQuickWidget
+from PySide6.QtQuick import QQuickItem
+from PySide6.QtQml import QQmlComponent
 from pkdiagram import util
 
 
-from PyQt5.QtTest import QTest
+from PySide6.QtTest import QTest
 
 
 _log = logging.getLogger(__name__)
@@ -42,7 +41,7 @@ def __quickWidget(item: QQuickItem) -> QQuickWidget:
         return None
 
     # Iterate through all top-level widgets to find the QQuickWidget
-    from PyQt5.QtWidgets import QApplication
+    from PySide6.QtWidgets import QApplication
 
     for widget in QApplication.topLevelWidgets():
         if isinstance(widget, QQuickWidget):
@@ -164,9 +163,9 @@ class QmlHelper:
 
 
 import time
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtCore import Qt
-from PyQt5.QtQuick import QQuickItem
+from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import Qt
+from PySide6.QtQuick import QQuickItem
 
 
 import inspect

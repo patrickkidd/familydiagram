@@ -1,16 +1,16 @@
 import logging
-from pkdiagram.pyqt import (
-    pyqtSignal,
-    pyqtProperty,
+from PySide6.QtCore import (
+    Signal,
+    Property,
     QObject,
     Qt,
-    QQuickWidget,
     QUrl,
-    QVBoxLayout,
     QEvent,
-    QQuickItem,
-    QQmlEngine,
 )
+from PySide6.QtWidgets import QVBoxLayout
+from PySide6.QtQuick import QQuickItem
+from PySide6.QtQuickWidgets import QQuickWidget
+from PySide6.QtQml import QQmlEngine
 from pkdiagram import util
 from pkdiagram.widgets import Drawer, QmlWidgetHelper
 
@@ -29,8 +29,8 @@ class QmlDrawer(Drawer, QmlWidgetHelper):
         ]
     )
 
-    qmlInitialized = pyqtSignal()
-    canInspectChanged = pyqtSignal()
+    qmlInitialized = Signal()
+    canInspectChanged = Signal()
 
     def __init__(
         self,

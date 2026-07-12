@@ -4,7 +4,8 @@ import pytest
 
 import btcopilot
 from pkdiagram.documentview import RightDrawerView
-from pkdiagram.pyqt import QObject, QApplication
+from PySide6.QtCore import QObject
+from PySide6.QtWidgets import QApplication
 from pkdiagram import util
 from pkdiagram.server_types import Diagram as fe_Diagram
 from pkdiagram.scene import Scene

@@ -33,31 +33,32 @@ class AppView(str, Enum):
     PlanView = "plan_view"
 
 
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     Qt,
     QObject,
-    QWidget,
-    QApplication,
-    QQuickItem,
-    QQuickWidget,
-    QQuickWindow,
-    QGraphicsView,
-    QGraphicsItem,
     QPoint,
     QPointF,
     QRect,
     QRectF,
-    QTest,
     QMetaObject,
     Q_ARG,
-    QPixmap,
     QBuffer,
     QByteArray,
     QIODevice,
     QTimer,
+)
+from PySide6.QtGui import QPixmap
+from PySide6.QtWidgets import (
+    QWidget,
+    QApplication,
+    QGraphicsView,
+    QGraphicsItem,
     QMessageBox,
     QDialog,
 )
+from PySide6.QtQuick import QQuickItem, QQuickWindow
+from PySide6.QtQuickWidgets import QQuickWidget
+from PySide6.QtTest import QTest
 
 log = logging.getLogger(__name__)
 
@@ -1336,7 +1337,7 @@ class QtInspector:
                 # Fallback: try to render the content item
                 contentItem = target.contentItem()
                 if contentItem:
-                    from pkdiagram.pyqt import QQuickItemGrabResult
+                    from PySide6.QtQuick import QQuickItemGrabResult
 
                     # Use QQuickItem.grabToImage() for offscreen rendering
                     # This is async, but we need sync - fall back to empty pixmap

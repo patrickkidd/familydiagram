@@ -1,8 +1,23 @@
 import os
 import logging
 
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     Qt,
+    QAbstractAnimation,
+    QStandardPaths,
+    QFileInfo,
+    QRect,
+    QDateTime,
+    QItemSelectionModel,
+)
+from PySide6.QtGui import (
+    QWheelEvent,
+    QCursor,
+    QImage,
+    QPainter,
+    QColor,
+)
+from PySide6.QtWidgets import (
     QScrollArea,
     QFrame,
     QSlider,
@@ -10,21 +25,10 @@ from pkdiagram.pyqt import (
     QLabel,
     QWidget,
     QCheckBox,
-    QWheelEvent,
-    QCursor,
-    QAbstractAnimation,
-    QStandardPaths,
     QFileDialog,
-    QFileInfo,
-    QImage,
-    QPainter,
-    QColor,
     QMessageBox,
     QDialog,
-    QRect,
-    QDateTime,
     QApplication,
-    QItemSelectionModel,
 )
 from pkdiagram import util
 from pkdiagram.documentview import GraphicalTimelineCanvas
@@ -263,7 +267,7 @@ class GraphicalTimeline(QScrollArea):
 
     def onPrint(self):
         if not util.IS_IOS:
-            from pkdiagram.pyqt import QPrinter, QPrintDialog
+            from PySide6.QtPrintSupport import QPrinter, QPrintDialog
         printer = QPrinter()
         if printer.outputFormat() != QPrinter.NativeFormat:
             QMessageBox.information(
@@ -315,7 +319,7 @@ class GraphicalTimeline(QScrollArea):
 
     def writeImage(self, imageFormat=None, filePath=None, printer=None):
         if not util.IS_IOS:
-            from pkdiagram.pyqt import QPrinter, QPrintDialog
+            from PySide6.QtPrintSupport import QPrinter, QPrintDialog
         size = self.canvas.size() * util.PRINT_DEVICE_PIXEL_RATIO
         image = QImage(size, QImage.Format_RGB32)
         image.setDevicePixelRatio(util.PRINT_DEVICE_PIXEL_RATIO)

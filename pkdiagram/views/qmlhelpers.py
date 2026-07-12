@@ -1,14 +1,16 @@
-from pkdiagram.pyqt import (
-    pyqtSlot,
-    QLineEdit,
-    QQuickItem,
+from PySide6.QtCore import (
+    Slot,
     QSize,
-    QApplication,
     QTimer,
-    qmlRegisterType,
-    QTextEdit,
-    QTextCursor,
 )
+from PySide6.QtWidgets import (
+    QLineEdit,
+    QApplication,
+    QTextEdit,
+)
+from PySide6.QtGui import QTextCursor
+from PySide6.QtQuick import QQuickItem
+from PySide6.QtQml import qmlRegisterType
 
 
 class LineEditBackEnd(QLineEdit):
@@ -22,11 +24,11 @@ class LineEditBackEnd(QLineEdit):
         self.item = None
 
     # prevent a seg fault from calling `text` as property from qml
-    @pyqtSlot(result=str)
+    @Slot(result=str)
     def getText(self):
         return self.text()
 
-    @pyqtSlot(str, QQuickItem, int, int, int)
+    @Slot(str, QQuickItem, int, int, int)
     def beginFocus(self, text, item, cursorPos, selectionStart, selectionEnd):
         if self.parent() is None:
             self.setParent(QApplication.activeWindow())
@@ -39,11 +41,11 @@ class LineEditBackEnd(QLineEdit):
         self.show()
         QTimer.singleShot(1, lambda: item.forceActiveFocus())  # not sure why a timer
 
-    @pyqtSlot()
+    @Slot()
     def endFocus(self):
         self.clearFocus()
 
-    @pyqtSlot(str, int, int)
+    @Slot(str, int, int)
     def do_setSelection(self, text, start, end):
         self.blockSignals(True)
         if text != self.text():
@@ -51,22 +53,22 @@ class LineEditBackEnd(QLineEdit):
         super().setSelection(start, end - start)
         self.blockSignals(False)
 
-    @pyqtSlot(int, int, int)
+    @Slot(int, int, int)
     def do_setCursorPosition(self, pos, start, end):
         self.blockSignals(True)
         super().setCursorPosition(pos)
         super().setSelection(start, end - start)
         self.blockSignals(False)
 
-    @pyqtSlot(result=int)
+    @Slot(result=int)
     def getCursorPosition(self):
         return self.cursorPosition()
 
-    @pyqtSlot(result=int)
+    @Slot(result=int)
     def selectionStart(self):
         return super().selectionStart()
 
-    @pyqtSlot(result=int)
+    @Slot(result=int)
     def selectionEnd(self):
         return super().selectionEnd()
 
@@ -84,11 +86,11 @@ class TextEditBackEnd(QTextEdit):
         self.hide()
 
     # prevent a seg fault from calling `text` as property from qml
-    @pyqtSlot(result=str)
+    @Slot(result=str)
     def getPlainText(self):
         return self.toPlainText()
 
-    @pyqtSlot(str, QQuickItem, int, int, int)
+    @Slot(str, QQuickItem, int, int, int)
     def beginFocus(self, text, item, cursorPos, selectionStart, selectionEnd):
         if self.parent() is None:
             self.setParent(QApplication.activeWindow())
@@ -103,11 +105,11 @@ class TextEditBackEnd(QTextEdit):
         self.show()
         QTimer.singleShot(1, lambda: item.forceActiveFocus())  # not sure why a timer
 
-    @pyqtSlot()
+    @Slot()
     def endFocus(self):
         self.clearFocus()
 
-    @pyqtSlot(str, int, int)
+    @Slot(str, int, int)
     def do_setSelection(self, text, start, end):
         self.blockSignals(True)
         if text != self.toPlainText():
@@ -118,7 +120,7 @@ class TextEditBackEnd(QTextEdit):
         self.setTextCursor(cursor)
         self.blockSignals(False)
 
-    @pyqtSlot(int, int, int)
+    @Slot(int, int, int)
     def do_setCursorPosition(self, pos, start, end):
         self.blockSignals(True)
         cursor = self.textCursor()
@@ -127,15 +129,15 @@ class TextEditBackEnd(QTextEdit):
         self.setTextCursor(cursor)
         self.blockSignals(False)
 
-    @pyqtSlot(result=int)
+    @Slot(result=int)
     def getCursorPosition(self):
         return self.cursorPosition()
 
-    @pyqtSlot(result=int)
+    @Slot(result=int)
     def selectionStart(self):
         return super().selectionStart()
 
-    @pyqtSlot(result=int)
+    @Slot(result=int)
     def selectionEnd(self):
         return super().selectionEnd()
 

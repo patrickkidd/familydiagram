@@ -1,4 +1,4 @@
-from pkdiagram.pyqt import QObject
+from PySide6.QtCore import QObject
 
 
 class ItemGarbage(QObject):

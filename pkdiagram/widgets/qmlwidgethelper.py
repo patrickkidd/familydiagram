@@ -2,24 +2,23 @@ import time
 import logging
 from typing import Union
 
-from pkdiagram.pyqt import (
-    pyqtSignal,
+from PySide6.QtCore import (
+    Signal,
     Q_ARG,
     Q_RETURN_ARG,
     Qt,
     QObject,
-    QApplication,
-    QQuickWidget,
-    QQuickItem,
     QUrl,
     QRectF,
     QMetaObject,
     QAbstractItemModel,
-    QVariant,
-    QApplication,
     QPointF,
-    QJSValue,
 )
+from PySide6.QtQml import QJSValue
+from PySide6.QtWidgets import QApplication
+from PySide6.QtQuickWidgets import QQuickWidget
+from PySide6.QtQuick import QQuickItem
+from pkdiagram.pyqt import QVariant
 from pkdiagram import util
 from pkdiagram.models import QObjectHelper
 
@@ -32,7 +31,7 @@ class QmlWidgetHelper(QObjectHelper):
     DEBUG = False
     DEFER_UNTIL_SHOW = True
 
-    qmlFocusItemChanged = pyqtSignal(QQuickItem)
+    qmlFocusItemChanged = Signal(QQuickItem)
 
     _cache = {}
 
@@ -82,7 +81,7 @@ class QmlWidgetHelper(QObjectHelper):
                 "Could not load qml component from: %s" % self._qmlSource
             )
         for k, v in self.qml.rootObject().__dict__:
-            if not hasattr(self, k) and isinstance(v, pyqtSignal):
+            if not hasattr(self, k) and isinstance(v, Signal):
                 self.info(f"Mapped pyqtSignal on [{self.objectName()}]: {k}")
                 setattr(self, k, v)
 

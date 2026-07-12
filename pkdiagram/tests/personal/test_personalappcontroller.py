@@ -16,9 +16,9 @@ from pkdiagram.personal.models import (
 )
 from pkdiagram import util
 from pkdiagram.server_types import Diagram
-from pkdiagram.pyqt import QNetworkReply
-from PyQt5.QtCore import QByteArray
-from PyQt5.QtWidgets import QMessageBox
+from PySide6.QtNetwork import QNetworkReply
+from PySide6.QtCore import QByteArray
+from PySide6.QtWidgets import QMessageBox
 
 from btcopilot.extensions import db
 from btcopilot.schema import DiagramData, PDP, Person, PairBond, asdict
@@ -264,7 +264,7 @@ def test_rejectPDPItem_failure_doesnt_push_to_stack(
 
 
 def test_diagram_save_shows_error_on_unexpected_status(test_user):
-    from pkdiagram.pyqt import QMessageBox
+    from PySide6.QtWidgets import QMessageBox
     from pkdiagram.server_types import HTTPError
 
     initial_diagram_data = DiagramData(pdp=PDP(people=[Person(id=-1, name="Test")]))
@@ -304,7 +304,7 @@ def test_importJournalNotes_emits_summary_dict_with_correct_keys(
 ):
     from btcopilot.schema import DiagramData, PDP, PDPDeltas, Event, EventKind
     from unittest.mock import AsyncMock
-    from pkdiagram.pyqt import QMessageBox
+    from PySide6.QtWidgets import QMessageBox
 
     initial_diagram_data = DiagramData(pdp=PDP())
     personalApp._diagram = Diagram(
@@ -346,7 +346,7 @@ def test_importJournalNotes_emits_summary_dict_with_correct_keys(
 
 
 def test_importJournalNotes_no_diagram(test_user, personalApp: PersonalAppController):
-    from pkdiagram.pyqt import QMessageBox
+    from PySide6.QtWidgets import QMessageBox
 
     personalApp._diagram = None
 
@@ -667,7 +667,7 @@ def test_startRecording_emits_recordingFailed_on_error(
     personalApp: PersonalAppController,
 ):
     """startRecording emits recordingFailed if an exception occurs."""
-    from pkdiagram.pyqt import QMessageBox
+    from PySide6.QtWidgets import QMessageBox
 
     failed = util.Condition(personalApp.recordingFailed)
 
@@ -721,7 +721,7 @@ def test_stopRecording_emits_failed_when_no_file(
 ):
     """stopRecording emits transcriptionFailed if recording file is missing."""
     personalApp._ensureAudioRecorder()
-    from pkdiagram.pyqt import QMessageBox
+    from PySide6.QtWidgets import QMessageBox
 
     failed = util.Condition(personalApp.transcriptionFailed)
     personalApp._recordingFilePath = "/nonexistent/path.wav"
@@ -742,7 +742,7 @@ def test_stopRecording_emits_failed_when_empty_path(
 ):
     """stopRecording emits transcriptionFailed if _recordingFilePath is empty."""
     personalApp._ensureAudioRecorder()
-    from pkdiagram.pyqt import QMessageBox
+    from PySide6.QtWidgets import QMessageBox
 
     failed = util.Condition(personalApp.transcriptionFailed)
     personalApp._recordingFilePath = ""
@@ -876,7 +876,7 @@ def test_transcribeAudio_emits_failed_without_api_key(
 ):
     """_transcribeAudio emits transcriptionFailed if no API key is configured."""
     import tempfile as _tempfile
-    from pkdiagram.pyqt import QMessageBox
+    from PySide6.QtWidgets import QMessageBox
 
     tmpFile = _tempfile.NamedTemporaryFile(
         suffix=".wav", delete=False, prefix="fd_voice_"
@@ -911,7 +911,7 @@ def test_transcribeAudio_emits_failed_on_file_read_error(
     personalApp: PersonalAppController,
 ):
     """_transcribeAudio emits transcriptionFailed if audio file can't be read."""
-    from pkdiagram.pyqt import QMessageBox
+    from PySide6.QtWidgets import QMessageBox
 
     failed = util.Condition(personalApp.transcriptionFailed)
 
@@ -1047,7 +1047,7 @@ def test_onPollFinished_repolls_on_processing_status(
     )
     mockReply.deleteLater = MagicMock()
 
-    with patch("PyQt5.QtCore.QTimer.singleShot") as mock_timer:
+    with patch("PySide6.QtCore.QTimer.singleShot") as mock_timer:
         personalApp._onPollFinished(mockReply, "txn-123", "test-key", "/tmp/test.wav")
 
     assert mock_timer.call_count == 1
@@ -1135,7 +1135,7 @@ def test_importJournalNotes_triggers_cluster_detection(
     """Auto-detect clusters after journal import completes (T7-12)."""
     from btcopilot.schema import DiagramData, PDP, PDPDeltas, Event, EventKind
     from unittest.mock import AsyncMock
-    from pkdiagram.pyqt import QMessageBox
+    from PySide6.QtWidgets import QMessageBox
 
     initial_diagram_data = DiagramData(pdp=PDP())
     personalApp._diagram = Diagram(

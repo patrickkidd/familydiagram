@@ -2,12 +2,12 @@ import logging
 
 from sortedcontainers import SortedList
 
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     Qt,
-    qmlRegisterType,
     QAbstractListModel,
     QModelIndex,
 )
+from PySide6.QtQml import qmlRegisterType
 from pkdiagram import util
 from pkdiagram.scene import Item, Layer
 from pkdiagram.models import ModelHelper

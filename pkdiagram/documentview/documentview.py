@@ -1,16 +1,18 @@
 import logging
 
-from pkdiagram.pyqt import (
-    pyqtSignal,
-    QWidget,
-    QSizePolicy,
-    QApplication,
+from PySide6.QtCore import (
+    Signal,
     QVariantAnimation,
     QTimer,
     QRect,
     QRectF,
     QPoint,
     QPointF,
+)
+from PySide6.QtWidgets import (
+    QWidget,
+    QSizePolicy,
+    QApplication,
     QMainWindow,
 )
 from pkdiagram import util
@@ -38,8 +40,8 @@ class DocumentView(QWidget):
     Would be a single document window in a multi-document editor.
     """
 
-    graphicalTimelineExpanded = pyqtSignal(bool)
-    qmlSelectionChanged = pyqtSignal()
+    graphicalTimelineExpanded = Signal(bool)
+    qmlSelectionChanged = Signal()
 
     def __init__(self, parent: QMainWindow, session):
         super().__init__(parent.centralWidget())

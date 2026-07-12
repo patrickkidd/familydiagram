@@ -1,7 +1,7 @@
 import pytest
 
 from btcopilot.schema import EventKind
-from pkdiagram.pyqt import QVBoxLayout, QWidget
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 from pkdiagram import util
 from pkdiagram.scene import Scene, Person, Event
 from pkdiagram.widgets import QmlWidgetHelper

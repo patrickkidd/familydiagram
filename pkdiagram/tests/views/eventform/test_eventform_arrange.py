@@ -3,7 +3,8 @@ from mock import patch
 import pytest
 
 from btcopilot.schema import EventKind, RelationshipKind
-from pkdiagram.pyqt import QPointF, QMessageBox
+from PySide6.QtCore import QPointF
+from PySide6.QtWidgets import QMessageBox
 from pkdiagram import util
 from pkdiagram.scene import Person
 

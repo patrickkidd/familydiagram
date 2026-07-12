@@ -13,7 +13,8 @@ from btcopilot.schema import (
     VariableShift,
     DateCertainty,
 )
-from pkdiagram.pyqt import Qt, QGraphicsView, QPointF, QRectF, QDateTime
+from PySide6.QtCore import Qt, QPointF, QRectF, QDateTime
+from PySide6.QtWidgets import QGraphicsView
 from pkdiagram import util
 from pkdiagram.scene import Scene, Person, Marriage, Emotion, Event
 from pkdiagram.models import SceneLayerModel

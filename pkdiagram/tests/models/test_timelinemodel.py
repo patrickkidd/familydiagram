@@ -3,7 +3,7 @@ import logging
 import pytest
 
 from btcopilot.schema import EventKind, RelationshipKind, VariableShift
-from pkdiagram.pyqt import Qt, QDateTime, QItemSelectionModel
+from PySide6.QtCore import Qt, QDateTime, QItemSelectionModel
 from pkdiagram import util
 from pkdiagram.scene import (
     Person,

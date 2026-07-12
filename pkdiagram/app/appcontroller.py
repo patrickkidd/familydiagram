@@ -4,7 +4,8 @@ import pickle
 import signal
 
 import btcopilot
-from pkdiagram.pyqt import QObject, QTimer, QSize, QMessageBox, QApplication
+from PySide6.QtCore import QObject, QTimer, QSize
+from PySide6.QtWidgets import QMessageBox, QApplication
 
 from pkdiagram import util, version, pepper
 from pkdiagram.app import AppConfig, Session, Analytics
@@ -285,7 +286,7 @@ class AppController(QObject):
             from pkdiagram.widgets.authdialog import AuthUrlDialog
 
             dialog = AuthUrlDialog(authUrl, self.mw)
-            dialog.exec_()
+            dialog.exec()
 
     def onEscapeKey(self, e):
         if self.mw:

@@ -1,4 +1,6 @@
-from pkdiagram.pyqt import QQmlEngine, QQmlError, QApplication, QItemSelectionModel
+from PySide6.QtCore import QItemSelectionModel
+from PySide6.QtWidgets import QApplication
+from PySide6.QtQml import QQmlEngine, QQmlError
 from pkdiagram import util
 from pkdiagram.models import (
     SceneModel,

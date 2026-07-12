@@ -10,16 +10,31 @@ from typing import Union
 
 from btcopilot.schema import DiagramData, EventKind, RelationshipKind
 from pkdiagram import slugify, util, version
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     QAbstractAnimation,
-    QApplication,
-    QApplePencilEvent,
-    QColor,
-    QCursor,
     QDateTime,
     QElapsedTimer,
     QEvent,
     QFileInfo,
+    QLineF,
+    QMarginsF,
+    QParallelAnimationGroup,
+    QPoint,
+    QPointF,
+    QRectF,
+    Qt,
+    Signal,
+    Slot,
+)
+from PySide6.QtGui import (
+    QColor,
+    QCursor,
+    QPen,
+    QUndoCommand,
+    QUndoStack,
+)
+from PySide6.QtWidgets import (
+    QApplication,
     QGraphicsItem,
     QGraphicsLineItem,
     QGraphicsObject,
@@ -28,21 +43,9 @@ from pkdiagram.pyqt import (
     QGraphicsScene,
     QGraphicsSimpleTextItem,
     QGraphicsTextItem,
-    QLineF,
-    QMarginsF,
     QMessageBox,
-    QParallelAnimationGroup,
-    QPoint,
-    QPointF,
-    QPen,
-    QRectF,
-    Qt,
-    QUndoCommand,
-    QUndoStack,
-    pyqtProperty,
-    pyqtSignal,
-    pyqtSlot,
 )
+from pkdiagram.pyqt import QApplePencilEvent, pyqtProperty
 from pkdiagram.scene import (
     EmotionalUnit,
     Triangle,
@@ -128,38 +131,38 @@ class DragCreateItem(PathItem):
 
 class Scene(QGraphicsScene, Item):
 
-    loaded = pyqtSignal()
-    diagramReset = pyqtSignal()
-    propertyChanged = pyqtSignal(Property)
-    clipboardChanged = pyqtSignal()
-    printRectChanged = pyqtSignal()
-    itemModeChanged = pyqtSignal()
-    itemDragged = pyqtSignal(object)
-    itemAdded = pyqtSignal(Item)
-    itemRemoved = pyqtSignal(Item)
-    eventAdded = pyqtSignal(Event)
-    eventChanged = pyqtSignal(Property)
-    eventRemoved = pyqtSignal(Event)
-    emotionAdded = pyqtSignal(Emotion)
-    emotionChanged = pyqtSignal(Property)
-    emotionRemoved = pyqtSignal(Emotion)
-    layerAdded = pyqtSignal(Layer)
-    layerChanged = pyqtSignal(Property)
-    layerRemoved = pyqtSignal(Layer)
-    activeLayersChanged = pyqtSignal(list)
-    layerOrderChanged = pyqtSignal()
-    layerItemAdded = pyqtSignal(LayerItem)
-    layerItemChanged = pyqtSignal(Property)
-    layerItemRemoved = pyqtSignal(LayerItem)
-    personAdded = pyqtSignal(Person)
-    personChanged = pyqtSignal(Property)
-    personRemoved = pyqtSignal(Person)
-    marriageAdded = pyqtSignal(Marriage)
-    marriageChanged = pyqtSignal(Property)
-    marriageRemoved = pyqtSignal(Marriage)
-    showNotes = pyqtSignal(PathItem)
-    itemDoubleClicked = pyqtSignal(PathItem)
-    finishedBatchAddingRemovingItems = pyqtSignal()
+    loaded = Signal()
+    diagramReset = Signal()
+    propertyChanged = Signal(Property)
+    clipboardChanged = Signal()
+    printRectChanged = Signal()
+    itemModeChanged = Signal()
+    itemDragged = Signal(object)
+    itemAdded = Signal(Item)
+    itemRemoved = Signal(Item)
+    eventAdded = Signal(Event)
+    eventChanged = Signal(Property)
+    eventRemoved = Signal(Event)
+    emotionAdded = Signal(Emotion)
+    emotionChanged = Signal(Property)
+    emotionRemoved = Signal(Emotion)
+    layerAdded = Signal(Layer)
+    layerChanged = Signal(Property)
+    layerRemoved = Signal(Layer)
+    activeLayersChanged = Signal(list)
+    layerOrderChanged = Signal()
+    layerItemAdded = Signal(LayerItem)
+    layerItemChanged = Signal(Property)
+    layerItemRemoved = Signal(LayerItem)
+    personAdded = Signal(Person)
+    personChanged = Signal(Property)
+    personRemoved = Signal(Person)
+    marriageAdded = Signal(Marriage)
+    marriageChanged = Signal(Property)
+    marriageRemoved = Signal(Marriage)
+    showNotes = Signal(PathItem)
+    itemDoubleClicked = Signal(PathItem)
+    finishedBatchAddingRemovingItems = Signal()
 
     Item.registerProperties(
         (
@@ -2715,7 +2718,7 @@ class Scene(QGraphicsScene, Item):
             self.layerChanged.emit(x.prop("active"))
         self.updateActiveLayers()
 
-    @pyqtSlot()
+    @Slot()
     def clearActiveLayers(self):
         for layer in self.layers():
             if layer.active():
@@ -3118,7 +3121,7 @@ class Scene(QGraphicsScene, Item):
         else:
             self._do_removeEventPropertyByName(propName)
 
-    @pyqtSlot(int)
+    @Slot(int)
     def removeEventPropertyByIndex(self, index: int):
         entry = self.eventProperties()[index]
         self.removeEventPropertyByName(entry["name"])
@@ -3164,6 +3167,6 @@ class Scene(QGraphicsScene, Item):
             self._do_replaceEventProperties(newPropNames)
 
 
-from pkdiagram.pyqt import qmlRegisterUncreatableType
+from PySide6.QtQml import qmlRegisterUncreatableType
 
 qmlRegisterUncreatableType(Scene, "PK.Models", 1, 0, "Scene", "Cannot create Scene")
