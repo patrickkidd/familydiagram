@@ -1,0 +1,230 @@
+{
+  "captured": "2026-07-12",
+  "runner": "serial per-chunk pytest, 1200s chunk timeout, origin master @ 9179ca3, PyQt5 build",
+  "chunks": {
+    "commands": {
+      "exit": 0,
+      "timed_out": false,
+      "counts": {
+        "tests": 86,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "mainwindow": {
+      "exit": null,
+      "timed_out": true,
+      "junit": "unavailable (FileNotFoundError)"
+    },
+    "mcpbridge": {
+      "exit": 5,
+      "timed_out": false,
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "mcpserver": {
+      "exit": 5,
+      "timed_out": false,
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "models": {
+      "exit": 0,
+      "timed_out": false,
+      "counts": {
+        "tests": 144,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 3
+      }
+    },
+    "personal": {
+      "exit": 0,
+      "timed_out": false,
+      "counts": {
+        "tests": 197,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 2
+      }
+    },
+    "scene": {
+      "exit": 0,
+      "timed_out": false,
+      "counts": {
+        "tests": 357,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 6
+      }
+    },
+    "server": {
+      "exit": 0,
+      "timed_out": false,
+      "counts": {
+        "tests": 16,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "test_00_suite": {
+      "exit": 0,
+      "timed_out": false,
+      "counts": {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      }
+    },
+    "test_analytics": {
+      "exit": 0,
+      "timed_out": false,
+      "counts": {
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "test_appconfig": {
+      "exit": 0,
+      "timed_out": false,
+      "counts": {
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "test_bug_bucket": {
+      "exit": 0,
+      "timed_out": false,
+      "counts": {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "test_documentview": {
+      "exit": 1,
+      "timed_out": false,
+      "counts": {
+        "tests": 61,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 2
+      }
+    },
+    "test_extensions": {
+      "exit": 0,
+      "timed_out": false,
+      "counts": {
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "test_extract_changelog": {
+      "exit": 0,
+      "timed_out": false,
+      "counts": {
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "test_extras": {
+      "exit": 0,
+      "timed_out": false,
+      "counts": {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "test_session": {
+      "exit": 0,
+      "timed_out": false,
+      "counts": {
+        "tests": 18,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "test_sortedlist": {
+      "exit": 0,
+      "timed_out": false,
+      "counts": {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "test_util": {
+      "exit": 0,
+      "timed_out": false,
+      "counts": {
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "test_version": {
+      "exit": 0,
+      "timed_out": false,
+      "counts": {
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "views": {
+      "exit": null,
+      "timed_out": true,
+      "junit": "unavailable (FileNotFoundError)"
+    },
+    "widgets": {
+      "exit": 0,
+      "timed_out": false,
+      "counts": {
+        "tests": 33,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    }
+  },
+  "pre_existing_failures": [
+    "pkdiagram.tests.test_documentview.test_uploadButton"
+  ],
+  "unmeasured": [
+    "mainwindow",
+    "views"
+  ],
+  "totals_excluding_unmeasured": {
+    "passed": 945,
+    "failed": 1,
+    "skipped": 14,
+    "errors": 0
+  },
+  "note": "mainwindow and views chunks hang under a serial runner (same hang killed the single-run baseline); unmeasured here. CI's isolated runner (scripts/ci_run_tests_isolated.py) is the venue that runs them; re-baseline those two dirs there before grading migration failures against them."
+}
