@@ -1,14 +1,12 @@
 import os
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     Qt,
     QModelIndex,
-    QVariant,
-    pyqtSlot,
-    pyqtSignal,
-    QMessageBox,
-    QApplication,
+    Slot,
+    Signal,
     QAbstractListModel,
 )
+from PySide6.QtWidgets import QMessageBox, QApplication
 from pkdiagram import util
 from .qobjecthelper import QObjectHelper
 
@@ -29,7 +27,7 @@ class FileManagerModel(QAbstractListModel, QObjectHelper):
         [{"attr": "sortBy"}, {"attr": "searchText", "type": str}]
     )
 
-    cleared = pyqtSignal()
+    cleared = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -81,7 +79,7 @@ class FileManagerModel(QAbstractListModel, QObjectHelper):
             if name == roleName.decode():
                 return role
 
-    @pyqtSlot(str)
+    @Slot(str)
     def sortByRoleName(self, name):
         self._sortRole = self.roleForName(name)
         self.sort(0)
@@ -100,7 +98,7 @@ class FileManagerModel(QAbstractListModel, QObjectHelper):
     def entryForRow(self, row):
         return self._entries[row]
 
-    @pyqtSlot()
+    @Slot()
     def _sorted(self):
         def key(entry):
             if self._sortRole in entry and entry[self._sortRole]:

@@ -2,7 +2,7 @@ import pytest
 from mock import patch
 
 from btcopilot.schema import VariableShift, EventKind, RelationshipKind
-from pkdiagram.pyqt import QMessageBox
+from PySide6.QtWidgets import QMessageBox
 from pkdiagram import util
 from pkdiagram.scene import Person, Event, Marriage
 from pkdiagram.views.eventform import EventForm

@@ -25,7 +25,7 @@ import pytest
 from btcopilot.schema import EventKind, RelationshipKind
 from pkdiagram import util
 from pkdiagram.models import compat
-from pkdiagram.pyqt import QPointF
+from PySide6.QtCore import QPointF
 
 from . import data
 

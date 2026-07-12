@@ -1,24 +1,22 @@
-from pkdiagram.pyqt import (
-    pyqtSignal,
-    pyqtSlot,
+from PySide6.QtCore import (
+    Signal,
+    Slot,
     Qt,
-    QFrame,
-    QVBoxLayout,
     QVariantAnimation,
     QObject,
     QEvent,
-    QCursor,
     QMargins,
-    QWidget,
-    QColor,
     QRect,
-    QPen,
+    QAbstractAnimation,
+)
+from PySide6.QtGui import QCursor, QColor, QPen, QPainter, QPalette
+from PySide6.QtWidgets import (
+    QFrame,
+    QVBoxLayout,
+    QWidget,
     QApplication,
-    QPainter,
-    QPalette,
     QStyleOption,
     QStyle,
-    QAbstractAnimation,
 )
 from pkdiagram import util
 from pkdiagram.scene import Scene
@@ -29,11 +27,11 @@ class Drawer(QFrame):
     WIDTH = util.DRAWER_WIDTH
     OVER_WIDTH = util.DRAWER_OVER_WIDTH
 
-    manuallyResized = pyqtSignal()
+    manuallyResized = Signal()
 
     # Signals the container that the drawer itself requested to hide, e.g. done
     # or cancel. Then the container can handle any response.
-    hideRequested = pyqtSignal()
+    hideRequested = Signal()
 
     def documentView(self):
         """Allows binding onDrawerAnimationStart for multiple Drawers (maybe for iOS?)."""
@@ -474,7 +472,7 @@ class Drawer(QFrame):
         else:
             self.onExpandAnimationDone()
 
-    @pyqtSlot()
+    @Slot()
     def toggleExpand(self):
         if self.expanded and not (self.expanding or self.shrinking):
             self.expandTo(self.WIDTH)

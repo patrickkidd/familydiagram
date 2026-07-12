@@ -4,7 +4,8 @@ from pathlib import Path
 import pytest
 
 from pkdiagram import util
-from pkdiagram.pyqt import Qt, QQuickItem
+from PySide6.QtCore import Qt
+from PySide6.QtQuick import QQuickItem
 from pkdiagram.scene import Person
 from pkdiagram.models import SceneModel
 

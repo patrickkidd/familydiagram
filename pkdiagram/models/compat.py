@@ -1,7 +1,7 @@
 import logging
 
 from btcopilot.schema import EventKind, RelationshipKind, VariableShift, DateCertainty
-from pkdiagram.pyqt import QPointF, QDateTime, QDate
+from PySide6.QtCore import QPointF, QDateTime, QDate
 from pkdiagram import version, util, slugify
 from pkdiagram.scene import ItemDetails, Emotion
 

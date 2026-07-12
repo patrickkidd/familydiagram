@@ -33,34 +33,40 @@ class AppView(str, Enum):
     PlanView = "plan_view"
 
 
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     Qt,
     QObject,
-    QWidget,
-    QApplication,
-    QQuickItem,
-    QQuickWidget,
-    QQuickWindow,
-    QGraphicsView,
-    QGraphicsItem,
     QPoint,
     QPointF,
     QRect,
     QRectF,
     QMetaObject,
     Q_ARG,
-    QPixmap,
     QBuffer,
     QByteArray,
     QIODevice,
     QTimer,
-    QMessageBox,
-    QDialog,
+)
+from PySide6.QtGui import (
+    QPixmap,
     QMouseEvent,
 )
+from PySide6.QtWidgets import (
+    QWidget,
+    QApplication,
+    QGraphicsView,
+    QGraphicsItem,
+    QMessageBox,
+    QDialog,
+)
+from PySide6.QtQuick import (
+    QQuickItem,
+    QQuickWindow,
+)
+from PySide6.QtQuickWidgets import QQuickWidget
 
 try:
-    from pkdiagram.pyqt import QTest
+    from PySide6.QtTest import QTest
 except ImportError:
     QTest = None
 
@@ -1435,7 +1441,7 @@ class QtInspector:
 
     def _openPersonalDiagram(self, controller, diagramId: int) -> Dict[str, Any]:
         """Load a specific diagram in the Personal app, blocking until done."""
-        from pkdiagram.pyqt import QEventLoop
+        from PySide6.QtCore import QEventLoop
 
         loaded = {"ok": False, "error": None}
         loop = QEventLoop()
@@ -1455,7 +1461,7 @@ class QtInspector:
         controller.serverDown.connect(onError)
         try:
             controller._refreshDiagram()
-            loop.exec_()
+            loop.exec()
         finally:
             controller.diagramChanged.disconnect(onLoaded)
             controller.serverError.disconnect(onError)
@@ -1530,7 +1536,7 @@ class QtInspector:
                 # Fallback: try to render the content item
                 contentItem = target.contentItem()
                 if contentItem:
-                    from pkdiagram.pyqt import QQuickItemGrabResult
+                    from PySide6.QtQuick import QQuickItemGrabResult
 
                     # Use QQuickItem.grabToImage() for offscreen rendering
                     # This is async, but we need sync - fall back to empty pixmap

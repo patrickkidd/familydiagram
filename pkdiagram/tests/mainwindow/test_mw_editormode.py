@@ -3,7 +3,8 @@ import logging
 import pytest
 import mock
 
-from pkdiagram.pyqt import QSize, QMainWindow
+from PySide6.QtCore import QSize
+from PySide6.QtWidgets import QMainWindow
 from pkdiagram.mainwindow import MainWindow
 from pkdiagram.mainwindow.mainwindow_form import Ui_MainWindow
 from pkdiagram.documentview.toolbars import SceneToolBar, RightToolBar, ItemToolBar

@@ -1,7 +1,7 @@
 import pytest
 
 from btcopilot.schema import EventKind, RelationshipKind
-from pkdiagram.pyqt import QDateTime, QPointF
+from PySide6.QtCore import QDateTime, QPointF
 from pkdiagram.scene import Event, Person, Scene, Layer, LayerLabel, Marriage
 
 

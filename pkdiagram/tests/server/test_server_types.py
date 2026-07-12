@@ -1,6 +1,6 @@
 from pkdiagram import util
 from pkdiagram.server_types import Server
-from pkdiagram.pyqt import QSslError
+from PySide6.QtNetwork import QSslError
 
 
 def test_no_callbacks_clears_replies():

@@ -1,0 +1,737 @@
+{
+  "ticket": "FD-340",
+  "title": "Port to PySide6",
+  "base_branch": "master",
+  "worktree": "/Users/patrick/worktrees/FD-340/familydiagram",
+  "branch": "FD-340",
+  "subfolder_namespaced": true,
+  "human_track_skip": {
+    "proposed": false,
+    "skip_question": null,
+    "human_answer": null,
+    "answer_bundled_with": null,
+    "confirmed_by_human": false
+  },
+  "state": "gate-ground",
+  "oracle": {
+    "path": null,
+    "committed": false,
+    "content_hash": null
+  },
+  "oracle_proposal": {
+    "depth": "team",
+    "note": "whole-app port: 170 files import the Qt shim, 456 PyQt-specific idioms, sip C++ extension, PyQt-only bundler (pyqtdeploy), 68 QML files, Qt5->Qt6 major version jump, universal-binary build requirement - highest blast radius in the repo",
+    "posted_to": "https://alaskafamilysystems.atlassian.net/browse/FD-340?focusedCommentId=10488",
+    "proposed_criteria": [
+      {
+        "id": "A1",
+        "text": "A .fd saved by the shipping PyQt5 build opens in the ported app with all people, events, dates, positions, layers, and property values intact, and survives an open-save-reopen round trip without value drift. The legacy fixtures (tests/data/v114a7_simplefamily.pickle, tests/data/stale-refs.fd, resources/Legend-Scene.fd) stay byte-committed as PyQt5-era pickles \u2014 a pickletools guard asserts they still reference PyQt5 globals, so regenerating them under PySide6 voids the test \u2014 and the shipped legend resource (itself a PyQt5-era pickle) loads through the same path.",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "pickle.loads raises ModuleNotFoundError: PyQt5, the scene opens empty/partial, any property differs after the round trip, a fixture no longer contains PyQt5 refs, or the legend renders blank.",
+        "grading_test": "uv run pytest pkdiagram/tests/scene/test_scene_read_write.py -k 'legacy or stale' \u2014 new/updated tests that (1) pickletools-assert fixtures still reference PyQt5.QtCore/QtGui, (2) Scene().read() them, (3) write+reload and diff the data dicts; plus MCP journey: open a stale-refs.fd copy, get_scene_items == baseline count recorded on the master build.",
+        "from_lenses": [
+          "python-api-port",
+          "test-harness",
+          "user-behavior"
+        ]
+      },
+      {
+        "id": "A2",
+        "text": "A diagram saved by the ported build unpickles fully in a clean subprocess with PyQt5 and pkdiagram blocked from import, and the fresh pickle bytes contain zero PyQt5 module references \u2014 enacting the owner's format decision (binding-free data vs translator) instead of silently emitting PySide6-namespaced pickles old clients cannot read.",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "Subprocess exits nonzero (ModuleNotFoundError/UnpicklingError), any value round-trips differently, or any PyQt5 global appears in newly written bytes.",
+        "grading_test": "uv run pytest pkdiagram/tests/scene/test_scene_read_write.py::test_pickle_unpickles_without_custom_modules with the BlockedImporter whitelist flipped to block PyQt5 (it whitelists PyQt5 today at ~line 380), plus python -m pickletools scan of a fresh save asserting no PyQt5 opcodes.",
+        "from_lenses": [
+          "python-api-port",
+          "user-behavior"
+        ]
+      },
+      {
+        "id": "A3",
+        "text": "Full .fd document round trip through the replacement document layer preserves the whole package: open a fixture containing People/ attachments, edit, save, reopen \u2014 diagram.pickle is updated, every pre-existing People/ attachment file survives, and the edit is visible after reopen (today only the native NSDocument fileWrapper merge preserves files not in the imported list).",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "Stale/missing diagram.pickle after save, any pre-existing People/ attachment dropped from the package, a partial/corrupt bundle after kill mid-save, or reopen shows pre-edit state.",
+        "grading_test": "MCP journey: open a fixture .fd with People/ attachments, add a person, save; shell: diff `find <doc>.fd` against the pre-save manifest + unpickle diagram.pickle asserting the new person; reopen via MCP and assert the person renders.",
+        "from_lenses": [
+          "native-extension"
+        ]
+      },
+      {
+        "id": "A4",
+        "text": "Server diagram sync round-trips through a real backend: create and save a diagram to the sandbox server from the ported app, download it in a fresh clean session with identical content, and the access-rights list populates (server payloads are raw pickles in both directions).",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "Upload rejected (4xx/5xx or MD5 mismatch), the downloaded diagram fails to open or differs from the uploaded one, or the access-rights view is empty when server data exists.",
+        "grading_test": "familydiagram-testing MCP journey against sandbox Flask 8889: get_app_state(), create diagram, save-to-server, relaunch with clean local state, download, assert content via get_app_state(); confirm the server-side row via curl to 8889.",
+        "from_lenses": [
+          "user-behavior"
+        ]
+      },
+      {
+        "id": "A5",
+        "text": "Exactly one Qt binding anywhere: a fresh no-cache install (including the btcopilot wheel from the private index, which pins PyQt5 today) yields PySide6 and zero PyQt5 distributions; a suite-level guard test asserts sys.modules holds PySide6 and not PyQt5 after app + pytest-qt import, with pytest-qt bound to the same API; and a repo grep gate finds no PyQt5/pyqtSignal/pyqtSlot/pyqtProperty references (the pyuic-generated *_form.py files included).",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "Any pyqt5/pyqt5-sip/pyqt5-qt5 in the resolved env (the prior dual-Qt state produced the recorded Windows 0xC0000005 crash), PyQt5 in sys.modules during a suite run, pytest-qt API != the app's binding, or any grep hit.",
+        "grading_test": "python -m venv fresh && pip install -e '.[test]' --extra-index-url $TWINE_REPOSITORY_URL --no-cache-dir; pip list | grep -i pyqt outputs nothing; uv run pytest pkdiagram/tests -k binding_guard; grep -rE 'PyQt5|pyqt(Signal|Slot|Property)' pkdiagram --include='*.py' returns nothing.",
+        "from_lenses": [
+          "python-api-port",
+          "packaging-ci",
+          "test-harness"
+        ]
+      },
+      {
+        "id": "A6",
+        "text": "The ported app boots under PySide6/Qt 6.8.3 with a compiled Qt6-linked native _pkdiagram actually loaded \u2014 not a Python stub \u2014 the main window opens with its full menu/action set, the E2E test bridge answers, and the extension's semantics match golden values: OperatingSystem values behave as bit flags under &, and the geometry helpers (perpendicular/pointOnRay/distance/splineFromPoints/strokedPath) match PyQt5-build goldens within float tolerance.",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "ImportError/abort at launch, bridge connection refused (the bridge module itself uses the ported signal API), no native library mapped \u2014 the 16 `from _pkdiagram import` sites resolved to a stub \u2014 Qt5 linkage, missing menu actions after form regeneration, sequential enum values silently flipping OS_Mac/OS_iPhone gating, or any geometry helper diverging from goldens.",
+        "grading_test": "MCP get_app_state() confirms app + menu actions; bridge ping over TCP 9876; lsof -p <pid> | grep _pkdiagram and otool -L on that .so show Qt 6.8-only linkage; uv run pytest pkdiagram/tests -k 'cutil_enums or cutil_geometry' with a guard asserting _pkdiagram.__file__.endswith(('.so','.pyd')) \u2014 goldens captured from the current PyQt5 build before migration starts.",
+        "from_lenses": [
+          "native-extension",
+          "python-api-port",
+          "test-harness"
+        ]
+      },
+      {
+        "id": "A7",
+        "text": "No silent test loss: the worktree test environment resolves and collects at all (it fails uv workspace resolution today, so no baseline exists), and post-port per-file collected counts are >= the master baseline (1102 test functions across 111 files) with no file that collected >0 on master dropping to 0 \u2014 explicitly compensating for the CI runner treating 'no tests collected' (exit 5) as PASS \u2014 and the quarantine/deselect list does not grow.",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "uv resolution error, conftest ImportError, any file whose collected count drops to 0, total below the master baseline, or new quarantine/deselect entries.",
+        "grading_test": "cd worktree && uv run pytest --collect-only -q (exit 0) on master and on the branch; diff per-file counts via a checked-in script; assert the quarantine list in scripts/ci_run_tests_isolated.py is unchanged.",
+        "from_lenses": [
+          "test-harness"
+        ]
+      },
+      {
+        "id": "A8",
+        "text": "The Python<->QML bridge carries values, not just absence of exceptions, after the QVariant-less rewrite of the dynamic property factory (106 QVariant refs, every model property and QML method call): properties-drawer fields show real values and edits persist to the scene; QML method invocation returns declared values and never degrades to swallowed-RuntimeError None; and every indexed/overloaded signal connect delivers its payload (file-row click opens that file \u2014 str overload; slider drag delivers its int).",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "Blank/undefined drawer fields, 'not a function' or 'Unable to assign [undefined]' warnings, invoke returning None where a value is declared, or click/drag producing no state change \u2014 no traceback required to fail.",
+        "grading_test": "uv run pytest pkdiagram/tests/views pkdiagram/tests/models pkdiagram/tests/widgets (warnings-fail hook active, extended to method-resolution warnings); MCP journey: open diagram, edit person name in drawer, assert scene value via inspector; click a local-file row, assert the document view holds the opened scene.",
+        "from_lenses": [
+          "python-api-port",
+          "qml-qt6"
+        ]
+      },
+      {
+        "id": "A9",
+        "text": "QML integrity under Qt 6: all 66 QML files compile to Ready in a Qt 6.8 engine with the app's import paths \u2014 covering the 8 Loader-loaded files and 11 dynamic-creation sites that blank silently in-app \u2014 a customization-capable Controls style is explicitly pinned before any engine loads so the 26 chrome-overriding files render custom (not native) chrome, the 8 graphical-effect sites render non-blank after the Qt5Compat swap, and the timeline table lays out under Qt 6 TableView (all rows, no zero-width columns, no relayout spin).",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "Any Component.Error (missing QtGraphicalEffects/Controls.impl/Qt.labs.platform module), a native style at runtime or native chrome under customized controls, a blank effect region, combo boxes/tab bars failing to instantiate (private Controls.impl types), any timeline column at width 0, row count != event count, or relayout firing continuously.",
+        "grading_test": "New uv run pytest -k qml_compile iterating all 66 .qml through QQmlComponent asserting Ready; views suite with warnings-fail extended to customization warnings; MCP: open Account dialog, inspector asserts DropShadow exists visible + screenshot non-uniform shadow band; open 20+-event fixture, inspector reads timeline column widths (>0) and row count (==events); uv run pytest pkdiagram/tests/views/test_TimelineView.py.",
+        "from_lenses": [
+          "qml-qt6",
+          "test-harness",
+          "user-behavior"
+        ]
+      },
+      {
+        "id": "A10",
+        "text": "App-level OS integration survives the extension replacement, where a stub raises no error at all: Escape closes the active drawer app-wide, an external open of a .fd (Finder/`open` FileOpen event) and a familydiagram:// URL both reach the app, and creating/deleting a .fd in the documents folder while the app runs updates the file list without restart.",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "Escape no-ops (the native event filter is the only Escape handler), `open` produces no document load, the URL scheme never reaches the app, or the file list never updates (a stub returns an empty list and never emits) \u2014 all with zero errors anywhere.",
+        "grading_test": "MCP journey: open a drawer, inject Escape, assert closed in app state; shell `open /tmp/fixture.fd` and `open familydiagram://...`, assert the app received each within a timeout; with the docs path forced to a sandbox dir (existing test_filemanager.py pattern), shell-copy fixture.fd in (row appears) then delete (row gone).",
+        "from_lenses": [
+          "native-extension"
+        ]
+      },
+      {
+        "id": "A11",
+        "text": "Undo/redo integrity on the relocated Qt6 undo classes for the highest-stakes flows: drag a person then undo restores the exact prior position; delete a person with a marriage and events then undo restores every item and redo removes them again; and an add-undo-redo-save cycle reopened in a fresh app instance matches the saved state at every step.",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "Position drift after undo, any item missing or orphaned after undo of a delete, a save error, the reopened file differing from saved state, or a crash on redo.",
+        "grading_test": "uv run pytest pkdiagram/tests/commands -q under the new binding; MCP journey: add_person -> Ctrl+Z -> get_scene_items -> Ctrl+Shift+Z -> save -> close -> fresh TestInstance open_file -> get_scene_items; drag journey asserting exact position after undo.",
+        "from_lenses": [
+          "test-harness",
+          "user-behavior"
+        ]
+      },
+      {
+        "id": "A12",
+        "text": "Rendering and export are pixel-honest: primary persons paint the gender background fill (rect=male, ellipse=female), selecting an item paints the accent highlight stroke (both live only in native paint delegates that fail silently if stubbed), and PNG/PDF/JPG exports match Qt5-recorded pixel dimensions with substantial non-blank content (Qt6's always-on high-DPI silently changes the export math).",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "Scene-background color inside person symbols, no visible outline change on selection, a blank/uniform export, export dimensions differing from the Qt5 baseline for the same diagram, or an export exception dialog.",
+        "grading_test": "MCP journey: load fixture with primary male + female, screenshot, assert center-pixel fills differ from background; click a person, screenshot, assert new perimeter pixels; trigger PNG and PDF export; PIL one-liner compares PNG dims to a committed Qt5 baseline and counts non-transparent pixels; assert PDF page count >= 1.",
+        "from_lenses": [
+          "native-extension",
+          "user-behavior"
+        ]
+      },
+      {
+        "id": "A13",
+        "text": "Both CI pipelines run green with zero Qt5 toolchain remaining and packaged artifacts execute on clean VMs: PR tests pass on macOS and Windows with the extension rebuilt against Qt 6.8; a manually-dispatched skip-release Release run produces the DMG and Windows zip whose binaries launch (--version exit 0, startup-errors file written); the bundles ship every imported QML runtime module (Qt5Compat.GraphicalEffects, Controls + impl + pinned style, Qt.labs.platform, Shapes, QtQml.Models); and the Windows payload carries exactly one Qt generation.",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "Any job red; grep finds pyqtdeploy/PyQt5/qt@5/pyuic5 in either workflow; packaged binary nonzero exit or 0xC0000005 (the recorded dual-Qt crash); any QML module directory absent so the packaged app blanks where the dev run works \u2014 the dev-only-works failure mode.",
+        "grading_test": "gh workflow run release.yml -f skip_release=true; gh run watch asserts all four jobs 'success'; gh pr checks shows both test legs passing; grep -E 'pyqtdeploy|PyQt5|qt@5|5\\.15\\.2|pyuic5' .github/workflows/*.yml returns nothing; 7z l 'Family Diagram.zip' | grep -iE 'qt5|pyqt5' empty; find the .app bundle for Qt5Compat/labs/Shapes/impl module dirs, all present, then launch the packaged binary and MCP-verify the Account dialog renders.",
+        "from_lenses": [
+          "packaging-ci",
+          "qml-qt6"
+        ]
+      },
+      {
+        "id": "A14",
+        "text": "The shipped macOS app is universal and can reach the server: every Mach-O inside the release DMG (main executable, embedded Python, Qt frameworks, the compiled extension, every dylib) is fat x86_64+arm64 (the current pipeline is Intel-only with zero arch handling), the Qt TLS backend plugins are bundled (the binding shim aborts at import without SSL \u2014 a failure only the packaged artifact can hit), and the bundle launches to the main window and completes a live HTTPS login natively and under forced x86_64.",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "Any Mach-O reporting a single architecture, missing tls plugins, startup abort on the SSL assert, or login failing with a network/TLS error on either arch.",
+        "grading_test": "hdiutil attach the artifact; find the .app -type f -exec file + | grep Mach-O loop asserting `lipo -archs` == 'x86_64 arm64' with zero FAIL lines; ls the bundle's Qt plugins/tls dir; launch the bundle binary natively and via `arch -x86_64`, drive login through the MCP bridge or assert the session HTTP exchange completed.",
+        "from_lenses": [
+          "native-extension",
+          "packaging-ci",
+          "user-behavior"
+        ]
+      },
+      {
+        "id": "A15",
+        "text": "Personal-app voice capture is reimplemented on the Qt6 media API \u2014 the Qt5 recorder classes it uses today were removed, so this is a structural rewrite, not a rename: the controller imports cleanly and a record start/stop cycle produces a nonzero audio file on disk.",
+        "track": "agent",
+        "harness_drivable": true,
+        "fault": "Controller import fails (recorder class undefined), record start raises, or the output file is absent/0 bytes (a lazily-patched no-op record button).",
+        "grading_test": "uv run pytest pkdiagram/tests/personal/test_personalappcontroller.py -k record asserting the output file exists and is nonzero (requires an audio input device on the runner \u2014 if CI has none, run locally and gate on the file assertion).",
+        "from_lenses": [
+          "python-api-port"
+        ]
+      },
+      {
+        "id": "H1",
+        "text": "An installed production Qt5 app updates itself into the first PySide6 build over Sparkle (macOS) and WinSparkle (Windows): update offered from a staging appcast, installed, and relaunched at the new version \u2014 and the installed release build carries frozen-bundle identity: no Debug menu, production server locked, bundle id set (bundle detection today is a pyqtdeploy-injected module every replacement bundler drops, and every existing CI smoke stays green with it broken).",
+        "track": "human",
+        "harness_drivable": false,
+        "fault": "The new bundle omits Sparkle.framework (embedded today via a qmake include a non-qmake bundler never reads) or WinSparkle.dll, the appcast entry is rejected on signature/version keys, the updated app fails to launch \u2014 stranding the entire installed base on the last Qt5 build with no error in CI, which only tests fresh execution \u2014 or the Debug menu is visible in the release install.",
+        "grading_test": "Manual VM journey on both OSes: install the current production DMG/zip, point the update feed at a staging appcast referencing the PySide6 artifact, accept, verify the relaunched app's version; screenshot the menu bar (Debug absent) and compare against a from-source dev run (Debug present).",
+        "from_lenses": [
+          "native-extension",
+          "packaging-ci",
+          "user-behavior"
+        ]
+      },
+      {
+        "id": "H2",
+        "text": "The iOS target's fate is enacted, not implied: either a branch build of the ported app boots to its first screen in the iOS Simulator, or FD-340 records a dated owner descope before merge and the dead pyqtdeploy iOS build path stops presenting as a working path \u2014 iOS shipped fixes in two of the last five master commits and PySide6 publishes no production iOS wheels, so 'port everything' defaults to silently killing an actively shipped platform.",
+        "track": "human",
+        "harness_drivable": false,
+        "fault": "The branch merges with the iOS path intact but unbuildable and no recorded decision.",
+        "grading_test": "Run bin/build.sh ios and bin/run_ios_sim.sh on the branch and capture a simulator boot screenshot; failing that, assert a decision-log entry explicitly descoping iOS exists and is dated before merge.",
+        "from_lenses": [
+          "packaging-ci"
+        ]
+      },
+      {
+        "id": "H3",
+        "text": "Visual parity sign-off on real displays: the same diagram in the Qt5 master build and the ported build side-by-side on a retina and a non-retina/high-DPI display (Windows 150% scaling is the risk case), in light and dark mode \u2014 fonts, symbol shapes and line weights, toolbar placement (hand-tuned DPI workaround), legend, former graphical-effects, and the pinned Controls style across all major drawers judged on-brand and unregressed.",
+        "track": "human",
+        "harness_drivable": false,
+        "fault": "Patrick flags any garbled or native-chrome control, missing shadow/effect, font or scale drift, shifted/mis-hit toolbar, clipped label, wrong-scale legend, or blank region in either color scheme.",
+        "grading_test": "Patrick opens the same .fd in the master (Qt5) build and the FD-340 build on a retina MacBook and a non-retina/150%-scaled display, toggles light/dark, walks each major drawer, and approves or rejects; agent pre-captures matching screenshot sets from both builds via the bridge to anchor the comparison.",
+        "from_lenses": [
+          "python-api-port",
+          "qml-qt6",
+          "test-harness",
+          "user-behavior"
+        ]
+      }
+    ],
+    "pending_ratification": true,
+    "ratified_by_human": false,
+    "ratified_criteria": [],
+    "headline_risks": [
+      "Every existing user diagram \u2014 on disk and on the shared server \u2014 is stored in a format tied to the old Qt binding; without an explicit migration or shim the ported app cannot open any existing data, and its saves are unreadable by clients that have not upgraded yet.",
+      "The compiled native module that owns document saving, OS event handling, and core drawing cannot load under the new binding, and the tempting stub-to-unblock move turns the entire test suite green while saving, painting, file watching, and Escape/file-open handling silently die \u2014 false-green is this port's default failure mode.",
+      "The release pipeline is built entirely on a packaging tool that only works with the old binding and no replacement has been chosen, so the port can pass every dev test while the product has no way to ship \u2014 and the first shipped build must carry the auto-update machinery intact or every installed user is stranded on the last Qt5 version permanently.",
+      "Three separate Qt6 changes each blank the UI without any error: a removed graphics-effects module used by the base controls, a new default control style that ignores the app's custom styling, and a removed bridge type underlying every editable field and model property.",
+      "iOS ships today and received fixes in two of the last five commits, but the new binding has no production iOS support \u2014 porting the shared code without an explicit decision silently kills the platform.",
+      "The Intel+Apple-Silicon universal requirement has zero build-system support and no architecture check anywhere, so a single-architecture build would ship green and crash only on the other CPU family in the field."
+    ],
+    "scope_questions": [
+      "Is iOS inside FD-340 \u2014 ported, explicitly deferred on a Qt5 maintenance branch, or killed \u2014 given the new binding has no production iOS story while iOS fixes shipped in two of the last five master commits?",
+      "Old-format strategy: does FD-340 migrate document/server serialization to binding-free plain-Python values, or ship an unpickle shim for PyQt5-era data (which also covers the shipped legend resource)?",
+      "Upgrade story: must saves from the new build stay readable by still-deployed Qt5 clients sharing the server (and does the backend itself ever unpickle them), and must on-disk prefs/login/license state survive in place \u2014 or is a coordinated cutover with one-time re-login accepted?",
+      "macOS document layer: rebind the native autosave/iCloud/version-browsing document stack, or move to the plain-file implementation and accept losing iCloud sync, autosave, and version browsing?",
+      "Which bundler replaces the PyQt-only release pipeline, and is landing it \u2014 including the new frozen-bundle marker with every bundle-gated behavior preserved \u2014 inside FD-340's definition of done or a separate ticket?",
+      "Must auto-update continuity (existing Sparkle/WinSparkle installs updating in place) and crash reporting survive into the first PySide6 release, or is a one-time manual re-download accepted?",
+      "Is a universal Intel+Apple-Silicon artifact required for the first release, and does Rosetta-forced Intel testing count as verification or is physical Intel hardware required?",
+      "Is Windows fully in scope (extension build, CI, packaging), and is the single-file exe shape a hard requirement \u2014 the new binding has no supported static freeze \u2014 or is a folder/installer artifact acceptable, with its update-flow implications?",
+      "Who flips and publishes the btcopilot dependency pin to the private index, and in what order relative to this merge, since its wheel currently forces the old binding into every install?",
+      "Which Qt6 controls style gets pinned \u2014 a customizable style preserving today's look, or the native style with rework of the 26 customized controls \u2014 and may the compat effects module and private control internals remain dependencies for this ticket?",
+      "For the speed-motivated native classes: is a pure-Python port acceptable if a large-diagram pan/zoom performance bar is met (and what is that bar), and does the port preserve or fix the known shape-getter bug today's behavior is calibrated against?",
+      "Voice recording requires a rewrite against the Qt6 capture stack \u2014 inside this ticket or split out?",
+      "Test-gate boundaries: do the flag-gated integration tests and the slow e2e suites count toward the pass gate, and may the quarantine/deselect list grow during the port?"
+    ],
+    "merge_notes": [
+      "Legacy-pickle criteria from three lenses merged into A1, keeping the strongest framing (fixture byte-guard via pickletools + MCP open journey); the shipped legend resource folded into A1's fault set.",
+      "Forward-format subprocess criteria (python-api-port, user-behavior) merged into A2 \u2014 identical grading test (flipped BlockedImporter + pickletools scan).",
+      "'Boots with compiled extension', 'E2E bridge alive', enum/geometry golden parity, and menu-set-present merged into A6 \u2014 one launch gate proves not-a-stub; the standalone pyside6-uic forms criterion dropped as covered by A5's repo grep (generated files) plus A6's boot/menus fault.",
+      "Env purity, single-binding runtime guard, pytest-qt API pin, and btcopilot-wheel clean resolution merged into A5 \u2014 one clean-install + guard-test + grep pipeline.",
+      "QVariant property-factory, QML slot invocation, invokeMethod None-degradation, and overloaded/indexed-signal criteria merged into A8 \u2014 one warnings-fail suite plus one drawer/click journey grades all four.",
+      "66-file QML compile, Controls style pinning, effects rendering, the 8-effect-view instantiation check, and Qt6 TableView layout merged into A9 under count pressure \u2014 compile harness + views suite + one MCP inspection; verified the counts against the worktree (66 .qml files, 8 QtGraphicalEffects importers; the '68' figure from the user-behavior lens was wrong).",
+      "Escape/FileOpen/URL-scheme and filesystem-watcher criteria (native-extension) merged into A10 \u2014 one OS-integration journey.",
+      "Paint-delegate pixel checks (native-extension) and export-dimension checks (user-behavior) merged into A12 \u2014 one screenshot+export journey.",
+      "Release workflow, Windows artifact shape/purity, PR CI conversion, and QML-modules-in-bundle merged into A13; universal-binary + TLS-login kept separate as A14 because they assert artifact content on disk, not job status.",
+      "Baseline-runnability ('worktree env resolves today') folded into A7's collection gate rather than kept as its own criterion.",
+      "Undo/redo journeys from test-harness and user-behavior lenses merged into A11 (superset of both step lists).",
+      "Sparkle 'check for updates works' subsumed by H1's stronger update-from-installed-build journey; the frozen-bundle Debug-menu identity check folded into the same install session (same VM, same eyes).",
+      "Four visual sign-off criteria (high-DPI parity, style sign-off, two render-parity checks) merged into H2 \u2014 one side-by-side session covers all.",
+      "Dropped: 'port the MCP bridge first' (sequencing advice \u2014 A6 already gates on the bridge answering); QML import-version normalization and copy-paste parity (housekeeping / feature-flagged off); 'legacy compat test authoring in scope?' (A1 makes it mandatory, not optional); 'may PyQt5 leave the lockfile?' (A5 makes removal the gate).",
+      "Human-track count trimmed to 3 by the H1 fold; final set is 15 agent + 3 human = 18, at the cap."
+    ],
+    "scope_answers": [
+      {
+        "q": 1,
+        "topic": "iOS fate",
+        "answer_patricks_words": "yes, ios is the main deployment target for the personal app. The Qt company was stuck supporting ios in pyside6-deploy, and I produced a POC that unblocked them: https://github.com/patrickkidd/pyside6-ios. I am in contact with the junior developer responsible for this support. Either they will produce ios support in a timely fashion and we will use that or I will use claude code to build on the POC and produce our own simpler tailored deploy tool.",
+        "at": "2026-07-11"
+      },
+      {
+        "q": 2,
+        "topic": "old-format strategy",
+        "answer_patricks_words": "Would the shim be a simple scan and convert function? I would *love* to remove the Qt dependency and file format from the file dependency and convert to JSON but I would also very much like to avoid too much scope creep.",
+        "status": "counter-question answered by agent: pickles contain only sip._unpickle_type + QPointF + QColor (verified by pickletools scan of all 3 fixtures 2026-07-11); read-shim + binding-free writes is small; JSON container move flagged as scope creep -> follow-up ticket",
+        "at": "2026-07-11"
+      },
+      {
+        "q": 3,
+        "topic": "upgrade/cut-over",
+        "answer_patricks_words": "We can coordinate a cut-over so long as we warn the user before mutating or flushing the file with a cancel button.",
+        "at": "2026-07-11"
+      },
+      {
+        "q": 4,
+        "topic": "macOS document layer",
+        "answer_patricks_words": "iCloud is not a priority anymore. Keep, but fine to ignore.",
+        "at": "2026-07-11"
+      },
+      {
+        "q": 5,
+        "topic": "bundler + sip replacement",
+        "answer_patricks_words": "I would love to leave pyqtdeploy behind if we had a better option, either with pyside6-deploy or whatever tool we replace it with. I have spent way too much time debugging pyqtdeploy and it isn't even maintained anymore. We need a better and simpler option. This probably overlaps with the problem that we depend on sip for the _pkdiagram C++ bindings. So we need an answer for that too. One way or another, I need this all to be *cleaner* and *simpler* if possible.",
+        "status": "research workflow dispatched 2026-07-11 to ground the recommendation",
+        "at": "2026-07-11"
+      },
+      {
+        "q": "updater (morning decision 1)",
+        "topic": "Sparkle/WinSparkle",
+        "answer_patricks_words": "auto-updaters like that are very hard and time consuming to debug and these work. So I would like to keep them if possible. But you tell me what the blocker is.",
+        "status": "blocker explained (bridge + embed spike); keep = REC, pending his ack",
+        "at": "2026-07-12"
+      },
+      {
+        "q": "windows shape (morning decision 3)",
+        "topic": "artifact correction",
+        "answer_patricks_words": "it is currently a single exe, not folder + zip. Though the exe is inside a folder which is inside a zip file (not ideal, the zip file should just contain the exe)",
+        "status": "premise corrected: today = static single exe (pyqtdeploy) in folder in zip; no PySide6 static equivalent; choice = self-extracting onefile vs folder-in-zip",
+        "at": "2026-07-12"
+      },
+      {
+        "q": "bindings (CORRECTION)",
+        "topic": "C++ extension",
+        "answer_patricks_words": "we are not deleting a C++ extension. We still need all that C++ code. I just don't know what framework to build the C++ extension with if we are moving from PyQt5 which itself uses sip for extensions, and whatever PySide6 uses. Got it? You misunderstood the ask there.",
+        "status": "DECIDED: keep C++ code, rebind with shiboken6 (PySide6's generator). Research's pure-Python rec REJECTED by owner. Recorded risk carried: custom shiboken module is the hardest artifact in the future iOS toolchain; also Qt6 C++ surgery (QApplication::desktop etc.) needed regardless. Consequences: Sparkle wiring survives in C++ (updater residual = bundler embed spike only); perf-bar decision moot; doc-layer-signals decision moot (code kept).",
+        "at": "2026-07-12"
+      },
+      {
+        "q": "universal (decision 2)",
+        "topic": "proof standard",
+        "answer_patricks_words": "Just make the universal binaries so long as we can. The build pipeline should just make sure that the target macos platform+arch can load the binary and fail fast if libraries or imported python packages fail to load.",
+        "status": "DECIDED: automated fail-fast load gate per platform+arch in pipeline; no physical-Intel requirement.",
+        "at": "2026-07-12"
+      },
+      {
+        "q": "windows shape (decision 3)",
+        "topic": "artifact",
+        "answer_patricks_words": "Self-extracting exe is ideal so long as we can still sign it, auto-update it, and everything else we currently do with the exe.",
+        "status": "DECIDED: self-extracting single exe, conditional on sign+auto-update parity (spike scope).",
+        "at": "2026-07-12"
+      },
+      {
+        "q": "btcopilot pin (decision 4)",
+        "topic": "dependency ordering",
+        "answer_patricks_words": "That depends on whether we are able to change the pickle/PyQt5 dependencies in the file format without too much scope creep. Which we haven't answered.",
+        "status": "DEFERRED pending the file-format decision.",
+        "at": "2026-07-12"
+      }
+    ],
+    "research_recommendation": {
+      "bundler": "PRIMARY: PyInstaller, onedir mode, one toolchain for both OSes. FALLBACK: Briefcase. PyInstaller is the only candidate meeting every FD-340 requirement on verified facts: native --target-arch=universal2 with per-binary architecture validation (the tool itself enforces most of A14's fat-binary gate and rejects thin slices), built-in codesigning with hardened runtime + entitlements file, active maintenance (6.21.0 released 2026-06-13), onedir folder zips directly for Windows, and spec-file escape hatches for embedding Sparkle.framework / WinSparkle.dll. Nuitka \u2014 and therefore pyside6-deploy, which is a thin Nuitka wrapper \u2014 is disqualified on verified source evidence: no universal2 output exists in any version (4.1.3 removed the option outright; the Nuitka 2.6.8 that PySide6 6.8.x pins hard-exits on it), the pinned 2.6.8 predates the bundle-layout fixes Apple notarization needs, and pyside6-deploy adds zero signing/installer/framework support of its own. py2app is macOS-only and single-maintainer; a second Windows toolchain kills the simplification goal. Briefcase fallback: verified best-automated pipeline (DMG default, notarization submission built into `briefcase package` with resume, Windows zip format, universal2 default with automatic per-arch wheel merging) \u2014 but it has no documented mechanism for embedding Sparkle.framework (verified absence in platform docs; means forking their app template), so it becomes primary ONLY if the Sparkle updater is replaced. FLAG \u2014 non-verified legs of the PyInstaller pick: the Sparkle-embed recipe is REPORTED (fman, a shipped commercial PyQt app), Sparkle delta-update behavior under PyInstaller 6's restructured bundle layout is UNKNOWN, and Qt-hook completeness for this app's specific QML imports under 6.8.x is untested. Gate the commitment with a 1-2 day spike before A13/A14 work: real app through PyInstaller + Sparkle embed + notarize + one staging-appcast update. Cost accepted: ~50 lines of owned notarytool/staple/dmgbuild CI that Briefcase would have provided.",
+      "bindings": "Pure-Python port of the ENTIRE extension; delete the C++ toolchain (sip, pyqtbuild, all 4,809 lines). No hybrid, no shiboken rebind. Verified basis: the binding is only 6 classes + 2 enums, and ~80% of the surface by symbol count is trivially replaceable \u2014 FDDocument's plain-file logic already exists as the ~200-line Qt-only Windows impl (the ~1,000-line mac NSDocument/iCloud machinery exists solely for features the owner deprioritized in scope answer q4); CUtil file-watching/listing is already pure-Qt C++ on Windows (direct transcription to QFileSystemWatcher); dark-mode/accent/palette-change are stock Qt 6.5/6.6 APIs; the geometry helpers already exist commented-out in util.py; unsafearea.cpp and several CUtil APIs are dead code. Per-class map: FDDocument \u2192 plain-file Python document class (must preserve People/ attachments per A3); AppFilter \u2192 QApplication.event() override for FileOpen/URL + ApplicationShortcut for Escape (design change \u2014 a literal Python global event filter would route every Qt event through Python, the exact overhead the C++ existed to avoid); CUtil \u2192 Python module with constant stubs for the iCloud surface; PathItemBase/PathItemDelegate/PersonDelegate \u2192 Python QGraphicsObject (~150-200 lines); Sparkle/WinSparkle checkForUpdates \u2192 ctypes/pyobjc bridge or replacement updater (open decision). Why not hybrid or rebind: any surviving compiled module keeps the whole C++ build system alive for a class or two AND injects a custom cross-compiled/static-linked module into the iOS critical path \u2014 the one dependency that would put this app behind even upstream's own iOS schedule (upstream links PySide6 modules statically; a custom shiboken module needs bespoke integration in upstream tooling or the owner's POC tool). The rebind path also still requires C++ surgery regardless (QApplication::desktop() removed in Qt 6, PyQt5-era includes) for zero toolchain savings and no iOS story. FLAGS \u2014 non-verified legs: paint-perf boundedness is INFERRED (Python paint already runs per-frame for FannedBox/badges, but no benchmark exists on iOS-class hardware at 500+ items) \u2014 carry a mandatory perf gate (large-diagram pan/zoom, bar set by owner per scope Q11); the 2-4 week effort figure is INFERRED; safe-area needs Qt >= 6.9 (verified) but only matters when iOS lands, which will be >= 6.9 anyway. Keep A6's goldens: OperatingSystem bit-flag semantics and geometry parity vs PyQt5-build values.",
+      "ios": "iOS rides the BINDINGS decision, not the bundler decision \u2014 the pure-Python port IS the iOS strategy. Verified: upstream rewrote PYSIDE-2352's plan around the owner's POC architecture (merged QtRuntime.framework, static PySide6 modules, planned pyside6-ios-deploy reading a pysidedeploy.spec [ios] section), a Qt engineer confirmed on the ticket that the POC solved their blocking duplicate-symbol issue, and Qt dev notes say iOS is working internally as of 2026-07-02 with a blog post in prep (REPORTED) \u2014 but nothing is released, 6.11 shipped without it, and the ~6.12/Oct-2026 vehicle is INFERENCE from cadence. Given the owner's stated position (tooling arrives upstream or via his own POC-based tool), FD-340 itself must guarantee exactly four things and nothing more: (1) zero custom compiled modules \u2014 the pure-Python port removes the only artifact needing bespoke cross-compilation in EITHER tooling path; (2) shared code stays iOS-clean \u2014 no QProcess in shared paths and no QLayout(parent) constructor-parent idiom, both verified POC failure modes; (3) the three remaining native touches (AVAudioSession playback category, iPad-vs-iPhone idiom, safe area pre-6.9) live behind one thin platform seam so pyobjc/upstream APIs fill them in the follow-up ticket rather than being scattered; (4) H2 is enacted as a dated decision record before merge \u2014 iOS deploy tooling is a follow-up ticket, the dead pyqtdeploy iOS build path stops presenting as working, and NO simulator boot is required for FD-340 merge. Do not gate FD-340 on upstream timing; do not build shiboken cross-compilation. Accept explicitly: between FD-340 merging and the follow-up ticket, iOS gets no new builds \u2014 the shipped Qt5 build carries the platform for a gap whose length FD-340 does not control.",
+      "tradeoffs": [
+        "PyInstaller gives up Briefcase's built-in notarization submission, DMG assembly, and installer packaging \u2014 roughly 50 lines of owned notarytool/staple/dmgbuild CI plus its ongoing maintenance.",
+        "PyInstaller gives up compilation entirely: shipped bytecode is recoverable source with no Nuitka-style startup gain, and it diverges from Qt's blessed pysidedeploy.spec format that upstream's future iOS tool will read \u2014 desktop and iOS packaging configs will not be shared.",
+        "The Briefcase fallback is conditional, not drop-in: it is only viable if Sparkle is replaced, since framework embedding is undocumented there (verified absence) and would require forking their macOS app template.",
+        "The pure-Python port gives up the C++ paint path \u2014 one Python callback per visible path item per frame, unbenchmarked on iOS-class hardware at 500+ items (bounded is an inference, not a measurement).",
+        "The pure-Python port deletes rather than dormants the iCloud/autosave/version-browsing machinery \u2014 reviving those features later is new native work, not a re-enable.",
+        "Replacing the in-process sip Sparkle binding with a ctypes/pyobjc bridge has no verified end-to-end precedent on a PyInstaller-6 bundle \u2014 the fman recipe is reported and predates PyInstaller 6's layout change, hence the mandatory spike.",
+        "Decoupling iOS means no new iOS builds between FD-340 merge and the deploy-tooling follow-up \u2014 abandoning pyqtdeploy+sip abandons the only stack that provably ships this app on iOS today, betting on unreleased upstream tooling with the owner's POC as backstop."
+      ],
+      "criteria_impact_v2": [
+        "A3 \u2014 gate unchanged, target changes: the open-edit-save-reopen round trip and People/-attachment preservation must now be met by the pure-Python plain-file document class, which must replicate the NSDocument fileWrapper merge behavior the fault text already names.",
+        "A5 \u2014 extend the grep/clean-install gate to also assert sip and pyqtbuild are gone from pyproject and workflows, since the bindings decision removes them entirely, not just PyQt5.",
+        "A6 \u2014 major rewrite: the 'compiled Qt6-linked native _pkdiagram, not a stub' assertions (lsof/otool/.so-suffix guards) are obsolete under the pure-Python port; keep boot + menus + bridge and the golden gates (OperatingSystem bit-flag semantics, geometry parity vs PyQt5 goldens) and let A10/A12's behavior checks carry the silent-stub risk those native assertions were proxying for.",
+        "A10 \u2014 behavioral text stands but the mechanism framing changes: Escape moves from the native event filter to an ApplicationShortcut, FileOpen/URL to a QApplication.event() override (requires CFBundleDocumentTypes/scheme entries in the new bundler's Info.plist), file-watching to Python QFileSystemWatcher; the same journeys grade it.",
+        "A12 \u2014 pixel checks stand unchanged; 'live only in native paint delegates' becomes Python delegates, making this journey the correctness proof for the ported paint path (perf proof lives in the new pan/zoom gate).",
+        "A13 \u2014 'extension rebuilt against Qt 6.8' is deleted (there is no extension); the release workflow becomes PyInstaller spec + codesign + notarytool + dmgbuild/zip, and the Qt5-toolchain grep extends to pyqtdeploy/sip build steps; QML-modules-in-bundle checks now verify PyInstaller's Qt hooks specifically.",
+        "A14 \u2014 simplified: one fewer Mach-O family to lipo-verify (no compiled extension), and PyInstaller's --target-arch=universal2 validation enforces most of the fat-binary requirement at build time; keep the on-disk lipo audit, tls-plugin check, and dual-arch login journeys as the independent proof.",
+        "H1 \u2014 stays the pivotal human gate but its risk surface moves: from 'qmake include dropped' to 'PyInstaller spec must embed Sparkle.framework/WinSparkle.dll, a sys.frozen-based marker replaces the pyqtdeploy-injected frozen-bundle module, and update calls go through the ctypes/pyobjc bridge'; the update-from-installed-Qt5 journey is unchanged and doubles as the bundler spike's exit test.",
+        "H2 \u2014 rewrite per the owner's scope answer: iOS is the Personal app's main target riding follow-up tooling, so the criterion becomes a dated decision record before merge + the pyqtdeploy iOS path removed from presenting as working + in-suite guards for the iOS-readiness guarantees (no compiled custom modules, no QProcess in shared paths), with no simulator boot required.",
+        "A1, A2, A4, A7, A8, A9, A11, A15, H3 \u2014 unchanged by the bundler/bindings/iOS decisions."
+      ],
+      "open_decisions": [
+        "Updater: keep Sparkle/WinSparkle via a ctypes/pyobjc bridge vs replace the mechanism \u2014 decides H1's implementation, whether the Briefcase fallback is even viable, and whether installed-base update continuity (scope Q6) is mandatory or a one-time re-download is accepted.",
+        "The Python-paint performance bar (scope Q11): what diagram size on what hardware must pan/zoom acceptably, and whether the known shape-getter bug is preserved or fixed \u2014 the all-Python bindings recommendation is gated on that number being met.",
+        "Windows artifact shape (scope Q8): accept onedir folder + zip (recommended \u2014 onefile worsens AV false positives and complicates WinSparkle's self-replace flow) or insist on a single-file exe.",
+        "Qt floor: ship FD-340 on the bound 6.8.3 and defer safe-area to the iOS ticket (where Qt >= 6.9 arrives free), or bump the minor version now.",
+        "Bundler scope boundary (scope Q5): this recommendation assumes the PyInstaller pipeline including H1 update continuity lands inside FD-340's definition of done \u2014 confirm, or split packaging into its own ticket.",
+        "iOS gap sign-off: explicitly accept that no new iOS builds ship between FD-340 merge and the deploy-tooling follow-up, and set the trigger for building the POC-based tool vs waiting on upstream (upstream is unreleased; the ~Oct-2026 read is inference, and the blog post said to be in prep may move it either way).",
+        "FDDocument's iCloud-driven editing-state signals (disableEditing/enableEditing/changed): dead code or UI behavior worth preserving \u2014 product judgment the extension inventory flagged."
+      ],
+      "at": "2026-07-11-overnight"
+    },
+    "v2_posted_to": "https://alaskafamilysystems.atlassian.net/browse/FD-340?focusedCommentId=10489"
+  },
+  "criteria": [],
+  "gates": {
+    "ground": {
+      "status": "active",
+      "at": "2026-07-11T00:00:00-08:00",
+      "artifact": null
+    },
+    "build": {
+      "status": "pending",
+      "at": null,
+      "artifact": null
+    },
+    "validate": {
+      "agent_track": {
+        "status": "pending",
+        "at": null,
+        "token": null
+      },
+      "human_track": {
+        "status": "pending",
+        "at": null,
+        "script": null
+      }
+    },
+    "merge": {
+      "status": "pending",
+      "at": null,
+      "pr_url": "https://github.com/patrickkidd/familydiagram/pull/149"
+    }
+  },
+  "gate_definitions_path": "doc/workstreams/gates/FD-340/gates.json",
+  "handoff_path": "doc/workstreams/FD-340/fd-340-handoff.md",
+  "act_step_runs": [],
+  "findings": [],
+  "deferred_risk": [
+    {
+      "what": "mechanical port work started pre-ratification (gate jump: build-mechanical opened before oracle commit)",
+      "track": "agent",
+      "why": "Patrick 2026-07-11 (overnight): 'I wonder if you could also tackle the likely straightforward code-level changes in a worktree overnight. They may not be all runnable because of some of the issues in your questions, but it would get that fairly deductive and high blast radius work hours out of the way'",
+      "carried_to": "ratification tomorrow re-grades the mechanical diff against whatever criteria set Patrick ratifies",
+      "at": "2026-07-11"
+    },
+    {
+      "what": "unit PAUSED by owner mid-ground; mechanical port goes to draft PR; everything else waits",
+      "track": "human",
+      "why": "Patrick 2026-07-12: 'This is quickly becoming too much work for right now. You can continue the work on the easily deducible code changes changing from PyQt5 -> PySide6 and get that into a PR, but otherwise we need to flush all of the current state of this so I can pick it up again later.'",
+      "carried_to": "draft PR + this state file + ticket comment; resume via /workstream FD-340",
+      "at": "2026-07-12"
+    }
+  ],
+  "history": [
+    {
+      "gate": "ground",
+      "entered": "2026-07-11T00:00:00-08:00",
+      "exited": null,
+      "note": "new unit opened on Patrick's 'ground it'; worktree created off master 9179ca3; Qt 6.8.3 universal install verified (x86_64+arm64) and bound per Patrick's mid-turn directive; origin clone carries 2 unrelated uncommitted Qt5-era build tweaks (not adopted; origin-clean guard flags them until Patrick resolves); adopt/branch-match/subfolder guards pass; adversarial team (6 lenses) dispatched"
+    },
+    {
+      "gate": "ground",
+      "entered": "2026-07-11",
+      "exited": null,
+      "note": "Patrick answered scope questions 1-5 (batch 1 of ~3, his pacing); pickle contents verified (only QPointF/QColor/sip hook); packaging+bindings research workflow dispatched; 8 scope questions remain; ratification still pending"
+    },
+    {
+      "gate": "ground",
+      "entered": "2026-07-11",
+      "exited": null,
+      "note": "Patrick declined ratification (has read only 5 of 13 scope Qs, and his 5 contained counter-questions not yet answered); NO build authorized tonight; overnight = prep only: research rec + proposal-v2 Jira comment, worktree env fix + PyQt5 golden baselines on opus workers, no commits, no status moves"
+    },
+    {
+      "gate": "ground",
+      "entered": "2026-07-11",
+      "exited": null,
+      "note": "Patrick authorized overnight mechanical port (deviation recorded); sequencing: port workflow launches only after baseline workflow completes in same worktree; forbidden overnight zones: serialization format, _pkdiagram strategy, QML style/effects pin, packaging scripts, voice recorder; compile-check verification only; opus workers; no commits; Patrick addendum: any piece requiring an open-question answer or ANY other unknown -> note it and leave it (workers return skipped_unknowns; aggregated into morning brief)"
+    },
+    {
+      "gate": "ground",
+      "entered": "2026-07-11",
+      "exited": null,
+      "note": "overnight: packaging/bindings research reconciled (PyInstaller onedir primary + spike gate; delete C++ extension, pure-Python port; iOS rides bindings decision, no simulator boot gates merge); proposal-v2 morning brief posted as Jira comment 10489 with 12 one-line decisions; counter-questions answered (pickle = only QPointF+QColor+sip hook)"
+    },
+    {
+      "gate": "ground",
+      "entered": "2026-07-11",
+      "exited": null,
+      "note": "overnight: baselines captured (1226 collected, ext goldens, pickle fingerprints; env fixed via UV_PROJECT_ENVIRONMENT trick, no file changes); suite pass/fail baseline re-running to completion from ORIGIN clone (read-only, junit to scratchpad) since it must measure untouched master; mechanical port workflow launched in worktree (opus workers, 10-14 partitions, cookbook + forbidden zones + skip-and-note)"
+    },
+    {
+      "gate": "ground",
+      "entered": "2026-07-11",
+      "exited": null,
+      "note": "overnight port complete: 169 files, +1177/-989, 0 syntax failures, 36 skip-notes across ~8 decision categories; coordinator-verified leftover audit; shim now PySide6-based compat layer with transitional aliases; suite baseline still running from origin"
+    },
+    {
+      "gate": "ground",
+      "entered": "2026-07-12",
+      "exited": null,
+      "note": "CORRECTION captured (jira-planning-pr-tracking rule): long Jira comments were a defect; detail moved to committed doc fd-340-proposal.md; comments 10488/10489 rewritten short, 10490 deleted"
+    },
+    {
+      "gate": "ground",
+      "entered": "2026-07-12",
+      "exited": null,
+      "note": "CORRECTION: decision questions lacked context (not self-contained) \u2014 rule amended; Jira comment 10489 rewritten with per-question why; his partial answers 1-4 recorded; btcopilot PyQt5 pin verified first-hand (pyproject lines 45-47); Sparkle-in-extension wiring verified first-hand"
+    },
+    {
+      "gate": "ground",
+      "entered": "2026-07-12",
+      "exited": null,
+      "note": "CORRECTION: bindings ask was rebind-not-delete (shiboken6, C++ kept) \u2014 proposal premise fixed; decisions 2,3 answered; 4 deferred pending format; unit paused by owner; flushing to draft PR"
+    },
+    {
+      "gate": "ground",
+      "entered": "2026-07-12",
+      "exited": null,
+      "note": "draft PR #149 opened (mechanical port + state flush); unit paused; suite baseline chunks still running, will land as follow-up commit"
+    }
+  ],
+  "ticket_status_sync": {
+    "gate": "gate-ground",
+    "target_status": "In Progress",
+    "result": "synced",
+    "error": null,
+    "at": "2026-07-11T00:00:00-08:00"
+  },
+  "session_directives": [
+    "coordinator context is scarce: delegate all heavy reading/building to sub-agents/workflows; coordinator holds plan frame only",
+    "model budget: finish grounding under Fable, then STOP after oracle commit so Patrick can switch the session to Opus for the build gate \u2014 do not auto-advance into build under Fable"
+  ],
+  "parked_on": "PAUSED by Patrick. Resume needs: file-format decision (pickle Qt-deps vs scope creep) -> unblocks btcopilot ordering; then style pin, voice in/out, test gates, Qt floor, packaging scope, iOS trigger date; then ratification. Draft PR carries the mechanical port.",
+  "overnight_port": {
+    "at": "2026-07-11-overnight",
+    "edited_files": 169,
+    "diff_stat": "169 files changed, +1177/-989 (uncommitted)",
+    "compile_failures": [],
+    "verified_by_coordinator": "independent grep: 28 remaining PyQt5/shim import lines, all in the 23 skip-noted/forbidden files; shim ported to PySide6 + 4 transitional aliases added by coordinator; origin clone untouched (2 pre-existing Patrick edits only)",
+    "skipped_unknowns": [
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/app/qmlutil.py",
+        "what": "Convert pyqtSlot/pyqtSignal/pyqtProperty and QVariant/QJSValue imports to PySide6",
+        "blocked_on": "QVariant appears inside Slot/Property signatures and an args.toVariant() call; rule 7 requires skip-note for QVariant-in-signature. Whole-file import port is atomic, so entire file skipped."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/app/session.py",
+        "what": "Convert pyqtSlot/pyqtSignal/pyqtProperty and QVariant/QQmlEngine/qmlRegisterType imports to PySide6",
+        "blocked_on": "QVariant appears inside Slot signatures (data(), hasFeature() overloads); rule 7 requires skip-note. Whole-file import port is atomic, so entire file skipped."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/app/application.py",
+        "what": "Qt.AA_EnableHighDpiScaling and Qt.AA_UseHighDpiPixmaps setAttribute calls",
+        "blocked_on": "Rule 8 high-DPI attribute flags (no-op/removed in Qt6). Imports ported; the two calls left verbatim, not removed, to avoid a behavior change. Needs the owner's decision on whether to drop them."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/personal/settings.py",
+        "what": "Port from pkdiagram.pyqt (QObject, pyqtSlot, pyqtSignal) to PySide6, renaming pyqtSlot->Slot / pyqtSignal->Signal.",
+        "blocked_on": "Every Slot decorator in this file embeds a QVariant type in its signature: @pyqtSlot(str, result=\"QVariant\"), @pyqtSlot(str, \"QVariant\", result=\"QVariant\"), @pyqtSlot(str, \"QVariant\"). Cookbook rule 7 says any QVariant in a Slot signature is SKIP-NOTE (uncertain the \"QVariant\" string type name resolves in PySide6 Slot). File left entirely untouched pending a decision on how QVariant slot signatures should be expressed in PySide6."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/tests/views/eventform/testeventform.py",
+        "what": "QVariant, used only as the type arg in Q_RETURN_ARG(QVariant) for QMetaObject.invokeMethod (set_people_picker_gender). Ported the other names in the same import block to PySide6; kept `from pkdiagram.pyqt import QVariant` so the one unknown is isolated.",
+        "blocked_on": "PySide6 has no importable QVariant class (removed; maps to plain Python objects). Cookbook rule 7 forbids porting QVariant in a Qt signature. Q_RETURN_ARG's PySide6 return-type descriptor needs a decision (what type object to pass), and whether the PySide6 shim will re-export a compat QVariant is the shim-sweep agent's call."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/tests/views/eventform/test_edit.py",
+        "what": "mock.patch target strings 'PyQt5.QtWidgets.QMessageBox.question' left as-is.",
+        "blocked_on": "Patch-target strings are not import statements (outside the cookbook's enumerated transforms). Correct rewrite ('PySide6.QtWidgets...') depends on how the pyqt shim re-exports QMessageBox (same class object vs wrapper) and mock's lookup-vs-definition semantics \u2014 a consistent decision to be made once, not improvised per file."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/tests/views/eventform/test_eventform.py",
+        "what": "mock.patch target string 'PyQt5.QtWidgets.QMessageBox.question' left as-is.",
+        "blocked_on": "Same patch-target-string decision as above."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/tests/views/eventform/test_eventform_add.py",
+        "what": "mock.patch target strings 'PyQt5.QtWidgets.QMessageBox.question' left as-is.",
+        "blocked_on": "Same patch-target-string decision as above."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/tests/views/eventform/test_eventform_arrange.py",
+        "what": "mock.patch target strings 'PyQt5.QtWidgets.QMessageBox.question' left as-is.",
+        "blocked_on": "Same patch-target-string decision as above."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/tests/views/eventform/test_eventform_scripts.py",
+        "what": "mock.patch target strings 'PyQt5.QtWidgets.QMessageBox.question' left as-is.",
+        "blocked_on": "Same patch-target-string decision as above."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/tests/views/eventform/test_eventform_validation.py",
+        "what": "mock.patch target strings 'PyQt5.QtWidgets.QMessageBox.question' and '.warning' left as-is.",
+        "blocked_on": "Same patch-target-string decision as above."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/tests/views/eventform/testeventform.py",
+        "what": "mock.patch target strings 'PyQt5.QtWidgets.QMessageBox.question' and '.warning' left as-is.",
+        "blocked_on": "Same patch-target-string decision as above."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/tests/views/test_AccountDialog.py",
+        "what": "mock.patch target strings 'PyQt5.QtWidgets.QMessageBox.question' and '.information' left as-is.",
+        "blocked_on": "Same patch-target-string decision as above."
+      },
+      {
+        "file": "pkdiagram/documentview/view.py",
+        "what": "QPainter.HighQualityAntialiasing render hint (setRenderHints call) and QApplication.instance().paletteChanged signal connect/emit",
+        "blocked_on": "Both removed in Qt6; not an import/rename cookbook item. Compiles but breaks at runtime under PySide6 \u2014 needs the sweep/structural fix."
+      },
+      {
+        "file": "pkdiagram/documentview/documentcontroller.py",
+        "what": "printer.setOrientation(QPrinter.Landscape) in onPrint()",
+        "blocked_on": "QPrinter.setOrientation removed in Qt6 (use setPageOrientation); not a pure rename. Left as-is."
+      },
+      {
+        "file": "pkdiagram/documentview/graphicaltimeline.py",
+        "what": "QPrinter.pageRect(QPrinter.Point) usage in writeImage()/onPrint()",
+        "blocked_on": "pageRect signature changed in Qt6; runtime concern beyond import port. Left as-is."
+      },
+      {
+        "file": "pkdiagram/tests/personal/test_personalappcontroller.py",
+        "what": "patch string target changed PyQt5.QtCore.QTimer.singleShot -> PySide6.QtCore.QTimer.singleShot",
+        "blocked_on": "Not strictly an import statement; changed it mechanically so the mock binds the ported class. Flagging in case the parent wants patch-target strings handled by a different owner."
+      },
+      {
+        "file": "pkdiagram/tests/scene/test_scene_read_write.py",
+        "what": "Line 395 'from PyQt5 import sip' inside the subprocess pickle-isolation string in test_pickle_unpickles_without_custom_modules; also PyQt5 references in that test's docstring/comments (lines 344,380,394)",
+        "blocked_on": "sip usage is a hard skip-note (cookbook rule 8); need decision on whether PySide6 unpickling of Qt types (QDateTime/QPointF) requires an equivalent import or none, and whether the test's blocked-imports harness should now allow PySide6"
+      },
+      {
+        "file": "pkdiagram/mainwindow/mainwindow_form.py",
+        "what": "pyuic-generated form. Mechanically ported: import line to PySide6, app.exec_()->app.exec(), and all QtWidgets.QAction->QtGui.QAction (QAction moved to QtGui in Qt6). Compiles.",
+        "blocked_on": "should be regenerated with pyside6-uic rather than hand-patched; flagging per cookbook rule 10"
+      },
+      {
+        "file": "pkdiagram/mainwindow/preferences_form.py",
+        "what": "pyuic-generated form. Ported import line to PySide6. Compiles.",
+        "blocked_on": "regenerate with pyside6-uic later (cookbook rule 10)"
+      },
+      {
+        "file": "pkdiagram/mainwindow/welcome_form.py",
+        "what": "pyuic-generated form. Ported import line to PySide6. Compiles.",
+        "blocked_on": "regenerate with pyside6-uic later (cookbook rule 10)"
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/tests/models/test_qobjecthelper.py",
+        "what": "Whole file relies on QVariant as a property type (\"type\": QVariant in registerProperties). Import line and two usages left untouched; file NOT ported.",
+        "blocked_on": "QVariant used as a property-factory type \u2014 rule 7 SKIP-NOTE territory and the forbidden QVariant-based dynamic property factory zone. PySide6 does not expose QVariant as a usable type the same way; the correct replacement is not a pure rename and needs a decision."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/scene/scene.py",
+        "what": "pyqtProperty was NOT renamed to Property (kept importing pyqtProperty from pkdiagram.pyqt shim; @pyqtProperty decorator on the layers-changed property left as-is). pyqtSignal->Signal and pyqtSlot->Slot were applied normally.",
+        "blocked_on": "Name collision: cookbook rule 3 renames pyqtProperty->Property, but scene.py already imports a class named Property from pkdiagram.scene (used in every Signal(Property) declaration). A clean rename would shadow that class and break the signal signatures / decorator. Resolving it requires an aliasing decision (e.g. import Property as pyqtProperty, or alias the scene class), which is a judgment call, not a mechanical rename. Kept behavior-identical via the surviving PySide6-based shim in the meantime."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/scene/property.py",
+        "what": "Display string \"PyQt5.QtCore.\" in __repr__ left unchanged.",
+        "blocked_on": "Not an import; changing it is a cosmetic/behavior tweak outside the cookbook. Under PySide6 the repr prefix will be \"PySide6.QtCore.\" so the strip silently no-ops until a decision is made on whether/how to update it."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/util.py",
+        "what": "Line 78 `from pkdiagram.pyqt import *` (wildcard) left as-is, and its dependent Qt names still sourced from the shim: line 29 `from pkdiagram.pyqt import pyqtProperty` (unused dead import) and `pyqtSignal()` usages at lines 1566, 1567, 1963. Converted only the certain, non-ambiguous parts: two direct `PyQt5.QtCore` imports (QSysInfo, QDir) -> PySide6.QtCore, and `.exec_()` -> `.exec()` at line 2007.",
+        "blocked_on": "A wildcard import cannot be de-shimmed mechanically with certainty \u2014 enumerating every Qt symbol used across a 2008-line file risks missing names, violating behavior-identical-or-skip. The PySide6-based shim continues to satisfy the wildcard and pyqtSignal/pyqtProperty. Needs explicit enumeration pass or a decision to keep util.py on the shim."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/views/eventform.py",
+        "what": "Import ported to `from PySide6.QtCore import ... QVariant`; the `Q_RETURN_ARG(QVariant)` / `Q_ARG(QVariant, i)` invokeMethod usages (lines ~320-326) and `.toVariant()` chains were left unchanged (correct for an import-only port). Could not runtime-verify.",
+        "blocked_on": "PySide6 is not installed in the worktree venv, so only py_compile (syntax) could be verified, not that the QVariant+invokeMethod pattern behaves identically under PySide6. Rule 7 flags QVariant-in-signature usage as uncertain; needs runtime verification once PySide6 is available."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/scene/pathitem.py",
+        "what": "Whole file: port imports (Qt names split across QtCore/QtGui/QtWidgets), pyqtSlot->Slot, and QVariant handling.",
+        "blocked_on": "@pyqtSlot(str, result=QVariant) at line 261 \u2014 QVariant in a Slot signature is a designated skip; PySide6 has no equivalent QVariant class to import, so the import resolution is an open decision."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/scene/item.py",
+        "what": "Line 115 string literal .replace(\"PyQt5.QtCore.\", \"\") used to strip the module prefix from a QDateTime repr in util.pretty output.",
+        "blocked_on": "Under PySide6 the repr prefix becomes 'PySide6.QtCore.', so the strip silently stops matching. Changing a behavioral string constant is not a mechanical rename in the cookbook \u2014 needs a human decision. Import on line 4 was ported; string left as-is."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/models/scenemodel.py",
+        "what": "Full port left undone; file remains on 'from pkdiagram.pyqt import ...' shim, untouched and still compiling.",
+        "blocked_on": "QVariant appears inside Signal signatures (addEvent = pyqtSignal([QVariant, QVariant]); addEmotion = pyqtSignal([], [QVariant])) \u2014 rule-7 SKIP-NOTE: QVariant in a Signal signature must not be converted. Porting the import line would require deciding how QVariant resolves under PySide6 (not importable from QtCore in recent versions), an open unknown. Left for the owner."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/models/peoplesearchmodel.py",
+        "what": "filterAcceptsRow() calls self.filterRegExp().pattern(). QSortFilterProxyModel.filterRegExp() was removed in Qt6 (replaced by filterRegularExpression()). Not a pure rename in the cookbook, so left as-is. File header says 'Not used yet, left here for reference.' Compiles fine but will raise AttributeError at runtime under PySide6.",
+        "blocked_on": "Not in mechanical cookbook; needs decision on Qt6 API replacement (filterRegularExpression)."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/models/timelinemodel.py",
+        "what": "headerData() has 'return QVariant()' as an empty default returned to the Qt model framework. Rule 7 only permits QVariant()->None where the result is passed to Python code; this returns into a Qt virtual, so left as QVariant() (still valid/imported in PySide6). No behavior change.",
+        "blocked_on": "Ambiguous whether rule 7's 'passed to Python code' covers a reimplemented virtual's return; left literal to stay behavior-identical."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/tests/conftest.py",
+        "what": "QVariant left importing from pkdiagram.pyqt (shim) instead of a PySide6 module; also used at runtime in isinstance(s, QVariant)",
+        "blocked_on": "Cannot confirm PySide6 exposes QtCore.QVariant (no PySide6 installed anywhere in env; py_compile checks syntax only). Rule 7 says skip-note uncertain QVariant. Shim must re-export QVariant, or these need rewrite."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/widgets/qmlwidgethelper.py",
+        "what": "QVariant left importing from pkdiagram.pyqt (shim); used in Q_RETURN_ARG(QVariant)/Q_ARG(QVariant, x) invokeMethod calls",
+        "blocked_on": "Same PySide6 QVariant uncertainty. Additionally the QMetaObject.invokeMethod + Q_ARG/Q_RETURN_ARG pattern may not work identically in PySide6 \u2014 runtime behavior, out of mechanical import scope."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/widgets/buttongroup.py",
+        "what": "self.mapper.mapped[int].connect(...) left as-is",
+        "blocked_on": "QSignalMapper.mapped was removed in Qt6 (replaced by mappedInt). Runtime break, not a pure rename \u2014 outside mechanical import cookbook."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/widgets/colorbox.py",
+        "what": "Qt.BackgroundColorRole and QPalette.Foreground left as-is",
+        "blocked_on": "Both removed in Qt6 (Qt.BackgroundRole, QPalette.WindowText). Enum/attribute removals, not pure renames \u2014 left per behavior-identical-or-skip."
+      },
+      {
+        "file": "/Users/patrick/worktrees/FD-340/familydiagram/pkdiagram/widgets/timelinecallout.py",
+        "what": "QApplication.instance().paletteChanged.connect(...) left as-is",
+        "blocked_on": "QApplication.paletteChanged signal removed in Qt6. Runtime behavior change, outside mechanical import scope."
+      }
+    ],
+    "forbidden_untouched": [
+      {
+        "file": "pkdiagram/pyqt.py",
+        "why": "Compat shim owned by the sweep agent (named forbidden zone); porting strategy for the shim itself is undecided."
+      },
+      {
+        "file": "pkdiagram/models/qobjecthelper.py",
+        "why": "The QVariant-based dynamic property factory: registerQtProperties() builds pyqtProperty/pyqtSignal at class-creation time with QVariant type mapping (also a QMetaObject invoke path). Its primary content IS this factory; porting approach undecided."
+      },
+      {
+        "file": "pkdiagram/personal/personalappcontroller.py",
+        "why": "Only file matching QAudioRecorder/QMediaRecorder \u2014 embeds the Qt5 voice/audio recorder (QAudioRecorder, QAudioEncoderSettings from QtMultimedia) whose structural rewrite is pending. NOTE: this is not a standalone recorder module but a ~1400-line controller (pattern-weight ~47, 15 pyqtProperty); excluding the whole file drops substantial UNRELATED porting work. Left whole per standing order \u2014 owner must decide whether to split the recorder out into its own module before this controller can be partitioned."
+      }
+    ],
+    "sweep_notes": "SHIM: pkdiagram/pyqt.py ported to PySide6 (QtCore/QtGui/QtWidgets/QtNetwork/QtQuick/QtQuickWidgets/QtQml/QtTest/QtPrintSupport star imports; docstring 'PyQt5'->'PySide6'). QSslSocket import + 'assert supportsSsl()==True' left verbatim (may fail at runtime until Qt6 TLS plugins wired). 'from _pkdiagram import CUtil' untouched. tr(), QApplePencilEvent(QEvent) subclass, and the QModelIndex.__str__/__repr__ monkeypatches kept intact.\n\nMISSED files I fixed (were genuinely under-ported, purely mechanical, no QVariant, no collision): pkdiagram/util.py \u2014 line 29 'from pkdiagram.pyqt import pyqtProperty' -> 'from PySide6.QtCore import Property'; three 'clicked/doubleClicked/triggered = pyqtSignal()' -> 'Signal()' (Signal resolves via the file's existing 'from pkdiagram.pyqt import *'). No other MISSED mechanical files found.\n\nCRITICAL RUNTIME RISK (compiles clean, breaks on import): the ported shim no longer re-exports the pyqt* aliases \u2014 it now exports Signal/Slot/Property. Every skip-noted/forbidden file that still does 'from pkdiagram.pyqt import pyqtSlot/pyqtSignal/pyqtProperty' (settings, session, qmlutil, scenemodel, pathitem, scene, qobjecthelper, personalappcontroller) will raise ImportError at runtime. py_compile cannot catch this. Expected mid-port state; these need finishing before anything imports them.\n\nSHIBOKEN RISK (untestable here): shim monkeypatches QModelIndex.__str__/__repr__. shiboken6 may reject assigning dunders on wrapper types \u2014 could raise at shim import. Verify once PySide6 is installed.\n\nscene.py is the one new structural blocker worth a look: the only reason it's skip-noted is a name collision (Qt Property vs pkdiagram.scene.Property). A 'from PySide6.QtCore import Property as pyqtProperty' alias resolves it cleanly, but that deviates from the literal rename rule, so I left it for your call.\n\nproperty.py / item.py carry '.replace(\\\"PyQt5.QtCore.\\\", \\\"\\\")' string constants that silently stop working under PySide6 (repr prefix becomes 'PySide6.QtCore.'). Not a cookbook transform \u2014 pretty-printing of Qt values will keep the module prefix until decided.\n\nComment/docstring/log-string-only hits (no action, not real leftovers): condition.py:14, conftest.py, tests/models/test_personpropertiesmodel.py, tests/views/test_graphicaltimelineview.py:157 (commented .exec_()), models/layeritempropertiesmodel.py, models/scenelayermodel.py, scene/marriage.py, scene/person.py, widgets/qmlwidgethelper.py:85 (log f-string). Generated forms mainwindow_form.py/welcome_form.py/preferences_form.py already import PySide6; only the 'Created by: PyQt5 UI code generator' header comment remains \u2014 regenerate with pyside6-uic later.\n\nENV: No PySide6 installed anywhere on this machine and 'uv run' is broken (workspace member 'btcopilot' missing from tool.uv.sources). All verification is syntax-only via 'python3 -m py_compile' (system Python 3.14). Runtime import resolution, signal/slot binding, and the TLS assert are UNVERIFIED. No .exec_() or toPyDateTime()/toPyDate()/toPyTime() live-code hits remain in the tree (only one commented .exec_()). Compile sweep: 279/279 clean under pkdiagram/ and bin/ (excl. build/, site-packages, __pycache__).",
+    "runtime_unverified": "no PySide6 installed yet (dependency flip gated on morning decisions); syntax-only verification"
+  }
+}

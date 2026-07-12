@@ -1,6 +1,6 @@
 from mock import patch
 
-from pkdiagram.pyqt import QMessageBox
+from PySide6.QtWidgets import QMessageBox
 from pkdiagram.scene import Scene, Person, Marriage, ChildOf, MultipleBirth, Layer
 
 

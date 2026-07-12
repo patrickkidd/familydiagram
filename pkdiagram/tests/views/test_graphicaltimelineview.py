@@ -1,7 +1,7 @@
 import pytest
 
 from btcopilot.schema import EventKind
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     Qt,
     QPoint,
     QDate,

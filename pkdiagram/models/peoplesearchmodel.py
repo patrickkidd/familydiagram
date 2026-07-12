@@ -4,13 +4,13 @@ Not used yet, left here for reference.
 
 import logging
 
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     Qt,
-    pyqtSlot,
+    Slot,
     QSortFilterProxyModel,
-    qmlRegisterType,
     QModelIndex,
 )
+from PySide6.QtQml import qmlRegisterType
 from .modelhelper import ModelHelper
 
 
@@ -38,7 +38,7 @@ class PeopleSearchModel(QSortFilterProxyModel, ModelHelper):
         right_data = self.sourceModel().data(right)
         return left_data.lower() < right_data.lower()
 
-    @pyqtSlot(str)
+    @Slot(str)
     def updateFilter(self, filterText):
         _log.info(filterText)
         self.setFilterCaseSensitivity(Qt.CaseInsensitive)

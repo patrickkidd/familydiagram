@@ -5,33 +5,37 @@ import json
 import btcopilot
 from btcopilot.schema import EventKind, DiagramData, asdict
 from _pkdiagram import CUtil
-from pkdiagram.pyqt import (
-    pyqtSignal,
+from PySide6.QtCore import (
+    Signal,
     Qt,
     QObject,
-    QApplication,
     QRect,
     QRectF,
-    QActionGroup,
-    QAction,
-    QQuickWidget,
-    QQuickItem,
     QItemSelectionModel,
-    QMessageBox,
-    QImage,
-    QPainter,
-    QColor,
     QItemSelection,
-    QDialog,
-    QJSValue,
     QDateTime,
     QDate,
     QSize,
     QSizeF,
     QPoint,
     QPointF,
+)
+from PySide6.QtGui import (
+    QActionGroup,
+    QAction,
+    QImage,
+    QPainter,
+    QColor,
+)
+from PySide6.QtWidgets import (
+    QApplication,
+    QMessageBox,
+    QDialog,
     QFileDialog,
 )
+from PySide6.QtQuick import QQuickItem
+from PySide6.QtQuickWidgets import QQuickWidget
+from PySide6.QtQml import QJSValue
 from pkdiagram import util
 from pkdiagram.scene import (
     ItemMode,
@@ -49,7 +53,7 @@ from pkdiagram.documentview import RightDrawerView
 
 if not util.IS_IOS:
     import xlsxwriter
-    from pkdiagram.pyqt import QPrinter, QPrintDialog
+    from PySide6.QtPrintSupport import QPrinter, QPrintDialog
 
 
 log = logging.getLogger(__name__)
@@ -61,7 +65,7 @@ class DocumentController(QObject):
     - Wrangling views goes in DocumentController.
     """
 
-    uploadToServer = pyqtSignal()
+    uploadToServer = Signal()
 
     _ignoreSelectionChanges = False
     _isUpdatingSearchTags = False

@@ -1,7 +1,8 @@
 import pytest
 from mock import patch
 
-from pkdiagram.pyqt import QPointF, QMessageBox
+from PySide6.QtCore import QPointF
+from PySide6.QtWidgets import QMessageBox
 from pkdiagram import util
 from pkdiagram.scene import Scene, Layer, PathItem, Person, Property, Callout
 

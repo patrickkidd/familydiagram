@@ -1,23 +1,18 @@
 import logging
 
 from pkdiagram import util
-from pkdiagram.pyqt import (
-    pyqtSignal,
-    QWidget,
-    QVBoxLayout,
-    QLabel,
+from PySide6.QtCore import Signal, Qt, QRectF
+from PySide6.QtGui import (
     QPainter,
     QPainterPath,
     QColor,
-    Qt,
-    QRectF,
     QPen,
     QFont,
     QFontMetrics,
     QLinearGradient,
     QPalette,
-    QApplication,
 )
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QApplication
 from pkdiagram.scene import Event
 
 _log = logging.getLogger(__name__)
@@ -30,7 +25,7 @@ HEIGHT = 70
 
 class TimelineCallout(QWidget):
 
-    clicked = pyqtSignal()
+    clicked = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -121,7 +116,7 @@ class TimelineCallout(QWidget):
 
 if __name__ == "__main__":
     import sys
-    from pkdiagram.pyqt import QApplication
+    from PySide6.QtWidgets import QApplication
 
     util.TEXT_COLOR = Qt.white
     util.WINDOW_BG = QColor("#1e1e1e")

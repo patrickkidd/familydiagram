@@ -1,13 +1,12 @@
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     Qt,
     QAbstractListModel,
     QModelIndex,
-    pyqtSlot,
-    qmlRegisterType,
+    Slot,
     QVariant,
-    QMessageBox,
-    QApplication,
 )
+from PySide6.QtQml import qmlRegisterType
+from PySide6.QtWidgets import QMessageBox, QApplication
 from pkdiagram import util
 from ..scene import Layer, LayerItem, Property
 from .modelhelper import ModelHelper
@@ -100,7 +99,7 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
     def onDiagramReset(self):
         self.modelReset.emit()
 
-    @pyqtSlot()
+    @Slot()
     def addRow(self):
         name = util.newNameOf(
             self._layers, tmpl=self.NEW_NAME_TMPL, key=lambda x: x.name()
@@ -118,7 +117,7 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
     #     self._scene.addItem(newLayer, undo=True)
     #     self._scene.tidyLayerOrder()
 
-    @pyqtSlot(int)
+    @Slot(int)
     def removeRow(self, row: int):
         layer = self._layers[row]
         nItems = 0
@@ -146,7 +145,7 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
         if index.row() >= 0 and index.row() < len(self._layers):
             return self._layers[index.row()]
 
-    @pyqtSlot(int, result=QVariant)
+    @Slot(int, result=QVariant)
     def layerForRow(self, row):
         return self.layerForIndex(self.createIndex(row, 0))
 
@@ -156,7 +155,7 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
             row = self._layers.index(layer)
             return self.index(row, 0)
 
-    @pyqtSlot(int, int)
+    @Slot(int, int)
     def moveLayer(self, oldRow, newRow):
         self._reorderingLayers = True
         self._layers.insert(newRow, self._layers.pop(oldRow))
@@ -236,7 +235,7 @@ class SceneLayerModel(QAbstractListModel, ModelHelper):
             self.dataChanged.emit(index, index, [role])
         return success
 
-    @pyqtSlot(int)
+    @Slot(int)
     def setActiveExclusively(self, row):
         for _row in range(self.rowCount()):
             if _row == row:

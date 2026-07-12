@@ -1,6 +1,6 @@
 import pytest
 
-from pkdiagram.pyqt import Qt
+from PySide6.QtCore import Qt
 from pkdiagram import util
 from pkdiagram.scene import Scene, Item
 from pkdiagram.models import SearchModel, TagsModel

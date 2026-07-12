@@ -2,7 +2,7 @@ import logging
 
 import pytest
 
-from pkdiagram.pyqt import Qt, QDateTime, QPointF
+from PySide6.QtCore import Qt, QDateTime, QPointF
 from pkdiagram import util
 from pkdiagram.scene import (
     Person,

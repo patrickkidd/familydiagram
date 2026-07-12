@@ -1,21 +1,20 @@
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     Qt,
-    QPen,
-    QBrush,
-    QColor,
+    QPropertyAnimation,
+    QEasingCurve,
+    QPointF,
+    QRect,
+    Signal,
+    QPoint,
+)
+from PySide6.QtGui import QPen, QBrush, QColor, QPainter
+from PySide6.QtWidgets import (
     QTabWidget,
     QWidget,
     QFrame,
     QGraphicsOpacityEffect,
-    QPropertyAnimation,
-    QEasingCurve,
-    QPointF,
-    QPainter,
     QStyle,
     QStyleOption,
-    QRect,
-    pyqtSignal,
-    QPoint,
 )
 from pkdiagram import util
 
@@ -24,11 +23,11 @@ class PopUp(QFrame):
 
     MARGIN = 15
 
-    startHiding = pyqtSignal()
-    dragPress = pyqtSignal(QPoint)
-    dragMove = pyqtSignal(QPoint)
-    dragRelease = pyqtSignal(QPoint)
-    popupAnimationDone = pyqtSignal()
+    startHiding = Signal()
+    dragPress = Signal(QPoint)
+    dragMove = Signal(QPoint)
+    dragRelease = Signal(QPoint)
+    popupAnimationDone = Signal()
 
     def __init__(self, parent, effect=None):
         super().__init__(parent)

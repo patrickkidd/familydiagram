@@ -1,10 +1,10 @@
-from pkdiagram.pyqt import QObject, QSignalMapper, pyqtSignal
+from PySide6.QtCore import QObject, QSignalMapper, Signal
 from pkdiagram import util
 
 
 class ButtonGroup(QObject):
 
-    changed = pyqtSignal(int)
+    changed = Signal(int)
 
     def __init__(self, parent=None):
         super().__init__(parent)

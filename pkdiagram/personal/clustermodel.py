@@ -10,13 +10,13 @@ from btcopilot.schema import (
     from_dict,
     hash_sarf_dicts,
 )
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     QObject,
-    QNetworkReply,
-    pyqtProperty,
-    pyqtSignal,
-    pyqtSlot,
+    Property,
+    Signal,
+    Slot,
 )
+from PySide6.QtNetwork import QNetworkReply
 from pkdiagram.scene import Scene, Event
 from pkdiagram.app import Session
 
@@ -28,15 +28,15 @@ def _enumValue(val):
 
 
 class ClusterModel(QObject):
-    changed = pyqtSignal()  # Emitted when cluster data changes
-    selectionChanged = pyqtSignal()  # Emitted when selected cluster changes
-    detectingChanged = pyqtSignal()
+    changed = Signal()  # Emitted when cluster data changes
+    selectionChanged = Signal()  # Emitted when selected cluster changes
+    detectingChanged = Signal()
     clustersDetected = (
-        pyqtSignal()
+        Signal()
     )  # Emitted after successful detection (for persistence)
-    errorOccurred = pyqtSignal(str, arguments=["error"])
+    errorOccurred = Signal(str, arguments=["error"])
 
-    showClustersChanged = pyqtSignal()
+    showClustersChanged = Signal()
 
     def __init__(self, session: Session, parent=None):
         super().__init__(parent)
@@ -161,7 +161,7 @@ class ClusterModel(QObject):
         self._cacheDir = path
         self._loadCache()
 
-    @pyqtSlot()
+    @Slot()
     def detect(self):
         if not self._scene or not self._diagramId or not self._session:
             _log.warning("Cannot detect clusters: missing scene, diagramId, or session")
@@ -252,23 +252,23 @@ class ClusterModel(QObject):
             from_root=True,
         )
 
-    @pyqtProperty("QVariantList", notify=changed)
+    @Property("QVariantList", notify=changed)
     def clusters(self) -> list[dict]:
         return self._clusters
 
-    @pyqtProperty(int, notify=changed)
+    @Property(int, notify=changed)
     def count(self) -> int:
         return len(self._clusters)
 
-    @pyqtProperty(bool, notify=changed)
+    @Property(bool, notify=changed)
     def hasClusters(self) -> bool:
         return len(self._clusters) > 0
 
-    @pyqtProperty(bool, notify=detectingChanged)
+    @Property(bool, notify=detectingChanged)
     def detecting(self) -> bool:
         return self._detecting
 
-    @pyqtProperty(str, notify=selectionChanged)
+    @Property(str, notify=selectionChanged)
     def selectedClusterId(self) -> str:
         return self._selectedClusterId or ""
 
@@ -279,28 +279,28 @@ class ClusterModel(QObject):
         self._selectedClusterId = value if value else None
         self.selectionChanged.emit()
 
-    @pyqtSlot(str)
+    @Slot(str)
     def selectCluster(self, clusterId: str):
         self.selectedClusterId = clusterId
 
-    @pyqtSlot(int, result=str)
+    @Slot(int, result=str)
     def clusterForEvent(self, eventId: int) -> str:
         return self._eventToCluster.get(eventId, "")
 
-    @pyqtSlot(str, result="QVariantMap")
+    @Slot(str, result="QVariantMap")
     def clusterById(self, clusterId: str) -> dict:
         for c in self._clusters:
             if c.get("id") == clusterId:
                 return c
         return {}
 
-    @pyqtSlot(int, result="QVariantMap")
+    @Slot(int, result="QVariantMap")
     def clusterAt(self, index: int) -> dict:
         if 0 <= index < len(self._clusters):
             return self._clusters[index]
         return {}
 
-    @pyqtSlot(str, result="QVariantList")
+    @Slot(str, result="QVariantList")
     def eventsInCluster(self, clusterId: str) -> list[int]:
         for c in self._clusters:
             if c.get("id") == clusterId:
@@ -311,7 +311,7 @@ class ClusterModel(QObject):
     def cacheKey(self) -> str | None:
         return self._cacheKey
 
-    @pyqtProperty(bool, notify=showClustersChanged)
+    @Property(bool, notify=showClustersChanged)
     def showClusters(self) -> bool:
         return self._showClusters
 
@@ -323,7 +323,7 @@ class ClusterModel(QObject):
         self.showClustersChanged.emit()
         self._saveCache()
 
-    @pyqtSlot(bool)
+    @Slot(bool)
     def setShowClusters(self, value: bool):
         self.showClusters = value
 

@@ -1,16 +1,18 @@
 import sys, os.path, logging
 from optparse import OptionParser
 
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     Qt,
     QUrl,
     QSettings,
-    QWidget,
-    QVBoxLayout,
-    QOpenGLWidget,
-    QSurfaceFormat,
     QEventLoop,
 )
+from PySide6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+)
+from PySide6.QtGui import QSurfaceFormat
+from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from pkdiagram import util, extensions
 from pkdiagram.mainwindow import MainWindow
 from pkdiagram.app import Application, AppController
@@ -166,7 +168,7 @@ def _main_impl():
         app.personalController = controller  # For MCP test bridge access
 
         import sys
-        from PyQt5.QtQml import QQmlApplicationEngine
+        from PySide6.QtQml import QQmlApplicationEngine
 
         engine = QQmlApplicationEngine()
         engine.addImportPath("resources:")
@@ -196,7 +198,7 @@ def _main_impl():
             testBridgeServer.start()
             _log.info(f"Test bridge server started on port {_bridgePort}")
 
-        ret = app.exec_()
+        ret = app.exec()
 
         # Stop test bridge server
         if testBridgeServer:
@@ -233,7 +235,7 @@ def _main_impl():
 
         # Open file at startup if specified (scheduled after event loop starts)
         if util.IS_DEV and options.open_file:
-            from pkdiagram.pyqt import QTimer
+            from PySide6.QtCore import QTimer
 
             _log.info(f"Will open file at startup: {options.open_file}")
             QTimer.singleShot(100, lambda: mainWindow.open(filePath=options.open_file))

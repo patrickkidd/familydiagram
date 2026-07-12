@@ -1,10 +1,10 @@
 import logging
 from btcopilot.schema import EventKind, RelationshipKind, VariableShift
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     QObject,
-    pyqtProperty,
-    pyqtSignal,
-    pyqtSlot,
+    Property,
+    Signal,
+    Slot,
 )
 from pkdiagram.scene import Scene, Event
 
@@ -12,7 +12,7 @@ _log = logging.getLogger(__name__)
 
 
 class SARFGraphModel(QObject):
-    changed = pyqtSignal()
+    changed = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -169,43 +169,43 @@ class SARFGraphModel(QObject):
         padding = max(5, (maxYear - minYear) // 10)
         self._yearRange = (minYear - padding, maxYear + padding)
 
-    @pyqtProperty("QVariantList", notify=changed)
+    @Property("QVariantList", notify=changed)
     def events(self) -> list[dict]:
         return self._events
 
-    @pyqtProperty("QVariantList", notify=changed)
+    @Property("QVariantList", notify=changed)
     def cumulative(self) -> list[dict]:
         return self._cumulative
 
-    @pyqtProperty(int, notify=changed)
+    @Property(int, notify=changed)
     def yearStart(self) -> int:
         return self._yearRange[0]
 
-    @pyqtProperty(int, notify=changed)
+    @Property(int, notify=changed)
     def yearEnd(self) -> int:
         return self._yearRange[1]
 
-    @pyqtProperty(int, notify=changed)
+    @Property(int, notify=changed)
     def yearSpan(self) -> int:
         return self._yearRange[1] - self._yearRange[0]
 
-    @pyqtProperty(bool, notify=changed)
+    @Property(bool, notify=changed)
     def hasData(self) -> bool:
         return len(self._events) > 0
 
-    @pyqtSlot(int, result="QVariantMap")
+    @Slot(int, result="QVariantMap")
     def eventAt(self, index: int) -> dict:
         if 0 <= index < len(self._events):
             return self._events[index]
         return {}
 
-    @pyqtSlot(int, result="QVariantMap")
+    @Slot(int, result="QVariantMap")
     def cumulativeAt(self, index: int) -> dict:
         if 0 <= index < len(self._cumulative):
             return self._cumulative[index]
         return {}
 
-    @pyqtSlot(int, result=str)
+    @Slot(int, result=str)
     def primaryColor(self, index: int) -> str:
         if index < 0 or index >= len(self._events):
             return "#ffffff"
@@ -220,7 +220,7 @@ class SARFGraphModel(QObject):
             return "#909090"
         return "#ffffff"
 
-    @pyqtSlot(str, result=bool)
+    @Slot(str, result=bool)
     def isLifeEvent(self, kind: str) -> bool:
         return kind in (
             EventKind.Birth.value,

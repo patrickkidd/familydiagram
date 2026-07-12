@@ -10,7 +10,7 @@ from datetime import datetime
 import pytest
 from mock import patch, MagicMock
 
-from pkdiagram.pyqt import QUndoStack
+from PySide6.QtGui import QUndoStack
 from pkdiagram.personal import PersonalAppController
 from pkdiagram.server_types import Diagram
 from btcopilot.schema import (

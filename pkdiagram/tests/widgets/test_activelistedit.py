@@ -1,12 +1,8 @@
 import pytest
 
-from pkdiagram.pyqt import (
-    Qt,
-    QVBoxLayout,
-    QWidget,
-    QStandardItemModel,
-    QStandardItem,
-)
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QVBoxLayout, QWidget
+from PySide6.QtGui import QStandardItemModel, QStandardItem
 from pkdiagram import util
 from pkdiagram.widgets import QmlWidgetHelper
 

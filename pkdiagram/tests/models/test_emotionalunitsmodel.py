@@ -1,6 +1,6 @@
 import mock
 
-from pkdiagram.pyqt import Qt
+from PySide6.QtCore import Qt
 from pkdiagram.scene import Scene, Person, Marriage, Layer
 from pkdiagram.models import EmotionalUnitsModel
 

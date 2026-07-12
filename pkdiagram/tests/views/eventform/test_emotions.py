@@ -3,7 +3,7 @@ import pytest
 from btcopilot.schema import EventKind, RelationshipKind
 from pkdiagram import util
 from pkdiagram.scene import Person, Event
-from pkdiagram.pyqt import QColor
+from PySide6.QtGui import QColor
 
 from .test_eventform import view, START_DATETIME
 

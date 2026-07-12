@@ -1,11 +1,10 @@
 from btcopilot.schema import EventKind
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     Qt,
     QObject,
-    QDate,
     QDateTime,
-    qmlRegisterType,
 )
+from PySide6.QtQml import qmlRegisterType
 from pkdiagram import util, scene
 from pkdiagram.models import ModelHelper
 

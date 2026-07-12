@@ -1,4 +1,5 @@
-from pkdiagram.pyqt import Qt, QAbstractTableModel, QModelIndex, qmlRegisterType
+from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex
+from PySide6.QtQml import qmlRegisterType
 from pkdiagram import util
 from .modelhelper import ModelHelper
 

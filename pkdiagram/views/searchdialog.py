@@ -1,11 +1,11 @@
 import logging
 
-from pkdiagram.pyqt import (
-    pyqtSignal,
+from PySide6.QtCore import (
+    Signal,
     Qt,
-    QVBoxLayout,
     QSize,
 )
+from PySide6.QtWidgets import QVBoxLayout
 from pkdiagram.widgets import Dialog, QmlWidgetHelper
 
 _log = logging.getLogger(__name__)
@@ -13,7 +13,7 @@ _log = logging.getLogger(__name__)
 
 class SearchDialog(Dialog, QmlWidgetHelper):
 
-    quit = pyqtSignal()
+    quit = Signal()
 
     def __init__(self, engine, parent=None):
         super().__init__(parent)

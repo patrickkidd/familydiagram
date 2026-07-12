@@ -4,7 +4,7 @@ import pickle
 import logging
 from datetime import datetime
 
-from pkdiagram.pyqt import QObject, QDir, pyqtSignal
+from PySide6.QtCore import QObject, QDir, Signal
 from pkdiagram import util
 
 
@@ -23,7 +23,7 @@ class AutoSaveManager(QObject):
     with timestamped filenames compatible with tiered retention pruning.
     """
 
-    autoSaved = pyqtSignal(str)  # Emits the path to the auto-saved file
+    autoSaved = Signal(str)  # Emits the path to the auto-saved file
 
     AUTOSAVE_FOLDER_NAME = "Autosaves"
 
@@ -102,7 +102,7 @@ class AutoSaveManager(QObject):
             # Local file - extract from document URL
             originalPath = self._document.url().toLocalFile()
             if originalPath:
-                from pkdiagram.pyqt import QFileInfo
+                from PySide6.QtCore import QFileInfo
 
                 fileInfo = QFileInfo(originalPath)
                 baseName = fileInfo.completeBaseName()

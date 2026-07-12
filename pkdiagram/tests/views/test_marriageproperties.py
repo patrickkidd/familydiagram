@@ -1,7 +1,7 @@
 import pytest
 
 from btcopilot.schema import EventKind
-from pkdiagram.pyqt import Qt
+from PySide6.QtCore import Qt
 from pkdiagram import util
 from pkdiagram.scene import Person, Marriage, Event, Property
 from pkdiagram.views import QmlDrawer

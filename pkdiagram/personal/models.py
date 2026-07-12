@@ -2,7 +2,8 @@ import enum
 import logging
 from dataclasses import dataclass
 
-from pkdiagram.pyqt import pyqtProperty, QObject, qmlRegisterType
+from PySide6.QtCore import Property, QObject
+from PySide6.QtQml import qmlRegisterType
 
 # from pkdiagram import util
 # from pkdiagram.models.qobjecthelper import qobject_dataclass
@@ -40,15 +41,15 @@ class Speaker(QObject):
             "type": self._type.value,
         }
 
-    @pyqtProperty(int, constant=True)
+    @Property(int, constant=True)
     def id(self) -> int:
         return self._id
 
-    @pyqtProperty(str, constant=True)
+    @Property(str, constant=True)
     def name(self) -> str:
         return self._name
 
-    @pyqtProperty(str, constant=True)
+    @Property(str, constant=True)
     def type(self) -> str:
         return self._type
 
@@ -76,19 +77,19 @@ class Statement(QObject):
             "speaker": self._speaker.as_dict() if self._speaker else None,
         }
 
-    @pyqtProperty(int, constant=True)
+    @Property(int, constant=True)
     def id(self) -> int:
         return self._id
 
-    @pyqtProperty(str, constant=True)
+    @Property(str, constant=True)
     def text(self) -> str:
         return self._text
 
-    @pyqtProperty(Speaker, constant=True)
+    @Property(Speaker, constant=True)
     def speaker(self) -> Speaker:
         return self._speaker
 
-    @pyqtProperty(int, constant=True)
+    @Property(int, constant=True)
     def order(self) -> int:
         return self._order
 
@@ -126,22 +127,22 @@ class Discussion(QObject):
             "statements": [x.as_dict() for x in self._statements],
         }
 
-    @pyqtProperty(int, constant=True)
+    @Property(int, constant=True)
     def id(self) -> int:
         return self._id
 
-    @pyqtProperty(int, constant=True)
+    @Property(int, constant=True)
     def user_id(self) -> int:
         return self._user_id
 
-    @pyqtProperty(str, constant=True)
+    @Property(str, constant=True)
     def summary(self) -> str:
         return self._summary if self._summary else ""
 
     def statements(self) -> list[Statement]:
         return list(self._statements)
 
-    @pyqtProperty(int, constant=True)
+    @Property(int, constant=True)
     def extracted_through_order(self) -> int:
         # -1 = nothing accepted yet → every statement is dirty
         return (

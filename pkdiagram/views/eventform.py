@@ -11,20 +11,20 @@ class BirthRole(Enum):
     Child = "child"
 
 
-from pkdiagram.pyqt import (
-    pyqtSignal,
+from PySide6.QtCore import (
+    Signal,
     Q_RETURN_ARG,
     Q_ARG,
     Qt,
     QPointF,
     QMetaObject,
     QVariant,
-    QMessageBox,
     QDateTime,
-    QQuickItem,
     QObject,
-    QQmlEngine,
 )
+from PySide6.QtWidgets import QMessageBox
+from PySide6.QtQuick import QQuickItem
+from PySide6.QtQml import QQmlEngine
 from pkdiagram import util
 from pkdiagram.scene import Person, Event, Marriage, Item, Property, Scene
 from pkdiagram.models import TagsModel
@@ -53,8 +53,8 @@ class TagsProxyItem(Item):
 
 class EventForm(QObject):
 
-    doneEditing = pyqtSignal()
-    saved = pyqtSignal()
+    doneEditing = Signal()
+    saved = Signal()
 
     S_REQUIRED_FIELD_ERROR = "'{name}' is a required field."
     S_HELP_TEXT_ADD_PEOPLE = "This will add {numPeople} people to the diagram"

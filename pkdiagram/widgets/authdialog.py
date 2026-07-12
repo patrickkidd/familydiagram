@@ -1,6 +1,8 @@
 import logging
 
-from pkdiagram.pyqt import (
+from PySide6.QtCore import QUrl, Qt
+from PySide6.QtGui import QDesktopServices
+from PySide6.QtWidgets import (
     QDialog,
     QVBoxLayout,
     QHBoxLayout,
@@ -8,9 +10,6 @@ from pkdiagram.pyqt import (
     QLineEdit,
     QPushButton,
     QApplication,
-    QDesktopServices,
-    QUrl,
-    Qt,
 )
 
 log = logging.getLogger(__name__)

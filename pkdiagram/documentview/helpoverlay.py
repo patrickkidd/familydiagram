@@ -1,10 +1,12 @@
-from pkdiagram.pyqt import (
-    QWidget,
-    QColor,
-    QPainter,
+from PySide6.QtCore import (
     QAbstractAnimation,
     QVariantAnimation,
 )
+from PySide6.QtGui import (
+    QColor,
+    QPainter,
+)
+from PySide6.QtWidgets import QWidget
 from pkdiagram import util
 
 

@@ -1,4 +1,5 @@
-from pkdiagram.pyqt import Qt, QObject, QApplication
+from PySide6.QtCore import Qt, QObject
+from PySide6.QtWidgets import QApplication
 from pkdiagram import util
 from pkdiagram.scene import Item
 from pkdiagram.models import ModelHelper

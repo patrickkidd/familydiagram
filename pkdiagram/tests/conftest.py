@@ -9,30 +9,33 @@ import pytest, mock
 from mock import patch
 
 from _pkdiagram import CUtil
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     Qt,
-    QNetworkReply,
     QByteArray,
-    QNetworkRequest,
-    QNetworkAccessManager,
     QTimer,
-    QApplication,
     QIODevice,
-    QQmlError,
-    QTest,
-    QPlainTextEdit,
-    QWindow,
-    QWidget,
-    QMouseEvent,
     QEvent,
-    QVariant,
-    QMessageBox,
     QEventLoop,
     QSettings,
-    QGraphicsView,
-    QVBoxLayout,
     QUrl,
 )
+from PySide6.QtGui import QWindow, QMouseEvent
+from PySide6.QtWidgets import (
+    QApplication,
+    QPlainTextEdit,
+    QWidget,
+    QMessageBox,
+    QGraphicsView,
+    QVBoxLayout,
+)
+from PySide6.QtNetwork import (
+    QNetworkReply,
+    QNetworkRequest,
+    QNetworkAccessManager,
+)
+from PySide6.QtQml import QQmlError
+from PySide6.QtTest import QTest
+from pkdiagram.pyqt import QVariant
 from pkdiagram import version, util
 from pkdiagram.qnam import QNAM
 from pkdiagram.server_types import HTTPResponse, Server

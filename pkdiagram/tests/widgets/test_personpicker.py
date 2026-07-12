@@ -4,7 +4,8 @@ from pathlib import Path
 import pytest
 
 from pkdiagram import util
-from pkdiagram.pyqt import QVBoxLayout, QWidget, QUrl, QApplication
+from PySide6.QtWidgets import QVBoxLayout, QWidget, QApplication
+from PySide6.QtCore import QUrl
 from pkdiagram.scene import Person
 from pkdiagram.widgets import QmlWidgetHelper
 

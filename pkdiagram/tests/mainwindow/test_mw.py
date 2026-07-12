@@ -10,7 +10,8 @@ import mock
 
 import btcopilot
 from pkdiagram import util
-from pkdiagram.pyqt import QApplication, QPrinter, QDialog
+from PySide6.QtWidgets import QApplication, QDialog
+from PySide6.QtPrintSupport import QPrinter
 from pkdiagram.scene import Person, Scene, Marriage, Layer
 from pkdiagram.mainwindow import MainWindow
 from pkdiagram.documentview import DocumentController
@@ -136,7 +137,7 @@ def test_save_to_excel(tmp_path, create_ac_mw):
     mw.prefs.setValue("lastFileSavePath", os.path.join(tmp_path, "some_prev_file.fd"))
     mw.open(filePath=FD_PATH)
     with mock.patch(
-        "PyQt5.QtWidgets.QFileDialog.getSaveFileName",
+        "PySide6.QtWidgets.QFileDialog.getSaveFileName",
         return_value=(XLSX_PATH, None),
     ) as getSaveFileName:
         with mock.patch.object(DocumentController, "writeExcel") as writeExcel:

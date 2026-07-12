@@ -1,6 +1,7 @@
 import logging
 
-from pkdiagram.pyqt import QObject, QDateTime, qmlRegisterType, pyqtProperty
+from PySide6.QtCore import QObject, QDateTime
+from PySide6.QtQml import qmlRegisterType
 from pkdiagram import util
 from pkdiagram.scene import Item, Emotion
 from .modelhelper import ModelHelper

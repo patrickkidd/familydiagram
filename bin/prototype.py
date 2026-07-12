@@ -13,15 +13,10 @@ Creates a minimal QmlUtil context so prototypes can use `util.*` properties.
 import sys
 import argparse
 
-from pkdiagram.pyqt import (
-    Qt,
-    QApplication,
-    QQuickView,
-    QUrl,
-    QObject,
-    pyqtProperty,
-    QColor,
-)
+from PySide6.QtCore import Qt, QUrl, QObject, Property
+from PySide6.QtWidgets import QApplication
+from PySide6.QtQuick import QQuickView
+from PySide6.QtGui import QColor
 
 
 class PrototypeUtil(QObject):
@@ -59,151 +54,151 @@ class PrototypeUtil(QObject):
             self._highlightColor = "#007aff80"
 
     # Dark mode flag
-    @pyqtProperty(bool)
+    @Property(bool)
     def IS_UI_DARK_MODE(self):
         return self._darkMode
 
-    @pyqtProperty(bool)
+    @Property(bool)
     def IS_IOS(self):
         return False
 
     # Colors
-    @pyqtProperty(str)
+    @Property(str)
     def QML_WINDOW_BG(self):
         return self._windowBg
 
-    @pyqtProperty(str)
+    @Property(str)
     def QML_ITEM_BG(self):
         return self._itemBg
 
-    @pyqtProperty(str)
+    @Property(str)
     def QML_ITEM_ALTERNATE_BG(self):
         return self._itemAlternateBg
 
-    @pyqtProperty(str)
+    @Property(str)
     def QML_ITEM_BORDER_COLOR(self):
         return self._itemBorderColor
 
-    @pyqtProperty(str)
+    @Property(str)
     def QML_HEADER_BG(self):
         return self._headerBg
 
-    @pyqtProperty(str)
+    @Property(str)
     def QML_CONTROL_BG(self):
         return self._controlBg
 
-    @pyqtProperty(str)
+    @Property(str)
     def QML_TEXT_COLOR(self):
         return self._textColor
 
-    @pyqtProperty(str)
+    @Property(str)
     def QML_INACTIVE_TEXT_COLOR(self):
         return self._inactiveTextColor
 
-    @pyqtProperty(str)
+    @Property(str)
     def QML_DROP_SHADOW_COLOR(self):
         return self._dropShadowColor
 
-    @pyqtProperty(str)
+    @Property(str)
     def QML_SELECTION_COLOR(self):
         return self._selectionColor
 
-    @pyqtProperty(str)
+    @Property(str)
     def QML_HIGHLIGHT_COLOR(self):
         return self._highlightColor
 
-    @pyqtProperty(str)
+    @Property(str)
     def QML_SELECTION_TEXT_COLOR(self):
         return "#ffffff"
 
-    @pyqtProperty(str)
+    @Property(str)
     def QML_HIGHLIGHT_TEXT_COLOR(self):
         return "#ffffff" if self._darkMode else "#000000"
 
-    @pyqtProperty(str)
+    @Property(str)
     def QML_ACTIVE_TEXT_COLOR(self):
         return self._textColor
 
-    @pyqtProperty(str)
+    @Property(str)
     def QML_ACTIVE_HELP_TEXT_COLOR(self):
         return "#cccccc" if self._darkMode else "#000000"
 
-    @pyqtProperty(str)
+    @Property(str)
     def QML_NODAL_COLOR(self):
         return "#fcf5c9" if self._darkMode else "#ffc0cb"
 
-    @pyqtProperty(str)
+    @Property(str)
     def QML_SAME_DATE_HIGHLIGHT_COLOR(self):
         return "#0a84ff59" if self._darkMode else "#007aff59"
 
     # Spacing
-    @pyqtProperty(int)
+    @Property(int)
     def QML_MARGINS(self):
         return 15
 
-    @pyqtProperty(int)
+    @Property(int)
     def QML_ITEM_MARGINS(self):
         return 10
 
-    @pyqtProperty(int)
+    @Property(int)
     def QML_SPACING(self):
         return 8
 
-    @pyqtProperty(int)
+    @Property(int)
     def QML_ITEM_HEIGHT(self):
         return 44
 
-    @pyqtProperty(int)
+    @Property(int)
     def QML_ITEM_LARGE_HEIGHT(self):
         return 66
 
-    @pyqtProperty(int)
+    @Property(int)
     def QML_HEADER_HEIGHT(self):
         return 60
 
-    @pyqtProperty(int)
+    @Property(int)
     def QML_FIELD_WIDTH(self):
         return 180
 
-    @pyqtProperty(int)
+    @Property(int)
     def QML_FIELD_HEIGHT(self):
         return 32
 
-    @pyqtProperty(int)
+    @Property(int)
     def QML_SMALL_BUTTON_WIDTH(self):
         return 32
 
-    @pyqtProperty(int)
+    @Property(int)
     def QML_MICRO_BUTTON_WIDTH(self):
         return 28
 
     # Typography
-    @pyqtProperty(int)
+    @Property(int)
     def TEXT_FONT_SIZE(self):
         return 13
 
-    @pyqtProperty(int)
+    @Property(int)
     def HELP_FONT_SIZE(self):
         return 11
 
-    @pyqtProperty(int)
+    @Property(int)
     def QML_TITLE_FONT_SIZE(self):
         return 18
 
-    @pyqtProperty(int)
+    @Property(int)
     def QML_SMALL_TITLE_FONT_SIZE(self):
         return 14
 
-    @pyqtProperty(str)
+    @Property(str)
     def FONT_FAMILY(self):
         return ""
 
-    @pyqtProperty(str)
+    @Property(str)
     def FONT_FAMILY_TITLE(self):
         return ""
 
     # Animation
-    @pyqtProperty(int)
+    @Property(int)
     def ANIM_DURATION_MS(self):
         return 200
 
@@ -237,7 +232,7 @@ def main():
     view.setHeight(args.height)
     view.show()
 
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 if __name__ == "__main__":

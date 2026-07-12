@@ -7,18 +7,17 @@ import logging
 import dataclasses
 
 from btcopilot.schema import DiagramData
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     Qt,
     QTimer,
-    pyqtSlot,
-    pyqtSignal,
-    qmlRegisterType,
-    QApplication,
-    QMessageBox,
+    Slot,
+    Signal,
     QDateTime,
-    QNetworkRequest,
     QUrl,
 )
+from PySide6.QtQml import qmlRegisterType
+from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtNetwork import QNetworkRequest
 from pkdiagram.util import CUtil
 from pkdiagram import util
 from pkdiagram.server_types import Diagram, HTTPError
@@ -53,12 +52,12 @@ class ServerFileManagerModel(FileManagerModel):
     )
     DiagramDataRole = FileManagerModel.OwnerRole + 1
 
-    serverError = pyqtSignal(int)
-    updateFinished = pyqtSignal()
+    serverError = Signal(int)
+    updateFinished = Signal()
 
     # for testing
-    indexGETResponse = pyqtSignal(object)
-    diagramGETResponse = pyqtSignal(object)
+    indexGETResponse = Signal(object)
+    diagramGETResponse = Signal(object)
 
     def __init__(self, parent=None, dataPath=None, metadataPath=None):
         super().__init__(parent)
@@ -413,7 +412,7 @@ class ServerFileManagerModel(FileManagerModel):
                 log.info(f"Could not delete dir: {fpath}")
             # log.info('Deleted dir', fpath)
 
-    @pyqtSlot(int)
+    @Slot(int)
     def deleteFileAtRow(self, row):
         diagram_id = self.data(self.index(row, 0), self.IDRole)
         if diagram_id:

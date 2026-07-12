@@ -1,18 +1,16 @@
 import os, os.path, sys, traceback, logging, enum
 
 from _pkdiagram import AppFilter
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     Qt,
-    QApplication,
-    QIcon,
-    QPixmap,
     QFileInfo,
     qInstallMessageHandler,
     QStandardPaths,
-    QFontDatabase,
     QSettings,
     QUrl,
 )
+from PySide6.QtWidgets import QApplication
+from PySide6.QtGui import QIcon, QPixmap, QFontDatabase
 from pkdiagram import util, version, extensions
 from pkdiagram.app import QmlUtil
 

@@ -2,7 +2,7 @@ import pytest
 
 
 from btcopilot.schema import RelationshipKind, EventKind
-from pkdiagram.pyqt import QPointF
+from PySide6.QtCore import QPointF
 from pkdiagram import util
 from pkdiagram.scene import Scene, Person, Marriage, Emotion
 

@@ -1,7 +1,8 @@
 import random
 import copy
 
-from pkdiagram.pyqt import QDateTime, QColor
+from PySide6.QtCore import QDateTime
+from PySide6.QtGui import QColor
 from pkdiagram import util
 from pkdiagram.scene import Property
 

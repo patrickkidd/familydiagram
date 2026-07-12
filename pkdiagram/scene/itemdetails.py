@@ -1,11 +1,10 @@
-from pkdiagram.pyqt import (
+from PySide6.QtCore import QLineF
+from PySide6.QtGui import QPen, QFont
+from PySide6.QtWidgets import (
     QGraphicsItem,
     QGraphicsSimpleTextItem,
     QGraphicsLineItem,
-    QLineF,
     QGraphicsView,
-    QPen,
-    QFont,
 )
 from pkdiagram import util
 from pkdiagram.scene import PathItem, ItemAnimationHelper

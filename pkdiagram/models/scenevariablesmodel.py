@@ -1,4 +1,5 @@
-from pkdiagram.pyqt import Qt, QStringListModel, qmlRegisterType, pyqtSlot
+from PySide6.QtCore import Qt, QStringListModel, Slot
+from PySide6.QtQml import qmlRegisterType
 from pkdiagram import util
 from .modelhelper import ModelHelper
 
@@ -33,13 +34,13 @@ class SceneVariablesModel(QStringListModel, ModelHelper):
             names = [x["name"] for x in self._scene.eventProperties()]
             self.setStringList(names)
 
-    @pyqtSlot()
+    @Slot()
     def addRow(self):
         names = [x["name"] for x in self._scene.eventProperties()]
         name = util.newNameOf(names, tmpl=self.NEW_NAME_TMPL, key=lambda x: x)
         self._scene.addEventProperty(name, undo=True)
 
-    @pyqtSlot(int)
+    @Slot(int)
     def removeRow(self, row):
         name = self.data(self.index(row, 0), Qt.DisplayRole)
         self._scene.removeEventPropertyByName(name, undo=True)

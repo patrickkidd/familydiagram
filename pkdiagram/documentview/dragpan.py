@@ -1,4 +1,4 @@
-from pkdiagram.pyqt import (
+from PySide6.QtWidgets import (
     QGraphicsView,
     QGraphicsItem,
 )

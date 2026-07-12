@@ -4,7 +4,8 @@ import pytest
 
 from btcopilot import schema
 from pkdiagram import util
-from pkdiagram.pyqt import QDate, QDateTime, QComboBox, QRect, QMessageBox, QTimer
+from PySide6.QtCore import QDate, QDateTime, QRect, QTimer
+from PySide6.QtWidgets import QComboBox, QMessageBox
 
 
 pytestmark = pytest.mark.no_gui

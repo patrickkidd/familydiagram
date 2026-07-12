@@ -1,10 +1,12 @@
-from pkdiagram.pyqt import pyqtSignal, QColor, Qt, QPalette, QPainter, QPen, QComboBox
+from PySide6.QtCore import Signal, Qt
+from PySide6.QtGui import QColor, QPalette, QPainter, QPen
+from PySide6.QtWidgets import QComboBox
 from pkdiagram import util
 
 
 class ColorBox(QComboBox):
 
-    currentColorChanged = pyqtSignal(QColor)
+    currentColorChanged = Signal(QColor)
 
     def __init__(self, parent=None):
         super().__init__(parent)

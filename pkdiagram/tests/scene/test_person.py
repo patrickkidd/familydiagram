@@ -1,7 +1,7 @@
 import pytest
 
 from btcopilot.schema import VariableShift, EventKind, RelationshipKind
-from pkdiagram.pyqt import QPointF, QDateTime
+from PySide6.QtCore import QPointF, QDateTime
 from pkdiagram import util
 from pkdiagram.scene import (
     Scene,

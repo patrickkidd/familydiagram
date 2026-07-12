@@ -1,11 +1,11 @@
 import math
 import logging
-from pkdiagram.pyqt import QObject, pyqtSignal, QTimer
+from PySide6.QtCore import QObject, Signal, QTimer
 
 _log = logging.getLogger(__name__)
 
 try:
-    from PyQt5.QtSensors import QAccelerometer, QAccelerometerReading
+    from PySide6.QtSensors import QAccelerometer, QAccelerometerReading
 
     HAS_SENSORS = True
 except ImportError:
@@ -13,7 +13,7 @@ except ImportError:
 
 
 class ShakeDetector(QObject):
-    shakeDetected = pyqtSignal()
+    shakeDetected = Signal()
 
     THRESHOLD = 15.0  # Acceleration threshold for shake
     COOLDOWN_MS = 1000  # Minimum time between shakes

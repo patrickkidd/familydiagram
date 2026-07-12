@@ -1,4 +1,4 @@
-from pkdiagram.pyqt import QObject, QDateTime, pyqtSlot, pyqtSignal
+from PySide6.QtCore import QObject, QDateTime, Slot, Signal
 from .qobjecthelper import QObjectHelper
 from .modelhelper import ModelHelper
 from pkdiagram.scene import Item, Property, Event
@@ -7,7 +7,7 @@ from pkdiagram.scene import Item, Property, Event
 class SearchModel(QObject, QObjectHelper):
     """Just a Scene-global placeholder for a bunch of properties."""
 
-    changed = pyqtSignal()
+    changed = Signal()
 
     PROPERTIES = ModelHelper.registerQtProperties(
         [
@@ -49,7 +49,7 @@ class SearchModel(QObject, QObjectHelper):
         # self.hideRelationshipsChanged.connect(self.onChanged)
         self._initializing = False
 
-    @pyqtSlot()
+    @Slot()
     def clear(self):
         self.reset("description")
         self.reset("people")

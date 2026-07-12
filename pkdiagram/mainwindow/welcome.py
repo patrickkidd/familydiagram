@@ -1,4 +1,4 @@
-from pkdiagram.pyqt import QApplication, QDialogButtonBox
+from PySide6.QtWidgets import QApplication, QDialogButtonBox
 from pkdiagram import util
 from pkdiagram.widgets import Dialog
 from pkdiagram.mainwindow.welcome_form import Ui_Welcome

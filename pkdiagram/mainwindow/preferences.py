@@ -1,5 +1,5 @@
 from _pkdiagram import CUtil
-from pkdiagram.pyqt import QDialog, QApplication, QFileDialog
+from PySide6.QtWidgets import QDialog, QApplication, QFileDialog
 from pkdiagram import version, util
 from pkdiagram.mainwindow.preferences_form import Ui_Preferences
 

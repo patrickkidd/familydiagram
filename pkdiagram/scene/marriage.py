@@ -1,19 +1,21 @@
 import logging
 
 from btcopilot.schema import EventKind
-from pkdiagram.pyqt import (
-    pyqtSlot,
+from PySide6.QtCore import (
+    Slot,
     QObject,
-    QGraphicsItem,
-    QPen,
-    QPainterPath,
     QPointF,
     QDateTime,
     Qt,
-    QFont,
     QRectF,
-    QQmlEngine,
 )
+from PySide6.QtGui import (
+    QPen,
+    QPainterPath,
+    QFont,
+)
+from PySide6.QtWidgets import QGraphicsItem
+from PySide6.QtQml import QQmlEngine
 from pkdiagram import util
 from pkdiagram.scene import ItemDetails, Event, PathItem, EmotionalUnit
 
@@ -357,13 +359,13 @@ class Marriage(PathItem):
             else:
                 return self.people[0]
 
-    @pyqtSlot(result=QObject)
+    @Slot(result=QObject)
     def personA(self):
         ret = self.people[0]
         QQmlEngine.setObjectOwnership(ret, QQmlEngine.CppOwnership)
         return ret
 
-    @pyqtSlot(result=QObject)
+    @Slot(result=QObject)
     def personB(self):
         ret = self.people[1]
         QQmlEngine.setObjectOwnership(ret, QQmlEngine.CppOwnership)
@@ -666,6 +668,6 @@ class Marriage(PathItem):
             self.updateDetails()
 
 
-from PyQt5.QtQml import qmlRegisterType
+from PySide6.QtQml import qmlRegisterType
 
 qmlRegisterType(Marriage, "PairBond", 1, 0, "PairBond")

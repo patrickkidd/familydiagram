@@ -7,7 +7,8 @@ import pytest
 import mock
 
 from btcopilot.schema import EventKind
-from pkdiagram.pyqt import QDateTime, QTimer, QEventLoop, QMessageBox
+from PySide6.QtCore import QDateTime, QTimer, QEventLoop
+from PySide6.QtWidgets import QMessageBox
 from pkdiagram import util
 from pkdiagram.scene import Person
 

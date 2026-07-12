@@ -1,5 +1,7 @@
 import os, shutil
-from pkdiagram.pyqt import *
+from PySide6.QtCore import Qt, QModelIndex, QFileInfo, QDir, Signal, Slot
+from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtQml import qmlRegisterType
 from pkdiagram.util import CUtil
 from pkdiagram import util
 from .filemanagermodel import FileManagerModel
@@ -7,7 +9,7 @@ from .filemanagermodel import FileManagerModel
 
 class LocalFileManagerModel(FileManagerModel):
 
-    loaded = pyqtSignal()
+    loaded = Signal()
 
     def __init__(self, prefs, parent=None):
         super().__init__(parent)
@@ -89,7 +91,7 @@ class LocalFileManagerModel(FileManagerModel):
                     modified = os.stat(fileInfo.filePath()).st_mtime
                     self.updateFileEntry(path=fileInfo.filePath(), modified=modified)
 
-    @pyqtSlot(int)
+    @Slot(int)
     def deleteFileAtRow(self, row):
         entry = self._entries[row]
         filePath = entry[self.PathRole]

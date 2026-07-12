@@ -1,12 +1,14 @@
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     Qt,
-    QPen,
     QPointF,
-    QPainterPath,
     QRectF,
-    QGraphicsItem,
+)
+from PySide6.QtGui import (
+    QPen,
+    QPainterPath,
     QColor,
 )
+from PySide6.QtWidgets import QGraphicsItem
 from pkdiagram import util
 from pkdiagram.scene import PathItem
 

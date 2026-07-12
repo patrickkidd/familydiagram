@@ -1,6 +1,6 @@
 import mock
 
-from pkdiagram.pyqt import Qt
+from PySide6.QtCore import Qt
 from pkdiagram import util
 from pkdiagram.scene import Scene
 from pkdiagram.models import SceneVariablesModel

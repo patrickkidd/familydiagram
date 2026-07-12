@@ -9,20 +9,22 @@ import pytest
 from mock import patch, MagicMock
 
 from btcopilot.schema import EventKind, RelationshipKind
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     Qt,
-    QWidget,
-    QMainWindow,
     QPointF,
-    QApplication,
     QDateTime,
     QItemSelection,
     QItemSelectionModel,
-    QPrinter,
-    QDialog,
-    QMessageBox,
     QRect,
 )
+from PySide6.QtWidgets import (
+    QWidget,
+    QMainWindow,
+    QApplication,
+    QDialog,
+    QMessageBox,
+)
+from PySide6.QtPrintSupport import QPrinter
 from pkdiagram import util
 from pkdiagram.scene import (
     Scene,
@@ -160,7 +162,7 @@ def test_remove_person(dv, scene):
 
     person.setSelected(True)
     with patch(
-        "PyQt5.QtWidgets.QMessageBox.question", return_value=QMessageBox.Yes
+        "PySide6.QtWidgets.QMessageBox.question", return_value=QMessageBox.Yes
     ) as question:
         dv.controller.onDelete()
     assert question.call_count == 1
@@ -548,7 +550,7 @@ def test_delete_event_from_timeline_via_keyboard_shortcut(qtbot, scene, dv):
     assert dv.ui.actionDelete.isEnabled() == True
 
     with patch(
-        "PyQt5.QtWidgets.QMessageBox.question", return_value=QMessageBox.Yes
+        "PySide6.QtWidgets.QMessageBox.question", return_value=QMessageBox.Yes
     ) as mock_question:
         qtbot.keyPress(
             dv.caseProps.qml, Qt.Key.Key_Delete, Qt.KeyboardModifier.ControlModifier

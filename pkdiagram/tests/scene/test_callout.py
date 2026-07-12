@@ -1,6 +1,6 @@
 import pytest
 
-from pkdiagram.pyqt import QGraphicsView
+from PySide6.QtWidgets import QGraphicsView
 from pkdiagram import util
 from pkdiagram.scene import Callout, Property
 

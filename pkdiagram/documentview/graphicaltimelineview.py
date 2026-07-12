@@ -1,7 +1,6 @@
 import logging
 
-from pkdiagram.pyqt import (
-    QGraphicsOpacityEffect,
+from PySide6.QtCore import (
     QPropertyAnimation,
     QAbstractAnimation,
     QRect,
@@ -9,12 +8,14 @@ from pkdiagram.pyqt import (
     QPoint,
     QVariantAnimation,
     QItemSelectionModel,
-    QFrame,
-    pyqtSignal,
-    QApplication,
+    Signal,
     QDateTime,
-    QItemSelectionModel,
-    QColor,
+)
+from PySide6.QtGui import QColor
+from PySide6.QtWidgets import (
+    QGraphicsOpacityEffect,
+    QFrame,
+    QApplication,
 )
 from pkdiagram import util
 from pkdiagram.scene import Property
@@ -52,10 +53,10 @@ class GraphicalTimelineView(QFrame):
     }
     """
 
-    nextTaggedDate = pyqtSignal()
-    prevTaggedDate = pyqtSignal()
-    expandedChanged = pyqtSignal(bool)
-    dateTimeClicked = pyqtSignal(QDateTime)
+    nextTaggedDate = Signal()
+    prevTaggedDate = Signal()
+    expandedChanged = Signal(bool)
+    dateTimeClicked = Signal(QDateTime)
 
     def __init__(
         self,

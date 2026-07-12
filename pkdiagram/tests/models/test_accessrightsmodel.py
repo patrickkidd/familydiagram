@@ -4,7 +4,7 @@ import datetime
 import pytest
 
 import btcopilot
-from pkdiagram.pyqt import Qt
+from PySide6.QtCore import Qt
 from pkdiagram.server_types import Diagram as fe_Diagram
 from pkdiagram.scene import Scene
 from pkdiagram.models import AccessRightsModel

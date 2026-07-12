@@ -14,7 +14,9 @@ from mock import patch
 from btcopilot.schema import asdict
 from btcopilot.extensions import db
 from btcopilot.pro.models import Diagram
-from pkdiagram.pyqt import QTimer, QQuickWidget, QUrl, QApplication
+from PySide6.QtCore import QTimer, QUrl
+from PySide6.QtWidgets import QApplication
+from PySide6.QtQuickWidgets import QQuickWidget
 from pkdiagram import util
 from pkdiagram.server_types import User
 from pkdiagram.personal import PersonalAppController

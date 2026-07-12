@@ -1,4 +1,4 @@
-from pkdiagram.pyqt import QNetworkAccessManager
+from PySide6.QtNetwork import QNetworkAccessManager
 
 
 class QNAM(QNetworkAccessManager):

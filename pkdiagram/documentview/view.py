@@ -1,41 +1,44 @@
 import logging
 
-from pkdiagram.pyqt import (
-    pyqtSignal,
+from PySide6.QtCore import (
+    Signal,
     Qt,
     QTimer,
-    QFrame,
-    QApplication,
-    QOpenGLWidget,
-    QSurfaceFormat,
-    QLabel,
-    QFont,
     QVariantAnimation,
-    QPixmap,
     QRect,
     QTime,
     QPoint,
-    QPainterPathStroker,
-    QGraphicsView,
     QSize,
     QRectF,
-    QWidget,
     QEvent,
-    QInputEvent,
     QFileInfo,
-    QTransform,
     QMarginsF,
-    QGraphicsOpacityEffect,
     QPropertyAnimation,
+    QPointF,
+    QAbstractAnimation,
+)
+from PySide6.QtGui import (
+    QSurfaceFormat,
+    QFont,
+    QPixmap,
+    QPainterPathStroker,
+    QInputEvent,
+    QTransform,
     QPainterPath,
     QPainter,
     QPen,
     QBrush,
-    QPointF,
-    QAbstractAnimation,
     QFontMetrics,
+)
+from PySide6.QtWidgets import (
+    QFrame,
+    QApplication,
+    QLabel,
+    QGraphicsView,
+    QWidget,
     QGraphicsOpacityEffect,
 )
+from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from pkdiagram import util
 from pkdiagram.scene import Person, PathItem, Callout, Property, ItemMode
 from pkdiagram.widgets import PixmapPushButton
@@ -135,9 +138,9 @@ class View(QGraphicsView):
 
     LEGEND_MARGIN = util.BUTTON_SIZE
 
-    zoomFitDirty = pyqtSignal(bool)
-    escape = pyqtSignal()
-    filePathDropped = pyqtSignal(str)
+    zoomFitDirty = Signal(bool)
+    escape = Signal()
+    filePathDropped = Signal(str)
 
     _scene = None
 

@@ -4,15 +4,15 @@ from mock import patch
 
 from btcopilot.schema import EventKind, RelationshipKind, VariableShift, DateCertainty
 from pkdiagram import util
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     Q_RETURN_ARG,
     Qt,
     QMetaObject,
-    QVariant,
-    QQuickItem,
     QDateTime,
-    QMessageBox,
 )
+from PySide6.QtQuick import QQuickItem
+from PySide6.QtWidgets import QMessageBox
+from pkdiagram.pyqt import QVariant
 from pkdiagram.scene import Person, Marriage
 from pkdiagram.views import EventFormDrawer
 from pkdiagram.widgets import QmlWidgetHelper

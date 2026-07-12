@@ -1,6 +1,7 @@
 import pytest
 
-from pkdiagram.pyqt import QApplication, QQmlApplicationEngine
+from PySide6.QtWidgets import QApplication
+from PySide6.QtQml import QQmlApplicationEngine
 from pkdiagram import util
 from pkdiagram.scene import Scene
 from pkdiagram.personal import PersonalAppController

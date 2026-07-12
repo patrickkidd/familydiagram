@@ -20,17 +20,21 @@ from typing import Union, Callable
 
 import btcopilot
 from btcopilot.schema import DiagramData, PDP, asdict, from_dict
-from pkdiagram.pyqt import (
+from PySide6.QtCore import (
     QObject,
-    QNetworkRequest,
-    QNetworkReply,
     QEventLoop,
     QUrl,
     QUrlQuery,
-    QApplication,
     QTimer,
+    Signal,
+)
+from PySide6.QtNetwork import (
+    QNetworkRequest,
+    QNetworkReply,
+)
+from PySide6.QtWidgets import (
+    QApplication,
     QMessageBox,
-    pyqtSignal,
 )
 from pkdiagram import version, util
 from pkdiagram.qnam import QNAM
@@ -393,7 +397,7 @@ class Server(QObject):
 
     # Avoids underlying C++ obejct deleted error when requests complete after
     # the object has been deleted in tests.
-    allRequestsFinished = pyqtSignal()
+    allRequestsFinished = Signal()
 
     def __init__(self, parent=None, user=None):
         super().__init__(parent)
@@ -618,7 +622,7 @@ class Server(QObject):
         #     loop.quit()
 
         # QTimer.singleShot(timeout_ms, _timeout)
-        loop.exec_()
+        loop.exec()
         self.checkHTTPReply(reply, statuses=statuses)
         # status_code = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
         # if status_code != 200:

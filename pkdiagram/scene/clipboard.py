@@ -2,7 +2,7 @@
 Currently unused but keeping for future.
 """
 
-from pkdiagram.pyqt import QUndoCommand
+from PySide6.QtGui import QUndoCommand
 from pkdiagram import util
 from pkdiagram.scene.commands import RemoveItems
 

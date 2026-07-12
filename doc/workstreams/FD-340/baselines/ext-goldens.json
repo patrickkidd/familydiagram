@@ -1,0 +1,1240 @@
+{
+  "captured_date": "2026-07-11",
+  "extension_file": "/Users/patrick/theapp/.venv/lib/python3.11/site-packages/_pkdiagram.cpython-311-darwin.so",
+  "build": "PyQt5 5.15.11 / Qt runtime 5.15.2 / Python 3.11.6",
+  "notes": {
+    "float_precision": "Python repr() of float, round-trippable full precision",
+    "path_element_type": "QPainterPath.ElementType int: 0=MoveTo,1=LineTo,2=CurveTo,3=CurveToData",
+    "perpendicular_signature": "perpendicular(pointA:QPointF, pointB:QPointF, width:float, reverse:bool=False) -> QPointF",
+    "pointOnRay_signature": "pointOnRay(orig:QPointF, dest:QPointF, distance:float) -> QPointF",
+    "distance_signature": "distance(p1:QPointF, p2:QPointF) -> float",
+    "splineFromPoints_signature": "splineFromPoints(list[QPointF]) -> QPainterPath",
+    "strokedPath_signature": "strokedPath(path:QPainterPath, pen:QPen) -> QPainterPath",
+    "enum_scope": "custom_enums are defined by the C++ extension (OperatingSystem, FileStatus). pathitembase_qt_inherited_enums are Qt QGraphicsObject enums re-exposed by PathItemBase; recorded for completeness."
+  },
+  "custom_enums": {
+    "FileStatus": {
+      "FileIsCurrent": 1,
+      "FileIsDownloading": 3,
+      "FileNotDownloaded": 2,
+      "FileStatusNone": 0
+    },
+    "OperatingSystem": {
+      "OS_Mac": 16,
+      "OS_Unknown": 0,
+      "OS_Windows": 32,
+      "OS_iPad": 2,
+      "OS_iPhone": 4,
+      "OS_iPhoneSimulator": 8
+    }
+  },
+  "pathitembase_qt_inherited_enums": {
+    "CacheMode": {
+      "DeviceCoordinateCache": 2,
+      "ItemCoordinateCache": 1,
+      "NoCache": 0
+    },
+    "GraphicsItemChange": {
+      "ItemChildAddedChange": 6,
+      "ItemChildRemovedChange": 7,
+      "ItemCursorChange": 17,
+      "ItemCursorHasChanged": 18,
+      "ItemEnabledChange": 3,
+      "ItemEnabledHasChanged": 13,
+      "ItemFlagsChange": 21,
+      "ItemFlagsHaveChanged": 22,
+      "ItemMatrixChange": 1,
+      "ItemOpacityChange": 25,
+      "ItemOpacityHasChanged": 26,
+      "ItemParentChange": 5,
+      "ItemParentHasChanged": 15,
+      "ItemPositionChange": 0,
+      "ItemPositionHasChanged": 9,
+      "ItemRotationChange": 28,
+      "ItemRotationHasChanged": 29,
+      "ItemScaleChange": 30,
+      "ItemScaleHasChanged": 31,
+      "ItemSceneChange": 11,
+      "ItemSceneHasChanged": 16,
+      "ItemScenePositionHasChanged": 27,
+      "ItemSelectedChange": 4,
+      "ItemSelectedHasChanged": 14,
+      "ItemToolTipChange": 19,
+      "ItemToolTipHasChanged": 20,
+      "ItemTransformChange": 8,
+      "ItemTransformHasChanged": 10,
+      "ItemTransformOriginPointChange": 32,
+      "ItemTransformOriginPointHasChanged": 33,
+      "ItemVisibleChange": 2,
+      "ItemVisibleHasChanged": 12,
+      "ItemZValueChange": 23,
+      "ItemZValueHasChanged": 24
+    },
+    "GraphicsItemFlag": {
+      "ItemAcceptsInputMethod": 4096,
+      "ItemClipsChildrenToShape": 16,
+      "ItemClipsToShape": 8,
+      "ItemContainsChildrenInShape": 524288,
+      "ItemDoesntPropagateOpacityToChildren": 128,
+      "ItemHasNoContents": 1024,
+      "ItemIgnoresParentOpacity": 64,
+      "ItemIgnoresTransformations": 32,
+      "ItemIsFocusable": 4,
+      "ItemIsMovable": 1,
+      "ItemIsPanel": 16384,
+      "ItemIsSelectable": 2,
+      "ItemNegativeZStacksBehindParent": 8192,
+      "ItemSendsGeometryChanges": 2048,
+      "ItemSendsScenePositionChanges": 65536,
+      "ItemStacksBehindParent": 256,
+      "ItemUsesExtendedStyleOption": 512
+    },
+    "PanelModality": {
+      "NonModal": 0,
+      "PanelModal": 1,
+      "SceneModal": 2
+    }
+  },
+  "geometry": {
+    "distance": [
+      {
+        "p1": [
+          0.0,
+          0.0
+        ],
+        "p2": [
+          3.0,
+          4.0
+        ],
+        "distance": "5.0"
+      },
+      {
+        "p1": [
+          0.0,
+          0.0
+        ],
+        "p2": [
+          0.0,
+          0.0
+        ],
+        "distance": "0.0"
+      },
+      {
+        "p1": [
+          1.5,
+          2.5
+        ],
+        "p2": [
+          -3.5,
+          7.25
+        ],
+        "distance": "6.896557112066861"
+      },
+      {
+        "p1": [
+          100.0,
+          100.0
+        ],
+        "p2": [
+          -50.0,
+          -50.0
+        ],
+        "distance": "212.13203435596427"
+      },
+      {
+        "p1": [
+          -10.0,
+          0.0
+        ],
+        "p2": [
+          10.0,
+          0.0
+        ],
+        "distance": "20.0"
+      },
+      {
+        "p1": [
+          0.0,
+          -7.0
+        ],
+        "p2": [
+          0.0,
+          7.0
+        ],
+        "distance": "14.0"
+      }
+    ],
+    "pointOnRay": [
+      {
+        "orig": [
+          0.0,
+          0.0
+        ],
+        "dest": [
+          10.0,
+          0.0
+        ],
+        "distance": "5.0",
+        "result": {
+          "x": "5.0",
+          "y": "0.0"
+        }
+      },
+      {
+        "orig": [
+          0.0,
+          0.0
+        ],
+        "dest": [
+          0.0,
+          10.0
+        ],
+        "distance": "2.5",
+        "result": {
+          "x": "0.0",
+          "y": "2.5"
+        }
+      },
+      {
+        "orig": [
+          0.0,
+          0.0
+        ],
+        "dest": [
+          3.0,
+          4.0
+        ],
+        "distance": "10.0",
+        "result": {
+          "x": "6.0",
+          "y": "8.0"
+        }
+      },
+      {
+        "orig": [
+          5.0,
+          5.0
+        ],
+        "dest": [
+          5.0,
+          5.0
+        ],
+        "distance": "3.0",
+        "result": {
+          "x": "5.0",
+          "y": "5.0"
+        }
+      },
+      {
+        "orig": [
+          -4.0,
+          -4.0
+        ],
+        "dest": [
+          4.0,
+          4.0
+        ],
+        "distance": "0.0",
+        "result": {
+          "x": "-4.0",
+          "y": "-4.0"
+        }
+      },
+      {
+        "orig": [
+          10.0,
+          20.0
+        ],
+        "dest": [
+          -30.0,
+          -5.0
+        ],
+        "distance": "13.75",
+        "result": {
+          "x": "-1.6599766800699598",
+          "y": "12.712514574956277"
+        }
+      }
+    ],
+    "perpendicular": [
+      {
+        "pointA": [
+          0.0,
+          0.0
+        ],
+        "pointB": [
+          10.0,
+          0.0
+        ],
+        "width": "3.0",
+        "reverse": false,
+        "result": {
+          "x": "10.0",
+          "y": "3.0"
+        }
+      },
+      {
+        "pointA": [
+          0.0,
+          0.0
+        ],
+        "pointB": [
+          10.0,
+          0.0
+        ],
+        "width": "3.0",
+        "reverse": true,
+        "result": {
+          "x": "0.0",
+          "y": "3.0"
+        }
+      },
+      {
+        "pointA": [
+          0.0,
+          0.0
+        ],
+        "pointB": [
+          0.0,
+          10.0
+        ],
+        "width": "4.0",
+        "reverse": false,
+        "result": {
+          "x": "-4.0",
+          "y": "10.0"
+        }
+      },
+      {
+        "pointA": [
+          0.0,
+          0.0
+        ],
+        "pointB": [
+          0.0,
+          10.0
+        ],
+        "width": "4.0",
+        "reverse": true,
+        "result": {
+          "x": "-4.0",
+          "y": "0.0"
+        }
+      },
+      {
+        "pointA": [
+          1.0,
+          2.0
+        ],
+        "pointB": [
+          5.0,
+          7.0
+        ],
+        "width": "2.5",
+        "reverse": false,
+        "result": {
+          "x": "3.047827976392424",
+          "y": "8.561737618886061"
+        }
+      },
+      {
+        "pointA": [
+          1.0,
+          2.0
+        ],
+        "pointB": [
+          5.0,
+          7.0
+        ],
+        "width": "2.5",
+        "reverse": true,
+        "result": {
+          "x": "-0.9521720236075759",
+          "y": "3.5617376188860606"
+        }
+      },
+      {
+        "pointA": [
+          -3.0,
+          -3.0
+        ],
+        "pointB": [
+          3.0,
+          3.0
+        ],
+        "width": "1.0",
+        "reverse": false,
+        "result": {
+          "x": "2.2928932188134525",
+          "y": "3.7071067811865475"
+        }
+      }
+    ],
+    "splineFromPoints": [
+      {
+        "points": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            10.0,
+            10.0
+          ],
+          [
+            20.0,
+            0.0
+          ],
+          [
+            30.0,
+            10.0
+          ]
+        ],
+        "path": {
+          "elementCount": 10,
+          "elements": [
+            {
+              "type": 0,
+              "x": "0.0",
+              "y": "0.0"
+            },
+            {
+              "type": 2,
+              "x": "3.333333333333333",
+              "y": "5.555555555555555"
+            },
+            {
+              "type": 3,
+              "x": "6.666666666666666",
+              "y": "11.11111111111111"
+            },
+            {
+              "type": 3,
+              "x": "10.0",
+              "y": "10.0"
+            },
+            {
+              "type": 2,
+              "x": "13.333333333333334",
+              "y": "8.88888888888889"
+            },
+            {
+              "type": 3,
+              "x": "16.666666666666668",
+              "y": "1.111111111111111"
+            },
+            {
+              "type": 3,
+              "x": "20.0",
+              "y": "0.0"
+            },
+            {
+              "type": 2,
+              "x": "23.333333333333332",
+              "y": "-1.111111111111111"
+            },
+            {
+              "type": 3,
+              "x": "26.666666666666664",
+              "y": "4.444444444444445"
+            },
+            {
+              "type": 3,
+              "x": "30.0",
+              "y": "10.0"
+            }
+          ]
+        }
+      },
+      {
+        "points": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            50.0,
+            50.0
+          ],
+          [
+            100.0,
+            0.0
+          ]
+        ],
+        "path": {
+          "elementCount": 7,
+          "elements": [
+            {
+              "type": 0,
+              "x": "0.0",
+              "y": "0.0"
+            },
+            {
+              "type": 2,
+              "x": "16.666666666666664",
+              "y": "25.0"
+            },
+            {
+              "type": 3,
+              "x": "33.33333333333333",
+              "y": "50.0"
+            },
+            {
+              "type": 3,
+              "x": "50.0",
+              "y": "50.0"
+            },
+            {
+              "type": 2,
+              "x": "66.66666666666667",
+              "y": "50.0"
+            },
+            {
+              "type": 3,
+              "x": "83.33333333333334",
+              "y": "25.0"
+            },
+            {
+              "type": 3,
+              "x": "100.0",
+              "y": "0.0"
+            }
+          ]
+        }
+      },
+      {
+        "points": [
+          [
+            -20.0,
+            -20.0
+          ],
+          [
+            0.0,
+            40.0
+          ],
+          [
+            20.0,
+            -20.0
+          ],
+          [
+            40.0,
+            40.0
+          ],
+          [
+            60.0,
+            -20.0
+          ]
+        ],
+        "path": {
+          "elementCount": 13,
+          "elements": [
+            {
+              "type": 0,
+              "x": "-20.0",
+              "y": "-20.0"
+            },
+            {
+              "type": 2,
+              "x": "-13.333333333333332",
+              "y": "14.285714285714285"
+            },
+            {
+              "type": 3,
+              "x": "-6.666666666666666",
+              "y": "48.57142857142857"
+            },
+            {
+              "type": 3,
+              "x": "0.0",
+              "y": "40.0"
+            },
+            {
+              "type": 2,
+              "x": "6.666666666666666",
+              "y": "31.42857142857143"
+            },
+            {
+              "type": 3,
+              "x": "13.333333333333329",
+              "y": "-20.0"
+            },
+            {
+              "type": 3,
+              "x": "20.0",
+              "y": "-20.0"
+            },
+            {
+              "type": 2,
+              "x": "26.66666666666667",
+              "y": "-20.0"
+            },
+            {
+              "type": 3,
+              "x": "33.333333333333336",
+              "y": "31.428571428571423"
+            },
+            {
+              "type": 3,
+              "x": "40.0",
+              "y": "40.0"
+            },
+            {
+              "type": 2,
+              "x": "46.666666666666664",
+              "y": "48.57142857142858"
+            },
+            {
+              "type": 3,
+              "x": "53.33333333333333",
+              "y": "14.285714285714288"
+            },
+            {
+              "type": 3,
+              "x": "60.0",
+              "y": "-20.0"
+            }
+          ]
+        }
+      },
+      {
+        "points": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            100.0,
+            0.0
+          ]
+        ],
+        "path": {
+          "elementCount": 4,
+          "elements": [
+            {
+              "type": 0,
+              "x": "0.0",
+              "y": "0.0"
+            },
+            {
+              "type": 2,
+              "x": "33.333333333333336",
+              "y": "0.0"
+            },
+            {
+              "type": 3,
+              "x": "66.66666666666667",
+              "y": "0.0"
+            },
+            {
+              "type": 3,
+              "x": "100.0",
+              "y": "0.0"
+            }
+          ]
+        }
+      }
+    ],
+    "splineFromPoints2": [
+      {
+        "points": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            10.0,
+            10.0
+          ],
+          [
+            20.0,
+            0.0
+          ],
+          [
+            30.0,
+            10.0
+          ]
+        ],
+        "path": {
+          "elementCount": 12,
+          "elements": [
+            {
+              "type": 0,
+              "x": "0.0",
+              "y": "0.0"
+            },
+            {
+              "type": 2,
+              "x": "3.333333333333333",
+              "y": "5.555555555555555"
+            },
+            {
+              "type": 3,
+              "x": "6.666666666666666",
+              "y": "11.11111111111111"
+            },
+            {
+              "type": 3,
+              "x": "10.0",
+              "y": "10.0"
+            },
+            {
+              "type": 0,
+              "x": "10.0",
+              "y": "10.0"
+            },
+            {
+              "type": 2,
+              "x": "13.333333333333334",
+              "y": "8.88888888888889"
+            },
+            {
+              "type": 3,
+              "x": "16.666666666666668",
+              "y": "1.111111111111111"
+            },
+            {
+              "type": 3,
+              "x": "20.0",
+              "y": "0.0"
+            },
+            {
+              "type": 0,
+              "x": "20.0",
+              "y": "0.0"
+            },
+            {
+              "type": 2,
+              "x": "23.333333333333332",
+              "y": "-1.111111111111111"
+            },
+            {
+              "type": 3,
+              "x": "26.666666666666664",
+              "y": "4.444444444444445"
+            },
+            {
+              "type": 3,
+              "x": "30.0",
+              "y": "10.0"
+            }
+          ]
+        }
+      },
+      {
+        "points": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            50.0,
+            50.0
+          ],
+          [
+            100.0,
+            0.0
+          ]
+        ],
+        "path": {
+          "elementCount": 8,
+          "elements": [
+            {
+              "type": 0,
+              "x": "0.0",
+              "y": "0.0"
+            },
+            {
+              "type": 2,
+              "x": "16.666666666666664",
+              "y": "25.0"
+            },
+            {
+              "type": 3,
+              "x": "33.33333333333333",
+              "y": "50.0"
+            },
+            {
+              "type": 3,
+              "x": "50.0",
+              "y": "50.0"
+            },
+            {
+              "type": 0,
+              "x": "50.0",
+              "y": "50.0"
+            },
+            {
+              "type": 2,
+              "x": "66.66666666666667",
+              "y": "50.0"
+            },
+            {
+              "type": 3,
+              "x": "83.33333333333334",
+              "y": "25.0"
+            },
+            {
+              "type": 3,
+              "x": "100.0",
+              "y": "0.0"
+            }
+          ]
+        }
+      },
+      {
+        "points": [
+          [
+            -20.0,
+            -20.0
+          ],
+          [
+            0.0,
+            40.0
+          ],
+          [
+            20.0,
+            -20.0
+          ],
+          [
+            40.0,
+            40.0
+          ],
+          [
+            60.0,
+            -20.0
+          ]
+        ],
+        "path": {
+          "elementCount": 16,
+          "elements": [
+            {
+              "type": 0,
+              "x": "-20.0",
+              "y": "-20.0"
+            },
+            {
+              "type": 2,
+              "x": "-13.333333333333332",
+              "y": "14.285714285714285"
+            },
+            {
+              "type": 3,
+              "x": "-6.666666666666666",
+              "y": "48.57142857142857"
+            },
+            {
+              "type": 3,
+              "x": "0.0",
+              "y": "40.0"
+            },
+            {
+              "type": 0,
+              "x": "0.0",
+              "y": "40.0"
+            },
+            {
+              "type": 2,
+              "x": "6.666666666666666",
+              "y": "31.42857142857143"
+            },
+            {
+              "type": 3,
+              "x": "13.333333333333329",
+              "y": "-20.0"
+            },
+            {
+              "type": 3,
+              "x": "20.0",
+              "y": "-20.0"
+            },
+            {
+              "type": 0,
+              "x": "20.0",
+              "y": "-20.0"
+            },
+            {
+              "type": 2,
+              "x": "26.66666666666667",
+              "y": "-20.0"
+            },
+            {
+              "type": 3,
+              "x": "33.333333333333336",
+              "y": "31.428571428571423"
+            },
+            {
+              "type": 3,
+              "x": "40.0",
+              "y": "40.0"
+            },
+            {
+              "type": 0,
+              "x": "40.0",
+              "y": "40.0"
+            },
+            {
+              "type": 2,
+              "x": "46.666666666666664",
+              "y": "48.57142857142858"
+            },
+            {
+              "type": 3,
+              "x": "53.33333333333333",
+              "y": "14.285714285714288"
+            },
+            {
+              "type": 3,
+              "x": "60.0",
+              "y": "-20.0"
+            }
+          ]
+        }
+      },
+      {
+        "points": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            100.0,
+            0.0
+          ]
+        ],
+        "path": {
+          "elementCount": 4,
+          "elements": [
+            {
+              "type": 0,
+              "x": "0.0",
+              "y": "0.0"
+            },
+            {
+              "type": 2,
+              "x": "33.333333333333336",
+              "y": "0.0"
+            },
+            {
+              "type": 3,
+              "x": "66.66666666666667",
+              "y": "0.0"
+            },
+            {
+              "type": 3,
+              "x": "100.0",
+              "y": "0.0"
+            }
+          ]
+        }
+      }
+    ],
+    "strokedPath": [
+      {
+        "input_path_lineTo_sequence": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            10.0,
+            10.0
+          ],
+          [
+            20.0,
+            0.0
+          ]
+        ],
+        "pen": {
+          "widthF": "2.0",
+          "color_rgba": [
+            0,
+            0,
+            0,
+            255
+          ],
+          "capStyle": 16,
+          "joinStyle": 64
+        },
+        "path": {
+          "elementCount": 14,
+          "elements": [
+            {
+              "type": 0,
+              "x": "1.4142135623730951",
+              "y": "-1.4142135623730951"
+            },
+            {
+              "type": 1,
+              "x": "11.414213562373096",
+              "y": "8.585786437626904"
+            },
+            {
+              "type": 1,
+              "x": "10.0",
+              "y": "10.0"
+            },
+            {
+              "type": 1,
+              "x": "8.585786437626904",
+              "y": "8.585786437626904"
+            },
+            {
+              "type": 1,
+              "x": "18.585786437626904",
+              "y": "-1.4142135623730958"
+            },
+            {
+              "type": 1,
+              "x": "19.999999999999996",
+              "y": "-2.8284271247461925"
+            },
+            {
+              "type": 1,
+              "x": "22.828427124746185",
+              "y": "-6.661338147750939e-16"
+            },
+            {
+              "type": 1,
+              "x": "21.414213562373092",
+              "y": "1.4142135623730958"
+            },
+            {
+              "type": 1,
+              "x": "11.414213562373092",
+              "y": "11.414213562373096"
+            },
+            {
+              "type": 1,
+              "x": "8.585786437626904",
+              "y": "11.414213562373096"
+            },
+            {
+              "type": 1,
+              "x": "-1.4142135623730958",
+              "y": "1.4142135623730958"
+            },
+            {
+              "type": 1,
+              "x": "-2.8284271247461907",
+              "y": "6.661338147750939e-16"
+            },
+            {
+              "type": 1,
+              "x": "6.661338147750939e-16",
+              "y": "-2.8284271247461907"
+            },
+            {
+              "type": 1,
+              "x": "1.4142135623730958",
+              "y": "-1.4142135623730958"
+            }
+          ]
+        }
+      },
+      {
+        "input_path_lineTo_sequence": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            30.0,
+            0.0
+          ]
+        ],
+        "pen": {
+          "widthF": "2.0",
+          "color_rgba": [
+            0,
+            0,
+            0,
+            255
+          ],
+          "capStyle": 16,
+          "joinStyle": 64
+        },
+        "path": {
+          "elementCount": 9,
+          "elements": [
+            {
+              "type": 0,
+              "x": "0.0",
+              "y": "-2.0"
+            },
+            {
+              "type": 1,
+              "x": "30.0",
+              "y": "-2.0"
+            },
+            {
+              "type": 1,
+              "x": "32.0",
+              "y": "-2.0"
+            },
+            {
+              "type": 1,
+              "x": "32.0",
+              "y": "2.0"
+            },
+            {
+              "type": 1,
+              "x": "30.0",
+              "y": "2.0"
+            },
+            {
+              "type": 1,
+              "x": "0.0",
+              "y": "2.0"
+            },
+            {
+              "type": 1,
+              "x": "-2.0",
+              "y": "2.0"
+            },
+            {
+              "type": 1,
+              "x": "-2.0",
+              "y": "-2.0"
+            },
+            {
+              "type": 1,
+              "x": "0.0",
+              "y": "-2.0"
+            }
+          ]
+        }
+      },
+      {
+        "input_path_lineTo_sequence": [
+          [
+            5.0,
+            5.0
+          ],
+          [
+            5.0,
+            25.0
+          ],
+          [
+            25.0,
+            25.0
+          ],
+          [
+            25.0,
+            5.0
+          ]
+        ],
+        "pen": {
+          "widthF": "2.0",
+          "color_rgba": [
+            0,
+            0,
+            0,
+            255
+          ],
+          "capStyle": 16,
+          "joinStyle": 64
+        },
+        "path": {
+          "elementCount": 19,
+          "elements": [
+            {
+              "type": 0,
+              "x": "7.0",
+              "y": "5.0"
+            },
+            {
+              "type": 1,
+              "x": "7.0",
+              "y": "25.0"
+            },
+            {
+              "type": 1,
+              "x": "5.0",
+              "y": "25.0"
+            },
+            {
+              "type": 1,
+              "x": "5.0",
+              "y": "23.0"
+            },
+            {
+              "type": 1,
+              "x": "25.0",
+              "y": "23.0"
+            },
+            {
+              "type": 1,
+              "x": "25.0",
+              "y": "25.0"
+            },
+            {
+              "type": 1,
+              "x": "23.0",
+              "y": "25.0"
+            },
+            {
+              "type": 1,
+              "x": "23.0",
+              "y": "5.0"
+            },
+            {
+              "type": 1,
+              "x": "23.0",
+              "y": "3.0"
+            },
+            {
+              "type": 1,
+              "x": "27.0",
+              "y": "3.0"
+            },
+            {
+              "type": 1,
+              "x": "27.0",
+              "y": "5.0"
+            },
+            {
+              "type": 1,
+              "x": "27.0",
+              "y": "25.0"
+            },
+            {
+              "type": 1,
+              "x": "25.0",
+              "y": "27.0"
+            },
+            {
+              "type": 1,
+              "x": "5.0",
+              "y": "27.0"
+            },
+            {
+              "type": 1,
+              "x": "3.0",
+              "y": "25.0"
+            },
+            {
+              "type": 1,
+              "x": "3.0",
+              "y": "5.0"
+            },
+            {
+              "type": 1,
+              "x": "3.0",
+              "y": "3.0"
+            },
+            {
+              "type": 1,
+              "x": "7.0",
+              "y": "3.0"
+            },
+            {
+              "type": 1,
+              "x": "7.0",
+              "y": "5.0"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

@@ -2,26 +2,30 @@ import logging
 
 from btcopilot.schema import EventKind, RelationshipKind
 from _pkdiagram import CUtil
-from pkdiagram.pyqt import (
-    pyqtSignal,
+from PySide6.QtCore import (
+    Signal,
     Qt,
     QRectF,
     QPointF,
-    QFont,
     QParallelAnimationGroup,
-    QGraphicsObject,
-    QGraphicsItem,
-    QPainterPath,
-    QPen,
-    QPolygonF,
     QLineF,
     QAbstractAnimation,
     QVariantAnimation,
     QEasingCurve,
-    QColor,
     QMarginsF,
-    QPainter,
     QDateTime,
+)
+from PySide6.QtGui import (
+    QFont,
+    QPainterPath,
+    QPen,
+    QPolygonF,
+    QColor,
+    QPainter,
+)
+from PySide6.QtWidgets import (
+    QGraphicsObject,
+    QGraphicsItem,
 )
 from pkdiagram import util
 from pkdiagram.scene import Event, PathItem, Item, Person
@@ -262,7 +266,7 @@ class Jig:
 
 class AnimGroup(QParallelAnimationGroup):
 
-    currentTimeUpdated = pyqtSignal()
+    currentTimeUpdated = Signal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1155,8 +1159,8 @@ def pathFor_Reciprocity(
 
 class Emotion(PathItem):
 
-    personChanged = pyqtSignal(int)
-    targetChanged = pyqtSignal(int)
+    personChanged = Signal(int)
+    targetChanged = Signal(int)
 
     UNDER_PEN = QColor(100, 100, 100, 50)
 

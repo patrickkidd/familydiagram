@@ -2,7 +2,7 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from PyQt5.QtTextToSpeech import QTextToSpeech, QVoice
+from PySide6.QtTextToSpeech import QTextToSpeech, QVoice
 from pkdiagram import util
 from pkdiagram.personal import PersonalAppController
 

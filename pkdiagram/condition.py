@@ -2,8 +2,8 @@ import time
 import logging
 from typing import Callable
 
-from PyQt5.QtCore import QObject, QCoreApplication, QEventLoop
-from PyQt5.QtWidgets import QApplication
+from PySide6.QtCore import QObject, QCoreApplication, QEventLoop
+from PySide6.QtWidgets import QApplication
 
 _log = logging.getLogger(__name__)
 

@@ -1,29 +1,33 @@
 import logging
 from sortedcontainers import SortedList
 
-from pkdiagram.pyqt import (
-    pyqtSignal,
+from PySide6.QtCore import (
+    Signal,
     Qt,
-    QWheelEvent,
     QDateTime,
     QDate,
     QPoint,
     QRectF,
+    QRect,
+    QMarginsF,
+    QPointF,
+    QItemSelection,
+    QItemSelectionModel,
+)
+from PySide6.QtGui import (
+    QWheelEvent,
     QFont,
     QFontMetrics,
     QPen,
     QBrush,
     QPainter,
-    QApplication,
-    QWidget,
     QCursor,
     QColor,
-    QRect,
-    QMarginsF,
-    QPointF,
+)
+from PySide6.QtWidgets import (
+    QApplication,
+    QWidget,
     QRubberBand,
-    QItemSelection,
-    QItemSelectionModel,
 )
 from pkdiagram import util
 from pkdiagram.scene import Event
@@ -40,8 +44,8 @@ class GraphicalTimelineCanvas(QWidget):
     RIGHT_MARGIN = MARGIN * 4
     ANGLE = 55
 
-    wheel = pyqtSignal(QWheelEvent)
-    dateTimeClicked = pyqtSignal(QDateTime)
+    wheel = Signal(QWheelEvent)
+    dateTimeClicked = Signal(QDateTime)
 
     def __init__(
         self,

@@ -1,4 +1,5 @@
-from pkdiagram.pyqt import QGraphicsSimpleTextItem, QPen
+from PySide6.QtWidgets import QGraphicsSimpleTextItem
+from PySide6.QtGui import QPen
 from pkdiagram import util
 from pkdiagram.scene import LayerItem
 

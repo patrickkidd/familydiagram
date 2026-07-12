@@ -3,7 +3,8 @@ import os.path
 import pytest
 
 from btcopilot.schema import EventKind
-from pkdiagram.pyqt import Qt, QGraphicsView, QDateTime, QPoint
+from PySide6.QtCore import Qt, QDateTime, QPoint
+from PySide6.QtWidgets import QGraphicsView
 from pkdiagram import util
 from pkdiagram.scene import Scene, Item, Person, Event
 
