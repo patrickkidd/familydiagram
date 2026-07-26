@@ -1270,6 +1270,8 @@ class Person(PathItem):
                 path.moveTo(rect.bottomRight())
                 path.lineTo(rect.bottomRight().x() - w, rect.bottomRight().y() - w)
         self.setPath(path)
+        if self._haloItem is not None and self._haloItem.isVisible():
+            self.updateHaloGeometry()
 
         if functioning in (
             VariableShift.Down,

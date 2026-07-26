@@ -526,6 +526,8 @@ class Marriage(PathItem):
         if path != self.path():
             self.setPath(path)
             changed = True
+        if changed and self._haloItem is not None and self._haloItem.isVisible():
+            self.updateHaloGeometry()
         if changed:
             super().updateGeometry()
             self.updatePen()

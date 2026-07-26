@@ -75,6 +75,7 @@ class DocumentController(QObject):
         self.view = self.dv.view
         self._isUpdatingLayerActions = False
         self._editingEventFromTimeline = False
+        self._timelineHaloItems = []
 
     def init(self):
         assert self.ui is None
@@ -483,8 +484,19 @@ class DocumentController(QObject):
         # for name in newProps:
         #     commands.createEventProperty(self.scene, name)
 
+    def _clearTimelineHalos(self):
+        for item in self._timelineHaloItems:
+            item.setTimelineHalo(False)
+        self._timelineHaloItems = []
+
+    def _flashAndHalo(self, item):
+        item.flash()
+        item.setTimelineHalo(True)
+        self._timelineHaloItems.append(item)
+
     def onFlashTimelineSelection(self, selectionModel: QItemSelectionModel):
         """Called when case props timeline selection is changed."""
+        self._clearTimelineHalos()
         model = selectionModel.model()
         for index in selectionModel.selectedRows():
             id = model.idForRow(index.row())
@@ -493,19 +505,20 @@ class DocumentController(QObject):
                 log.warning(f"Event selected in timeline has no parent: {event}")
             else:
                 item = self.scene.find(id=id)
-                item.flash()
+                self._flashAndHalo(item)
 
     def onFlashTimelineRow(self, row: int):
         if self.scene:
+            self._clearTimelineHalos()
             event = self.dv.timelineModel.eventForRow(row)
             if event.kind().isPairBond():
                 marriage = self.scene.marriageFor(event.person(), event.spouse())
-                marriage.flash()
-                event.person().flash()
-                event.spouse().flash()
+                self._flashAndHalo(marriage)
+                self._flashAndHalo(event.person())
+                self._flashAndHalo(event.spouse())
             else:
                 person = event.person()
-                person.flash()
+                self._flashAndHalo(person)
 
     def onQmlFocusItemChanged(self, item: QQuickItem):
         self._currentQmlFocusItem = item
