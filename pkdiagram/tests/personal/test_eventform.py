@@ -1,5 +1,3 @@
-import base64
-import json
 import pickle
 import pytest
 from datetime import datetime
@@ -28,23 +26,28 @@ START_DATETIME = util.Date(2001, 1, 1, 6, 7)
 
 
 def _createBlockingRequestMock(diagram):
+    """Stands in for the one versioned save endpoint: a pickled PUT in, the
+    row's new version and canonical blob back."""
     captured = {"payload": None}
 
     def blockingRequest(verb, endpoint, data=None, bdata=None, headers=None, **kwargs):
-        if verb == "PUT" and "/personal/diagrams/" in endpoint:
-            captured["payload"] = data
+        if verb == "PUT" and f"/v1/diagrams/{diagram.id}" == endpoint:
+            captured["payload"] = pickle.loads(bdata)
         response = MagicMock()
         response.status_code = 200
-        response.body = json.dumps({"version": diagram.version + 1}).encode("utf-8")
+        response.body = pickle.dumps(
+            {
+                "version": diagram.version + 1,
+                "data": captured["payload"]["data"] if captured["payload"] else b"",
+            }
+        )
         return response
 
     return blockingRequest, captured
 
 
 def _extractDiagramDataFromPayload(payload):
-    encodedData = payload["data"]
-    pickledData = base64.b64decode(encodedData)
-    return pickle.loads(pickledData)
+    return pickle.loads(payload["data"])
 
 
 def test_open_and_close_event_form(personalApp):

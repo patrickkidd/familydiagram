@@ -79,6 +79,7 @@ class ServerFileManagerModel(FileManagerModel):
         self.initialized = False
         self.diagramCache = {}
         self._indexReplies = []
+        self._listing = 0
         self._userId = None
         self.prefs = QApplication.instance().prefs()
         self.session = None
@@ -208,6 +209,13 @@ class ServerFileManagerModel(FileManagerModel):
         if not self.session.isLoggedIn():
             return
 
+        # The listing this call supersedes must not write to the model: its
+        # in-flight single GETs would re-add diagrams the new listing purged,
+        # leaving the previous user's diagrams in the list after a user id
+        # switch.
+        self._listing += 1
+        listing = self._listing
+
         def checkIndexRequestsComplete(reply):
             """Called after index but also after get single file."""
             self._indexReplies.remove(reply)
@@ -228,6 +236,8 @@ class ServerFileManagerModel(FileManagerModel):
 
             def onSingleGETSuccess(data):
                 """Called for each file needing updating."""
+                if listing != self._listing:
+                    return
                 self._addOrUpdateDiagram(Diagram.create(data))
 
             def onSingleGETFinished(reply):
@@ -240,6 +250,9 @@ class ServerFileManagerModel(FileManagerModel):
 
             if not self.session:
                 # Race condition after this deinitialized
+                return
+
+            if listing != self._listing:
                 return
 
             try:

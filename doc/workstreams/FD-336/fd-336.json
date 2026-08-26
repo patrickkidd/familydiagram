@@ -553,6 +553,18 @@
  ],
  "findings": [
   {
+   "id": "F-014",
+   "summary": "MERGE-ORDER NOTE (not a defect): .mcp.json registers the ORIGIN clone's mcpserver/mcp_server.py, which re-execs from the FD_TICKET checkout only once FD-336 is on master; until familydiagram #150 merges, an MCP client reaches master's harness for every ticket. mcpserver/tests/test_reexec.py carries a strict xfail that flips to pass after merge (delete the marker then).",
+   "severity": "minor",
+   "repro": "mcpserver/tests/test_reexec.py (1 xfailed pre-merge)",
+   "validation_status": "agent-verified",
+   "status": "open",
+   "found_in_track": "agent",
+   "criterion": "H2",
+   "regression_test": "mcpserver/tests/test_reexec.py",
+   "fix": "merge familydiagram #150, then remove the xfail marker"
+  },
+  {
    "id": "F-001",
    "summary": "btcopilot chat route (personal/routes/discussions.py ~:144, WP-A free-diagram gate) dereferences discussion.user, which is None for discussions created without a user in the familydiagram test app; test_discussview.py fails",
    "severity": "major",
