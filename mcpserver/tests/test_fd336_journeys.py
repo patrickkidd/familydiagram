@@ -406,8 +406,8 @@ def test_j4_unsaved_edits_prompt_before_a_statement_is_sent(journey):
 
     assert _statements(pro, diagram_id) == statements_before, "cancelling still sent"
 
-    # The declined send still cleared the input (F-008), so it is typed again.
-    _type(pro, "chatTextEdit", STATEMENT)
+    assert _value(pro, "chatTextEdit", "text") == STATEMENT, "cancelling threw the draft away"
+
     with _sendWithDialog(pro) as (watcher, sent):
         _awaitModal(watcher)
         answer = watcher.send_command(

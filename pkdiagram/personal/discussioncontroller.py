@@ -199,11 +199,14 @@ class DiscussionController(QObject):
         else:
             return []
 
-    @pyqtSlot(str)
-    def sendStatement(self, statement: str):
+    @pyqtSlot(str, result=bool)
+    def sendStatement(self, statement: str) -> bool:
+        """False when the save gate blocked the send, so the caller can keep
+        what the user typed instead of throwing it away."""
         if self.gate and not self.gate():
-            return
+            return False
         self._sendStatement(statement)
+        return True
 
     def _sendStatement(self, statement: str):
         def _doSendStatement():

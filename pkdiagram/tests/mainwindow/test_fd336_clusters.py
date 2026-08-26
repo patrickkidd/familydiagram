@@ -13,7 +13,13 @@ import pytest
 
 from btcopilot.extensions import db
 from btcopilot.pro.models import Diagram
-from btcopilot.schema import EventKind
+from btcopilot.schema import (
+    Event as SchemaEvent,
+    EventKind,
+    PDP,
+    Person as SchemaPerson,
+    VariableShift,
+)
 
 from pkdiagram import util
 from pkdiagram.pyqt import QDate, QDateTime
@@ -92,3 +98,45 @@ def test_detected_clusters_land_on_the_row(ownedCase, server_response):
     assert row.version == version + 1
 
     assert mw.scene.stack().isClean()
+
+
+def test_accepting_an_extraction_persists_the_clusters_it_triggers(
+    ownedCase, server_response
+):
+    """An accept is what changes the story, so it is what re-runs detection —
+    and Pro has to run it like the phone does, or Learn beside the canvas keeps
+    showing clusters from before the conversation."""
+    mw, diagram_id = ownedCase
+    diagram = mw.proPersonal()._diagram
+    diagramData = diagram.getDiagramData()
+    diagramData.pdp = PDP(
+        people=[SchemaPerson(id=-1, name="Connie")],
+        events=[
+            SchemaEvent(
+                id=-2,
+                kind=EventKind.Shift,
+                person=-1,
+                dateTime="2024-01-15",
+                description="Moved out",
+                anxiety=VariableShift.Up,
+            )
+        ],
+    )
+    diagram.setDiagramData(diagramData)
+    clusters = [{"id": "c1", "title": "The move", "startDate": "2024-01-15"}]
+
+    with server_response(
+        f"/personal/diagrams/{diagram_id}/clusters",
+        body=json.dumps({"clusters": clusters, "cacheKey": CACHE_KEY}),
+    ):
+        mw.proPersonal().pdpController.acceptAllPDPItems()
+        assert util.waitForCondition(
+            lambda: mw.proPersonal().clusterModel.hasClusters, maxMS=5000
+        )
+
+    stored = pickle.loads(_row(diagram_id).data)
+    assert stored["clusters"] == mw.proPersonal().clusterModel.clusters
+
+    assert stored["clusterCacheKey"] == CACHE_KEY
+
+    assert not stored["pdp"]["people"], "the accepted person is still staged"

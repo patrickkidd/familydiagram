@@ -46,8 +46,11 @@ so Pro's `save_diagram` / `open_server_diagram` route through MainWindow.
 `_findPersonalComponents` / `_findPersonalRootItem` resolve either app for the
 chat-state commands.
 
-## Known limitation
+## Clusters
 
-Cluster detection is not run or persisted in Pro. Clusters stored on the row by
-the Personal app are loaded and displayed; new ones are not written back,
-because Pro's writer takes no `mutate` hook.
+Learn behaves in Pro as it does on the phone. An accept re-runs detection
+(`pdpController.committed` → `ClusterModel.detect`), and a result is written to
+the row through the same saver, setting `clusters` and `clusterCacheKey` in the
+`mutate` hook. The write is not a user edit, so a document that was clean before
+it stays clean. Clusters already on the row are still loaded and displayed at
+open.

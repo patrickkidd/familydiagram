@@ -462,9 +462,12 @@ Page {
 
             function submit() {
                 if (textEdit.text.trim().length > 0) {
-                    discussion.sendStatement(textEdit.text);
-                    textEdit.text = ''
-                    textEdit.focus = false
+                    // Only a statement that was actually sent is cleared; a
+                    // declined save prompt leaves the draft to try again.
+                    if (discussion.sendStatement(textEdit.text)) {
+                        textEdit.text = ''
+                        textEdit.focus = false
+                    }
                 }
             }
 

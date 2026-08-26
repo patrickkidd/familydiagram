@@ -332,6 +332,7 @@ The goal is autonomous end-to-end testing where Claude Code can:
 | `click_element(object_name)` | Click on an element by name |
 | `type_into_element(object_name, text, clear_first)` | Type text into a field |
 | `send_key_to_element(object_name, key, modifiers)` | Send key press to element |
+| `dismiss_dialog(button)` | Press save/cancel/ok/yes/no on the modal message box that is up. The command that raised the modal is still blocked on the main thread, so send this over a second connection; keys reach only the default button |
 
 ### Scene Graph Access
 
