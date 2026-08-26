@@ -81,11 +81,7 @@ class QtInspector:
         Fails fast on unexpected states - this is a dev tool, not production code.
         """
         # Try Pro app first (MainWindow widget)
-        mainWindow = None
-        for window in self._app.topLevelWidgets():
-            if type(window).__name__ == "MainWindow":
-                mainWindow = window
-                break
+        mainWindow = self._findMainWindow()
 
         if mainWindow is not None:
             return self._getProAppState(mainWindow)
@@ -1340,11 +1336,7 @@ class QtInspector:
 
         try:
             # Find MainWindow
-            mainWindow = None
-            for window in self._app.topLevelWidgets():
-                if type(window).__name__ == "MainWindow":
-                    mainWindow = window
-                    break
+            mainWindow = self._findMainWindow()
 
             if mainWindow is None:
                 return {"success": False, "error": "MainWindow not found"}
@@ -1397,11 +1389,7 @@ class QtInspector:
                 return self._openPersonalDiagram(controller, diagramId)
 
             # Pro app path — synchronous
-            mainWindow = None
-            for window in self._app.topLevelWidgets():
-                if type(window).__name__ == "MainWindow":
-                    mainWindow = window
-                    break
+            mainWindow = self._findMainWindow()
             if mainWindow is None:
                 return {"success": False, "error": "MainWindow not found (Pro or Personal)"}
 
@@ -1580,14 +1568,11 @@ class QtInspector:
         Returns:
             Dict with model data and QML UI state for the component
         """
-        # Find PersonalAppController
-        controller = self._findPersonalAppController()
+        controller = self._findPersonalComponents()
         if controller is None:
-            return {"success": False, "error": "PersonalAppController not found"}
+            return {"success": False, "error": "Personal components not found"}
 
-        # Find Personal app window for QML state
-        personalWindow = self._findPersonalAppWindow()
-        rootItem = personalWindow.contentItem() if personalWindow else None
+        rootItem = self._findPersonalRootItem()
 
         if component == "all":
             return self._getPersonalOverview(controller, rootItem)
@@ -1618,7 +1603,9 @@ class QtInspector:
         }
 
     def _findPersonalAppController(self):
-        """Find the PersonalAppController instance."""
+        """The standalone Personal app's composition root, and only that: Pro's
+        embedded chat must never answer for the document, whose save and open
+        belong to MainWindow (FD-336 D16)."""
         # Try app.personalController attribute (set in main.py)
         controller = getattr(self._app, "personalController", None)
         if controller:
@@ -1632,6 +1619,30 @@ class QtInspector:
                 return child
 
         return None
+
+    def _findMainWindow(self):
+        for window in self._app.topLevelWidgets():
+            if type(window).__name__ == "MainWindow":
+                return window
+        return None
+
+    def _findPersonalComponents(self):
+        """The chat components wherever they are composed: the standalone root,
+        or Pro's embedded one. For inspecting chat state only."""
+        controller = self._findPersonalAppController()
+        if controller:
+            return controller
+        mainWindow = self._findMainWindow()
+        return mainWindow.proPersonal() if mainWindow else None
+
+    def _findPersonalRootItem(self) -> Optional[QQuickItem]:
+        """The QML root hosting the chat: Pro's case drawer, else the
+        standalone window."""
+        mainWindow = self._findMainWindow()
+        if mainWindow is not None:
+            return mainWindow.documentView.caseProps.qml.rootObject()
+        window = self._findPersonalAppWindow()
+        return window.contentItem() if window else None
 
     def _findPdpSheet(self, rootItem: QQuickItem) -> Optional[QQuickItem]:
         """Find pdpSheet via DiscussView (parented to Overlay.overlay, not in standard tree)."""
@@ -1813,9 +1824,9 @@ class QtInspector:
             from_dict,
         )
 
-        controller = self._findPersonalAppController()
+        controller = self._findPersonalComponents()
         if controller is None:
-            return {"success": False, "error": "PersonalAppController not found"}
+            return {"success": False, "error": "Personal components not found"}
 
         if not controller._diagram:
             return {"success": False, "error": "No diagram loaded"}
@@ -1855,11 +1866,10 @@ class QtInspector:
         }
 
     def openPdpSheet(self) -> Dict[str, Any]:
-        personalWindow = self._findPersonalAppWindow()
-        if not personalWindow:
-            return {"success": False, "error": "Personal app window not found"}
+        rootItem = self._findPersonalRootItem()
+        if not rootItem:
+            return {"success": False, "error": "Chat view not found"}
 
-        rootItem = personalWindow.contentItem()
         pdpSheet = self._findPdpSheet(rootItem)
         if not pdpSheet:
             return {"success": False, "error": "pdpSheet not found"}
@@ -2085,11 +2095,7 @@ class QtInspector:
                 return {"success": True, "conflicts": counter.conflicts}
 
             # Pro app path
-            mainWindow = None
-            for window in self._app.topLevelWidgets():
-                if type(window).__name__ == "MainWindow":
-                    mainWindow = window
-                    break
+            mainWindow = self._findMainWindow()
             if mainWindow is None:
                 return {"success": False, "error": "No app found (Pro or Personal)"}
 
@@ -2112,11 +2118,7 @@ class QtInspector:
         Safe to call any time, even while main thread is busy with a load or save.
         """
         is_personal = self._findPersonalAppController() is not None
-        mainWindow = None
-        for window in self._app.topLevelWidgets():
-            if type(window).__name__ == "MainWindow":
-                mainWindow = window
-                break
+        mainWindow = self._findMainWindow()
 
         scene = None
         server_diagram_id = None

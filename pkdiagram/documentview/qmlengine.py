@@ -62,6 +62,16 @@ class QmlEngine(QQmlEngine):
         self.rootContext().setContextProperty(
             "accessRightsModel", self.accessRightsModel
         )
+        # Null until a server case is opened; the embedded chat is the only
+        # thing that reads it and stays unloaded while it is null (FD-336).
+        self.proPersonal = None
+        self.rootContext().setContextProperty("proPersonal", None)
+
+    def setProPersonal(self, proPersonal):
+        self.proPersonal = proPersonal
+        self.rootContext().setContextProperty("proPersonal", proPersonal)
+        for name, value in proPersonal.contextProperties().items():
+            self.rootContext().setContextProperty(name, value)
 
     def deinit(self):
         self.util.deinit()

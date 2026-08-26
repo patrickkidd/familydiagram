@@ -51,6 +51,10 @@ class DiscussionController(QObject):
         super().__init__(parent)
         self.session = session
         self._settings = settings
+        # Consulted before a send reaches the server (FD-336 D6). Standalone
+        # Personal leaves it None; only the Pro embedding has a document that
+        # can be dirty.
+        self.gate: Callable[[], bool] | None = None
         self._diagram: Diagram | None = None
         self._discussions: list[Discussion] = []
         self._currentDiscussion: Discussion | None = None
@@ -197,6 +201,8 @@ class DiscussionController(QObject):
 
     @pyqtSlot(str)
     def sendStatement(self, statement: str):
+        if self.gate and not self.gate():
+            return
         self._sendStatement(statement)
 
     def _sendStatement(self, statement: str):

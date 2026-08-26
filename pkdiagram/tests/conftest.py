@@ -44,11 +44,17 @@ from pkdiagram.documentview import QmlEngine
 from pkdiagram.app import Application, AppController, Session as fe_Session, QmlUtil
 
 from btcopilot.pro.models import User
+import btcopilot.tests.conftest
 from btcopilot.tests.conftest import *
 from btcopilot.tests.pro.conftest import *
 
 from pkdiagram import appdirs
 
+
+# btcopilot's fixtures stamp an activation with one developer machine's id, and
+# the client only counts a licence activated on the machine running it, so on
+# any other machine every licence-gated assertion sees the free tier alone.
+btcopilot.tests.conftest.HARDWARE_UUID = util.HARDWARE_UUID
 
 version.IS_ALPHA = False
 version.IS_BETA = False

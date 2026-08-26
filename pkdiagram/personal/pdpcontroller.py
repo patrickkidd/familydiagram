@@ -1,6 +1,7 @@
 import logging
 import pickle
 from copy import deepcopy
+from typing import Callable
 
 from btcopilot.schema import (
     DateCertainty,
@@ -73,6 +74,9 @@ class PDPController(QObject):
         super().__init__(parent)
         self.session = session
         self.saver = saver
+        # Consulted before an extract reaches the server (FD-336 D6).
+        # Standalone Personal leaves it None.
+        self.gate: Callable[[], bool] | None = None
         self._diagram: Diagram | None = None
         self._discussion: DiscussionController | None = None
         self.scene: Scene | None = None
@@ -731,6 +735,8 @@ class PDPController(QObject):
 
     @pyqtSlot()
     def extractFull(self):
+        if self.gate and not self.gate():
+            return
         discussion = self._currentDiscussion()
         if not discussion:
             self.extractFailed.emit("No discussion selected")

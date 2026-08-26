@@ -55,6 +55,7 @@ from pkdiagram.serverblockallocator import ServerBlockAllocator
 from pkdiagram.scene import ItemGarbage, Property, Scene
 from pkdiagram.scene.clipboard import Clipboard, ImportItems
 from pkdiagram.views import AccountDialog
+from pkdiagram.personal import ProPersonal
 from pkdiagram.documentview import DocumentView
 from pkdiagram.mainwindow import FileManager, Preferences, Welcome, AutoSaveManager
 from pkdiagram.mainwindow.mainwindow_form import Ui_MainWindow
@@ -155,6 +156,7 @@ class MainWindow(QMainWindow):
         self.scene: Scene = None
         self.document: FDDocument = None
         self.serverFileModel = None
+        self._proPersonal: ProPersonal = None
         self.updateReply = None
         self.diagramShown = False
         self.savePending = False
@@ -439,6 +441,9 @@ class MainWindow(QMainWindow):
             self.onShowAliases
         )
         self.setDocument(None)
+        if self._proPersonal:
+            self._proPersonal.gate.saveRequested.disconnect(self.save)
+            self._proPersonal.deinit()
         self.documentView.deinit()
         self.fileManager.deinit()
         self.accountDialog.deinit()
@@ -830,6 +835,15 @@ class MainWindow(QMainWindow):
         #     self.localCaseList.clearSelection()
         # QTimer.singleShot(10, doOpen) # repaint with disabled state
 
+    def proPersonal(self) -> ProPersonal:
+        """Built on first use, so a session that only ever opens local files
+        never pays for speech, audio or the chat prefs."""
+        if self._proPersonal is None:
+            self._proPersonal = ProPersonal(self.session, self.serverFileModel, self)
+            self._proPersonal.gate.saveRequested.connect(self.save)
+            self.documentView.qmlEngine().setProPersonal(self._proPersonal)
+        return self._proPersonal
+
     def onServerFileClicked(self, fpath, diagram):
         log.info(
             f"Opening server diagram from file manager: {diagram.id}, version: {diagram.version}"
@@ -841,6 +855,8 @@ class MainWindow(QMainWindow):
         self._isOpeningServerDiagram = diagram  # set Scene.readOnly + drive allocator binding in setDocument
         self.open(filePath=fpath)
         self.documentView.qmlEngine().setServerDiagram(diagram)
+        self.proPersonal().setScene(self.scene)
+        self.proPersonal().setDiagram(diagram)
         # Document load is now complete for server diagrams.
         # ServerBlockAllocator was bound inside setDocument() — see the
         # _isOpeningServerDiagram branch there. (Binding here would race
@@ -1139,6 +1155,10 @@ class MainWindow(QMainWindow):
         self.document = document
         self.scene = newScene
         self.documentView.setScene(None)  # close all drawers/sheets, deinit all models
+        if self._proPersonal:
+            # Rebound by onServerFileClicked, which is the only route to a
+            # server case; a local file leaves the chat unbound.
+            self._proPersonal.clear()
         if self.document:
             self.scene.stack().cleanChanged[bool].connect(self.onUndoCleanChanged)
             # self.document.saved.connect(self.onDocumentSaved)

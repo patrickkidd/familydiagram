@@ -4,6 +4,7 @@ import QtQuick.Controls 2.5 as QQC
 import QtQuick.Layouts 1.15
 import QtQuick.Window 2.2
 import "./PK" 1.0 as PK
+import "./Personal" 1.0 as Personal
 import PK.Models 1.0
 
 
@@ -740,6 +741,27 @@ PK.Drawer {
         Item {
             id: chatView
             objectName: 'chatView'
+
+            Loader {
+                id: chatLoader
+                objectName: 'chatLoader'
+                anchors.fill: parent
+                active: proPersonal ? proPersonal.enabled : false
+                sourceComponent: Personal.PersonalContainer {
+                    embedded: true
+                }
+            }
+
+            PK.Text {
+                objectName: 'chatDisabledReason'
+                anchors.centerIn: parent
+                width: parent.width - root.margin * 2
+                visible: !chatLoader.active
+                text: proPersonal ? proPersonal.disabledReason : ""
+                color: util.QML_INACTIVE_TEXT_COLOR
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignHCenter
+            }
         }
 
         PK.TriangleView {

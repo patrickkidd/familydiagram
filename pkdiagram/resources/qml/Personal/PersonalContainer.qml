@@ -22,10 +22,15 @@ Page {
     property var learnView: learnView
     property var planView: planView
     property var accountDialog: accountDialogLoader.item
-    property var drawer: drawer
+    property var drawer: drawerLoader.item
     property var eventFormDrawer: eventFormDrawer
     property var eventForm: eventForm
     property var pdpSheet: discussView.pdpSheet
+
+    // Hosted inside Pro's case drawer, on Pro's already-open case: everything
+    // that picks or replaces the diagram, or that belongs to the phone user's
+    // own account, is dropped (FD-336).
+    property bool embedded: false
 
     property bool discussionMenuOpen: false
     property bool storyMenuOpen: false
@@ -121,7 +126,8 @@ Page {
             width: 40
             height: 40
             radius: 8
-            color: drawer.position > 0 ? util.QML_ITEM_ALTERNATE_BG : "transparent"
+            visible: !root.embedded
+            color: root.drawer && root.drawer.position > 0 ? util.QML_ITEM_ALTERNATE_BG : "transparent"
 
             Column {
                 anchors.centerIn: parent
@@ -133,7 +139,7 @@ Page {
             }
             MouseArea {
                 anchors.fill: parent
-                onClicked: drawer.open()
+                onClicked: root.drawer.open()
             }
         }
 
@@ -197,11 +203,13 @@ Page {
                     font.pixelSize: 10
                     color: secondaryText
                     anchors.verticalCenter: parent.verticalCenter
+                    visible: !root.embedded
                 }
             }
 
             MouseArea {
                 anchors.fill: parent
+                enabled: !root.embedded
                 onClicked: storyMenuOpen = !storyMenuOpen
             }
         }
@@ -1248,49 +1256,54 @@ Page {
         }
     }
 
-    // Left Drawer
-    Drawer {
-        id: drawer
-        width: parent.width * 0.85
-        height: parent.height
-        edge: Qt.LeftEdge
+    // Left Drawer — the account, the diagram list and logout, none of which
+    // exist when Pro owns the open case.
+    Loader {
+        id: drawerLoader
+        active: !root.embedded
 
-        background: Rectangle { color: drawerBg }
+        sourceComponent: Drawer {
+            width: root.width * 0.85
+            height: root.height
+            edge: Qt.LeftEdge
 
-        contentItem: Personal.AccountDrawer {
-            anchors.fill: parent
-            itemBg: root.itemBg
-            borderColor: root.borderColor
-            textColor: root.textColor
-            secondaryText: root.secondaryText
-            accentColor: root.accentColor
-            safeAreaTop: root.safeAreaTop
+            background: Rectangle { color: drawerBg }
 
-            onLogoutClicked: {
-                drawer.close()
-                session.logout()
-            }
-            onAccountClicked: {
-                drawer.close()
-                profilePopup.open()
-            }
-            onDiagramClicked: function(diagram) {
-                drawer.close()
-                diagramLoader.loadDiagram(diagram.id)
-            }
-            onNewDiagramClicked: {
-                drawer.close()
-                diagramLoader.createDiagram()
-            }
-            onSettingsClicked: function(setting) {
-                if (setting === "Coaching Style") {
-                    modelPopup.open()
-                } else if (setting === "Voice") {
-                    voicePopup.open()
-                } else if (setting === "Privacy") {
-                    privacyPopup.open()
-                } else if (setting === "Help & Support") {
-                    helpPopup.open()
+            contentItem: Personal.AccountDrawer {
+                anchors.fill: parent
+                itemBg: root.itemBg
+                borderColor: root.borderColor
+                textColor: root.textColor
+                secondaryText: root.secondaryText
+                accentColor: root.accentColor
+                safeAreaTop: root.safeAreaTop
+
+                onLogoutClicked: {
+                    root.drawer.close()
+                    session.logout()
+                }
+                onAccountClicked: {
+                    root.drawer.close()
+                    profilePopupLoader.item.open()
+                }
+                onDiagramClicked: function(diagram) {
+                    root.drawer.close()
+                    diagramLoader.loadDiagram(diagram.id)
+                }
+                onNewDiagramClicked: {
+                    root.drawer.close()
+                    diagramLoader.createDiagram()
+                }
+                onSettingsClicked: function(setting) {
+                    if (setting === "Coaching Style") {
+                        modelPopup.open()
+                    } else if (setting === "Voice") {
+                        voicePopup.open()
+                    } else if (setting === "Privacy") {
+                        privacyPopup.open()
+                    } else if (setting === "Help & Support") {
+                        helpPopup.open()
+                    }
                 }
             }
         }
@@ -1444,28 +1457,33 @@ Page {
         }
     }
 
-    // Profile settings popup (FD-321) — opened from the AccountDrawer ACCOUNT entry
-    Popup {
-        id: profilePopup
-        parent: Overlay.overlay
-        anchors.centerIn: parent
-        width: root.width
-        height: root.height
-        modal: true
-        closePolicy: Popup.NoAutoClose
-        padding: 0
-        background: Rectangle { color: "transparent" }
+    // Profile settings popup (FD-321) — opened from the AccountDrawer ACCOUNT
+    // entry. Reads the account holder's own node, which a Pro case is not.
+    Loader {
+        id: profilePopupLoader
+        active: !root.embedded
 
-        enter: Transition {
-            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 150 }
-        }
-        exit: Transition {
-            NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 150 }
-        }
+        sourceComponent: Popup {
+            parent: Overlay.overlay
+            anchors.centerIn: parent
+            width: root.width
+            height: root.height
+            modal: true
+            closePolicy: Popup.NoAutoClose
+            padding: 0
+            background: Rectangle { color: "transparent" }
 
-        Personal.ProfileSettingsPage {
-            anchors.fill: parent
-            onBackClicked: profilePopup.close()
+            enter: Transition {
+                NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 150 }
+            }
+            exit: Transition {
+                NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 150 }
+            }
+
+            Personal.ProfileSettingsPage {
+                anchors.fill: parent
+                onBackClicked: profilePopupLoader.item.close()
+            }
         }
     }
 
@@ -1475,7 +1493,7 @@ Page {
     Loader {
         id: wizardLoader
         anchors.fill: parent
-        active: session && session.loggedIn && personalApp && personalApp.shouldPromptProfile
+        active: !root.embedded && session && session.loggedIn && personalApp && personalApp.shouldPromptProfile
         z: 100
 
         sourceComponent: Personal.UserDetailsWizard {
@@ -1490,7 +1508,7 @@ Page {
     Loader {
         id: accountDialogLoader
         anchors.fill: parent
-        active: session && !session.loggedIn
+        active: !root.embedded && session && !session.loggedIn
         source: "../AccountDialog.qml"
 
         onLoaded: {
@@ -1511,7 +1529,7 @@ Page {
             pasteTextEdit.text = ""
             pasteTextDrawer.close()
         }
-        if (drawer.position > 0)
-            drawer.close()
+        if (root.drawer && root.drawer.position > 0)
+            root.drawer.close()
     }
 }
