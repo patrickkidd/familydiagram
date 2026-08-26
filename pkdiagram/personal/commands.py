@@ -12,11 +12,11 @@ class PDPAction(enum.Enum):
 
 class HandlePDPItem(QUndoCommand):
     def __init__(
-        self, action: PDPAction, personal, item_id: int, prev_diagramData: DiagramData
+        self, action: PDPAction, controller, item_id: int, prev_diagramData: DiagramData
     ):
         super().__init__()
         self.action = action
-        self.personal = personal
+        self.controller = controller
         self.item_id = item_id
         self.prev_diagramData = deepcopy(prev_diagramData)
         self.setText(f"Accept PDP Item {item_id}")
@@ -27,10 +27,10 @@ class HandlePDPItem(QUndoCommand):
             self._initial_run = False
             return
         if self.action == PDPAction.Accept:
-            self.personal._doAcceptPDPItem(self.item_id)
+            self.controller._doAcceptPDPItem(self.item_id)
         else:
-            self.personal._doRejectPDPItem(self.item_id)
+            self.controller._doRejectPDPItem(self.item_id)
 
     def undo(self):
-        self.personal._diagram.setDiagramData(self.prev_diagramData)
-        self.personal.pdpChanged.emit()
+        self.controller._diagram.setDiagramData(self.prev_diagramData)
+        self.controller.pdpChanged.emit()

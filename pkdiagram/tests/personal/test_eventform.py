@@ -144,7 +144,7 @@ def test_save_preserves_pdp(personalApp):
         created_at=datetime.now(),
         data=pickle.dumps(schema_asdict(diagramData)),
     )
-    personalApp._diagram = diagram
+    personalApp.setDiagram(diagram)
 
     scene = personalApp.scene
     person = scene.addItem(Person(name="ScenePerson", lastName="Doe"))

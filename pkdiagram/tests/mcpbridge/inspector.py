@@ -1624,7 +1624,7 @@ class QtInspector:
         diagramData = controller._diagram.getDiagramData()
         diagramData.pdp = pdp
         controller._diagram.setDiagramData(diagramData)
-        controller.pdpChanged.emit()
+        controller.pdpController.pdpChanged.emit()
 
         self._app.processEvents()
 

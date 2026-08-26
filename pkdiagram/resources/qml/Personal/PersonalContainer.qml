@@ -50,9 +50,9 @@ Page {
 
     // Track PDP count from discussView
     Connections {
-        target: personalApp
+        target: pdpController
         function onPdpChanged() {
-            var pdp = personalApp.pdp
+            var pdp = pdpController.pdp
             if (pdp) {
                 // Every PDP entry is a reviewable pending change; the badge
                 // must match the card count in PDPSheet (people + pair bonds
@@ -61,7 +61,7 @@ Page {
                 var count = 0
                 if (pdp.people) {
                     for (var i = 0; i < pdp.people.length; i++) {
-                        if (!personalApp.isParentsEdit(pdp.people[i]))
+                        if (!pdpController.isParentsEdit(pdp.people[i]))
                             count += 1
                     }
                 }
@@ -83,10 +83,10 @@ Page {
 
     // Get current discussion summary for header title
     function currentDiscussionSummary() {
-        if (personalApp && personalApp.discussions) {
-            for (var i = 0; i < personalApp.discussions.length; i++) {
-                var d = personalApp.discussions[i]
-                if (d.id === personalApp.currentDiscussionId) {
+        if (discussion && discussion.discussions) {
+            for (var i = 0; i < discussion.discussions.length; i++) {
+                var d = discussion.discussions[i]
+                if (d.id === discussion.currentDiscussionId) {
                     return d.summary || "Discussion"
                 }
             }
@@ -253,7 +253,7 @@ Page {
             height: 28
             radius: 14
             color: util.IS_UI_DARK_MODE ? "#3A3938" : "#E9E9EB"
-            visible: tabBar.currentIndex === 0 && !!personalApp && personalApp.canRebuild
+            visible: tabBar.currentIndex === 0 && !!pdpController && pdpController.canRebuild
             Canvas {
                 anchors.centerIn: parent
                 width: 16
@@ -292,7 +292,7 @@ Page {
             height: 28
             radius: 14
             color: util.IS_UI_DARK_MODE ? "#4495F7" : "#007AFF"
-            visible: tabBar.currentIndex === 0 && !!personalApp && personalApp.canExtract
+            visible: tabBar.currentIndex === 0 && !!discussion && discussion.canExtract
 
             Canvas {
                 anchors.centerIn: parent
@@ -325,7 +325,7 @@ Page {
             }
             MouseArea {
                 anchors.fill: parent
-                onClicked: personalApp.extractFull()
+                onClicked: pdpController.extractFull()
             }
         }
 
@@ -562,7 +562,7 @@ Page {
                     anchors.left: parent.left
                     anchors.leftMargin: 8
                     anchors.verticalCenter: parent.verticalCenter
-                    text: personalApp && personalApp.diagram ? (personalApp.diagram.name || "Diagram") : "Diagram"
+                    text: diagramLoader && diagramLoader.diagram ? (diagramLoader.diagram.name || "Diagram") : "Diagram"
                     font.pixelSize: 12
                     font.bold: true
                     color: secondaryText
@@ -570,13 +570,13 @@ Page {
             }
 
             Repeater {
-                model: personalApp ? personalApp.discussions : []
+                model: discussion ? discussion.discussions : []
 
                 Rectangle {
                     width: discussionDropdown.width - 16
                     height: 44
                     radius: 8
-                    color: personalApp && personalApp.currentDiscussionId === modelData.id ? util.QML_ITEM_ALTERNATE_BG : "transparent"
+                    color: discussion && discussion.currentDiscussionId === modelData.id ? util.QML_ITEM_ALTERNATE_BG : "transparent"
                     x: 8
 
                     Row {
@@ -589,7 +589,7 @@ Page {
                             width: 6
                             height: 6
                             radius: 3
-                            color: personalApp && personalApp.currentDiscussionId === modelData.id ? accentColor : "transparent"
+                            color: discussion && discussion.currentDiscussionId === modelData.id ? accentColor : "transparent"
                         }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
@@ -602,7 +602,7 @@ Page {
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
-                            personalApp.setCurrentDiscussion(modelData.id)
+                            discussion.setCurrentDiscussion(modelData.id)
                             discussionMenuOpen = false
                         }
                     }
@@ -646,7 +646,7 @@ Page {
                     anchors.fill: parent
                     onClicked: {
                         discussionMenuOpen = false
-                        personalApp.createDiscussion()
+                        discussion.createDiscussion()
                     }
                 }
             }
@@ -839,12 +839,12 @@ Page {
         id: importFileDialog
         title: "Import Notes"
         nameFilters: ["Text files (*.txt *.md)", "All files (*)"]
-        onAccepted: personalApp.importFromFile(file)
+        onAccepted: pdpController.importFromFile(file)
     }
 
     // Import signal handlers (triggered from Learn tab; overlay is app-level)
     Connections {
-        target: personalApp
+        target: pdpController
         function onJournalImportStarted() { importOverlay.visible = true }
         function onJournalImportCompleted(summary) {
             importOverlay.visible = false
@@ -945,7 +945,7 @@ Page {
                     MouseArea {
                         anchors.fill: parent
                         enabled: pasteTextEdit.text.trim().length > 0
-                        onClicked: personalApp.importJournalNotes(pasteTextEdit.text)
+                        onClicked: pdpController.importJournalNotes(pasteTextEdit.text)
                     }
                 }
             }
@@ -1056,7 +1056,7 @@ Page {
                     anchors.fill: parent
                     onClicked: {
                         clearDataDialog.close()
-                        personalApp.clearDiagramData(false)
+                        pdpController.clearDiagramData(false)
                     }
                 }
             }
@@ -1082,7 +1082,7 @@ Page {
                     anchors.fill: parent
                     onClicked: {
                         clearDataDialog.close()
-                        personalApp.clearDiagramData(true)
+                        pdpController.clearDiagramData(true)
                     }
                 }
             }
@@ -1239,7 +1239,7 @@ Page {
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
-                            personalApp.rebuildDiagram(root.maxFidelity ? 8 : 1)
+                            pdpController.rebuildDiagram(root.maxFidelity ? 8 : 1)
                             rebuildDialog.close()
                         }
                     }
@@ -1276,11 +1276,11 @@ Page {
             }
             onDiagramClicked: function(diagram) {
                 drawer.close()
-                personalApp.loadDiagram(diagram.id)
+                diagramLoader.loadDiagram(diagram.id)
             }
             onNewDiagramClicked: {
                 drawer.close()
-                personalApp.createDiagram()
+                diagramLoader.createDiagram()
             }
             onSettingsClicked: function(setting) {
                 if (setting === "Coaching Style") {

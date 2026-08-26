@@ -178,7 +178,7 @@
     <addaction name="actionShow_Diagram"/>
     <addaction name="actionShow_Timeline"/>
     <addaction name="actionShow_Settings"/>
-    <addaction name="actionShow_Copilot"/>
+    <addaction name="actionShow_Chat"/>
     <addaction name="actionShow_Triangles"/>
     <addaction name="separator"/>
     <addaction name="actionShow_Items_with_Notes"/>
@@ -1336,12 +1336,12 @@
     <string>Discussion Forum</string>
    </property>
   </action>
-  <action name="actionShow_Copilot">
+  <action name="actionShow_Chat">
    <property name="checkable">
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Show Copilot</string>
+    <string>Show Chat</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+4</string>

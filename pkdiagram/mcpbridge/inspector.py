@@ -1450,16 +1450,16 @@ class QtInspector:
             loop.quit()
 
         controller.appConfig.set("lastDiagramId", diagramId)
-        controller.diagramChanged.connect(onLoaded)
-        controller.serverError.connect(onError)
-        controller.serverDown.connect(onError)
+        controller.diagramLoader.diagramChanged.connect(onLoaded)
+        controller.diagramLoader.serverError.connect(onError)
+        controller.diagramLoader.serverDown.connect(onError)
         try:
-            controller._refreshDiagram()
+            controller.diagramLoader.refreshDiagram()
             loop.exec_()
         finally:
-            controller.diagramChanged.disconnect(onLoaded)
-            controller.serverError.disconnect(onError)
-            controller.serverDown.disconnect(onError)
+            controller.diagramLoader.diagramChanged.disconnect(onLoaded)
+            controller.diagramLoader.serverError.disconnect(onError)
+            controller.diagramLoader.serverDown.disconnect(onError)
 
         if loaded["ok"]:
             return {"success": True, "message": f"Opened personal diagram {diagramId}", "diagramId": diagramId}
@@ -1840,7 +1840,7 @@ class QtInspector:
         diagramData = controller._diagram.getDiagramData()
         diagramData.pdp = pdp
         controller._diagram.setDiagramData(diagramData)
-        controller.pdpChanged.emit()
+        controller.pdpController.pdpChanged.emit()
 
         self._app.processEvents()
 

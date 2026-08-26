@@ -51,8 +51,15 @@ Page {
     // Minimum hold duration in ms before recording is accepted
     readonly property int minRecordingDurationMs: 300
 
+    // A server message lands in the chat as if the coach said it, whether it
+    // came from the chat itself or from loading the diagram.
+    function appendServerMessage(text) {
+        chatModel.append({ "text": text, "speakerType": 'expert' });
+        statementsList.delayedScrollToBottom()
+    }
+
     Connections {
-        target: personalApp
+        target: voice
         function onTranscriptionReady(text) {
             root.voiceState = "idle"
             if (text.length > 0) {
@@ -68,19 +75,23 @@ Page {
             root.voiceState = "idle"
             util.criticalBox("Recording Failed", error)
         }
+    }
+
+    Connections {
+        target: discussion
         function onDiscussionsChanged() {
             if (!initSelectedDiscussion) {
                 initSelectedDiscussion = true
-                var lastDiscussion = personalApp.discussions[personalApp.discussions.length-1]
+                var lastDiscussion = discussion.discussions[discussion.discussions.length-1]
                 if(lastDiscussion !== undefined) {
-                    personalApp.setCurrentDiscussion(lastDiscussion.id)
+                    discussion.setCurrentDiscussion(lastDiscussion.id)
                 }
             }
         }
         function onStatementsChanged() {
             chatModel.clear()
-            for (var i = 0; i < personalApp.statements.length; i++) {
-                var statement = personalApp.statements[i]
+            for (var i = 0; i < discussion.statements.length; i++) {
+                var statement = discussion.statements[i]
                 var speakerType = statement.speaker.type
                 chatModel.append({ "text": statement.text, "speakerType": speakerType })
             }
@@ -96,34 +107,36 @@ Page {
                 "speakerType": 'expert'
             })
             statementsList.delayedScrollToBottom()
-            if (personalApp.autoReadAloud) {
-                personalApp.sayAtIndex(text, chatModel.count - 1)
+            if (tts.autoReadAloud) {
+                tts.say(text, chatModel.count - 1)
             }
         }
-        function onTtsFinished() {
-            if (personalApp.autoReadAloud) {
+        function onServerDown() { root.appendServerMessage(util.S_SERVER_IS_DOWN) }
+        function onServerError() { root.appendServerMessage(util.S_SERVER_ERROR) }
+    }
+
+    Connections {
+        target: diagramLoader
+        function onServerDown() { root.appendServerMessage(util.S_SERVER_IS_DOWN) }
+        function onServerError() { root.appendServerMessage(util.S_SERVER_ERROR) }
+    }
+
+    Connections {
+        target: tts
+        function onFinished() {
+            if (tts.autoReadAloud) {
                 textEdit.forceActiveFocus()
             }
         }
-        function onServerDown() {
-            chatModel.append({
-                "text": util.S_SERVER_IS_DOWN,
-                "speakerType": 'expert'
-            });
-            statementsList.delayedScrollToBottom()
-        }
-        function onServerError() {
-            chatModel.append({
-                "text": util.S_SERVER_ERROR,
-                "speakerType": 'expert'
-            });
-            statementsList.delayedScrollToBottom()
-        }
+    }
+
+    Connections {
+        target: pdpController
         function onPdpChanged() {
             if (pdpSheet.editOverlayVisible) {
                 return
             }
-            var pdp = personalApp.pdp
+            var pdp = pdpController.pdp
             if (pdp) {
                 pdpSheet.pdp = pdp
                 pdpSheet.updateItems()
@@ -146,7 +159,7 @@ Page {
             if (total > 0) {
                 pdpSheet.open()
             } else {
-                personalApp.dismissEmptyExtraction()
+                pdpController.dismissEmptyExtraction()
                 util.informationBox("Nothing New",
                     "Nothing new was detected. Chat more to generate more data.")
             }
@@ -321,7 +334,7 @@ Page {
                 id: dRoot
 
                 property var responseText: responseText.text
-                property bool isPlaying: personalApp ? personalApp.ttsPlayingIndex === dIndex : false
+                property bool isPlaying: tts ? tts.playingIndex === dIndex : false
 
                 Component.onCompleted: {
                     root.aiBubbleAdded(dRoot)
@@ -396,7 +409,7 @@ Page {
                         width: 28
                         height: 28
                         color: "transparent"
-                        visible: personalApp ? personalApp.autoReadAloud : false
+                        visible: tts ? tts.autoReadAloud : false
 
                         Canvas {
                             anchors.centerIn: parent
@@ -430,9 +443,9 @@ Page {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 if (dRoot.isPlaying) {
-                                    personalApp.stopSpeaking()
+                                    tts.stop()
                                 } else {
-                                    personalApp.sayAtIndex(dText, dIndex)
+                                    tts.say(dText, dIndex)
                                 }
                             }
                         }
@@ -449,7 +462,7 @@ Page {
 
             function submit() {
                 if (textEdit.text.trim().length > 0) {
-                    personalApp.sendStatement(textEdit.text);
+                    discussion.sendStatement(textEdit.text);
                     textEdit.text = ''
                     textEdit.focus = false
                 }
@@ -705,7 +718,7 @@ Page {
                             if (root.voiceState === "idle") {
                                 root.recordingStartTime = Date.now()
                                 root.voiceState = "recording"
-                                personalApp.startRecording()
+                                voice.start()
                             }
                             // Do nothing if transcribing - wait for result
                         }
@@ -715,10 +728,10 @@ Page {
                                 if (elapsed < root.minRecordingDurationMs) {
                                     // Too short - discard without transcribing
                                     root.voiceState = "idle"
-                                    personalApp.cancelRecording()
+                                    voice.cancel()
                                 } else {
                                     root.voiceState = "transcribing"
-                                    personalApp.stopRecording()
+                                    voice.stop()
                                 }
                             }
                         }
@@ -726,7 +739,7 @@ Page {
                             // Finger dragged off the button - discard
                             if (root.voiceState === "recording") {
                                 root.voiceState = "idle"
-                                personalApp.cancelRecording()
+                                voice.cancel()
                             }
                         }
                     }
@@ -742,34 +755,34 @@ Page {
         parent: Overlay.overlay
 
         onItemAccepted: function(id) {
-            personalApp.acceptPDPItem(id)
+            pdpController.acceptPDPItem(id)
             pdpSheet.removeItemById(id)
         }
         onItemRejected: function(id) {
-            personalApp.rejectPDPItem(id)
+            pdpController.rejectPDPItem(id)
             pdpSheet.removeItemById(id)
         }
         onAcceptAllClicked: {
-            personalApp.acceptAllPDPItems()
+            pdpController.acceptAllPDPItems()
             pdpSheet.close()
         }
         onFieldChanged: function(id, field, value) {
-            personalApp.updatePDPItem(id, field, value)
+            pdpController.updatePDPItem(id, field, value)
         }
         onCommittedEditAccepted: function(id) {
-            personalApp.acceptPDPItem(id)
+            pdpController.acceptPDPItem(id)
             pdpSheet.removeItemById(id)
         }
         onCommittedEditRejected: function(id) {
-            personalApp.rejectPDPItem(id)
+            pdpController.rejectPDPItem(id)
             pdpSheet.removeItemById(id)
         }
         onCommittedDeleteAccepted: function(id) {
-            personalApp.acceptPDPItem(id)
+            pdpController.acceptPDPItem(id)
             pdpSheet.removeItemById(id)
         }
         onCommittedDeleteRejected: function(id) {
-            personalApp.rejectPDPItem(id)
+            pdpController.rejectPDPItem(id)
             pdpSheet.removeItemById(id)
         }
     }
@@ -778,6 +791,6 @@ Page {
         id: extractOverlay
         objectName: "extractOverlay"
         text: "Detecting data..."
-        onCancelClicked: personalApp.cancelRebuild()
+        onCancelClicked: pdpController.cancelRebuild()
     }
 }

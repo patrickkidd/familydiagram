@@ -164,7 +164,7 @@ Item {
                             ColumnLayout {
                                 Layout.fillWidth: true
                                 spacing: 2
-                                visible: personData !== null && personData !== undefined && personData.parents !== null && personData.parents !== undefined && personalApp !== null && personalApp.resolveParentNames(personData.parents) !== ""
+                                visible: personData !== null && personData !== undefined && personData.parents !== null && personData.parents !== undefined && pdpController !== null && pdpController.resolveParentNames(personData.parents) !== ""
 
                                 Text {
                                     text: "Parents"
@@ -174,7 +174,7 @@ Item {
                                     opacity: 0.7
                                 }
                                 Text {
-                                    text: personalApp ? personalApp.resolveParentNames(personData ? personData.parents : null) : ""
+                                    text: pdpController ? pdpController.resolveParentNames(personData ? personData.parents : null) : ""
                                     font.pixelSize: util.TEXT_FONT_SIZE
                                     color: util.QML_TEXT_COLOR
                                     wrapMode: Text.WordWrap

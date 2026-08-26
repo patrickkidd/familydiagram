@@ -83,6 +83,7 @@ Each app's `applyChange` explicitly sets only the fields it owns. A field missin
 - **Python entry point**: `uv run python main.py` (starts the desktop application)
 
 ### Testing
+- **Be efficient with slow runs (Patrick, 2026-08-26).** The Qt suite is slow and some files hang without `pytest-timeout`. While building, run only the test files/dirs that cover the components being changed; never launch the full suite (or broad dirs like `views/`, `mainwindow/`) between work packages. Save exactly one full-suite run for after all changes in a ticket are made, using the CI-style isolated runner (`scripts/ci_run_tests_isolated.py`) so a hang fails a file instead of the run.
 - **Run all tests**: `uv run pytest -vv`
 - **Single test**: `uv run pytest tests/path/to/test_file.py::test_function -v`
 - **Test with debugging**: `uv run pytest tests/path/to/test_file.py::test_function -v --log-cli-level=DEBUG`

@@ -104,14 +104,14 @@ Page {
 
                     Repeater {
                         id: modelRepeater
-                        model: personalApp ? personalApp.availableModels : []
+                        model: discussion ? discussion.availableModels : []
 
                         Rectangle {
                             width: parent.width
                             height: modelItemColumn.height + 24
                             color: "transparent"
 
-                            property bool isCurrent: personalApp && personalApp.responseModel === modelData.id
+                            property bool isCurrent: discussion && discussion.responseModel === modelData.id
 
                             Column {
                                 id: modelItemColumn
@@ -161,7 +161,7 @@ Page {
 
                             MouseArea {
                                 anchors.fill: parent
-                                onClicked: personalApp.setResponseModel(modelData.id)
+                                onClicked: discussion.setResponseModel(modelData.id)
                             }
                         }
                     }

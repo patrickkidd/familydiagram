@@ -6,7 +6,6 @@ import datetime
 import logging
 import dataclasses
 
-from btcopilot.schema import DiagramData
 from pkdiagram.pyqt import (
     Qt,
     QTimer,
@@ -24,6 +23,7 @@ from pkdiagram import util
 from pkdiagram.server_types import Diagram, HTTPError
 from pkdiagram.models import FileManagerModel
 from .qobjecthelper import QObjectHelper
+from .diagramsaver import DiagramSaver
 
 
 log = logging.getLogger(__name__)
@@ -68,6 +68,7 @@ class ServerFileManagerModel(FileManagerModel):
         self._userId = None
         self.prefs = QApplication.instance().prefs()
         self.session = None
+        self.saver = DiagramSaver(None, self)
         self.dataPath = dataPath
         if dataPath is None:
             localRoot = util.appDataDir()
@@ -111,6 +112,7 @@ class ServerFileManagerModel(FileManagerModel):
         if self.session:
             self.session.changed.disconnect(self.update)
         self.session = session
+        self.saver.session = session
         if self.session:
             self.session.changed.connect(self.update)
             if self.session.isLoggedIn():
@@ -428,6 +430,7 @@ class ServerFileManagerModel(FileManagerModel):
         self.session.server().blockingRequest("DELETE", url)
         # entry = self.findDiagram(diagram_id)
         del self.diagramCache[diagram_id]
+        self.saver.forget(diagram_id)
         fpath = self.localPathForID(diagram_id)
         self.removeFileEntry(fpath)
         shutil.rmtree(fpath)
@@ -494,95 +497,9 @@ class ServerFileManagerModel(FileManagerModel):
                 self.dataChanged.emit(index, index, [role])
         elif role == self.DiagramDataRole:
             diagram = self.diagramForRow(index.row())
-            dataToSave = value
-            fpath = self.localPathForID(diagram.id)
-
-            # Snapshot baseline for the merge: Pro's Scene view at the
-            # last successful save (or, on first save, what was loaded
-            # from server at open — Pro's Scene loads from diagram.data
-            # so they're equivalent). NOT the canonical server state, NOT
-            # the post-merge bytes — those may contain other-client items
-            # that Pro's Scene never loaded, which would get interpreted
-            # as deletes on the next save.
-            # Plan: doc/plans/2026-05-01--mvp-merge-fix/README.md
-            snapshotBytes = getattr(diagram, "_lastSavedSnapshot", None) or diagram.data
-            openSnapshot = pickle.loads(snapshotBytes) if snapshotBytes else {}
-
-            def applyChange(diagramData: DiagramData):
-                # Only modify Scene-owned fields (FR-2 in DATA_SYNC_FLOW.md).
-                # Same pattern as PersonalAppController.saveDiagram().
-                localData = pickle.loads(dataToSave)
-                # Scene collections — snapshot-diff merge. For each field,
-                # take server's copy unless the user actually edited the
-                # item (snapshot vs local differ), preventing a stale
-                # snapshot from clobbering concurrent edits.
-                for fname in DiagramData.SCENE_COLLECTION_FIELDS:
-                    setattr(
-                        diagramData,
-                        fname,
-                        DiagramData.apply_local_changes(
-                            getattr(diagramData, fname),
-                            openSnapshot.get(fname, []),
-                            localData.get(fname, []),
-                        ),
-                    )
-                # Metadata
-                diagramData.uuid = localData.get("uuid")
-                diagramData.name = localData.get("name")
-                diagramData.tags = localData.get("tags", [])
-                diagramData.loggedDateTime = localData.get("loggedDateTime", [])
-                diagramData.masterKey = localData.get("masterKey")
-                diagramData.alias = localData.get("alias")
-                diagramData.version = localData.get("version")
-                diagramData.versionCompat = localData.get("versionCompat")
-                diagramData.lastItemId = max(diagramData.lastItemId, localData.get("lastItemId", 0))
-                # UI flags
-                diagramData.readOnly = localData.get("readOnly", False)
-                diagramData.contributeToResearch = localData.get("contributeToResearch", False)
-                diagramData.useRealNames = localData.get("useRealNames", False)
-                diagramData.password = localData.get("password")
-                diagramData.requirePasswordForRealNames = localData.get("requirePasswordForRealNames", False)
-                diagramData.showAliases = localData.get("showAliases", False)
-                diagramData.hideNames = localData.get("hideNames", False)
-                diagramData.hideToolBars = localData.get("hideToolBars", False)
-                diagramData.hideEmotionalProcess = localData.get("hideEmotionalProcess", False)
-                diagramData.hideEmotionColors = localData.get("hideEmotionColors", False)
-                diagramData.hideDateSlider = localData.get("hideDateSlider", False)
-                diagramData.hideVariablesOnDiagram = localData.get("hideVariablesOnDiagram", False)
-                diagramData.hideVariableSteadyStates = localData.get("hideVariableSteadyStates", False)
-                diagramData.hideSARFGraphics = localData.get("hideSARFGraphics", True)
-                diagramData.exclusiveLayerSelection = localData.get("exclusiveLayerSelection", True)
-                diagramData.storePositionsInLayers = localData.get("storePositionsInLayers", False)
-                diagramData.currentDateTime = localData.get("currentDateTime")
-                diagramData.scaleFactor = localData.get("scaleFactor")
-                diagramData.pencilColor = localData.get("pencilColor")
-                diagramData.eventProperties = localData.get("eventProperties", [])
-                diagramData.legendData = localData.get("legendData")
-                return diagramData
-
-            stillValid = lambda d: True
-
-            success = diagram.save(
-                self.session.server(), applyChange, stillValid, useJson=False
-            )
-
+            success = self.saver.save(diagram.id, value)
             if success:
-                # Capture Pro's Scene view as the merge baseline for the
-                # next save. NOT the merged bytes (which may include
-                # other-client items Pro's Scene never loaded). See
-                # doc/plans/2026-05-01--mvp-merge-fix/README.md.
-                diagram._lastSavedSnapshot = dataToSave
-                log.info(
-                    f"Pushed diagram {diagram.id} to server, bytes: {len(diagram.data)}, version: {diagram.version}"
-                )
                 self.dataChanged.emit(index, index, [role])
-            else:
-                QMessageBox.warning(
-                    None,
-                    "Save Failed After Retries",
-                    "Could not save diagram after 3 attempts due to concurrent modifications. Please try again.",
-                )
-
             return success
         elif role == self.ModifiedRole:
             diagram = self.diagramForRow(index.row())

@@ -178,7 +178,7 @@ class DocumentController(QObject):
         )
         self.ui.actionFind.triggered.connect(self.dv.showSearch)
         self.ui.actionShow_Settings.toggled[bool].connect(self.dv.showSettings)
-        self.ui.actionShow_Copilot.toggled[bool].connect(self.dv.showCopilot)
+        self.ui.actionShow_Chat.toggled[bool].connect(self.dv.showChat)
         self.ui.actionShow_Triangles.toggled[bool].connect(self.dv.showTriangles)
         #
         self.ui.actionZoom_In.triggered.connect(self.view.zoomIn)
@@ -1125,8 +1125,8 @@ class DocumentController(QObject):
                 elif self.view.rightToolBar.trianglesButton.isChecked():
                     self.view.rightToolBar.trianglesButton.setChecked(False)
                     return True
-                elif self.view.rightToolBar.copilotButton.isChecked():
-                    self.view.rightToolBar.copilotButton.setChecked(False)
+                elif self.view.rightToolBar.chatButton.isChecked():
+                    self.view.rightToolBar.chatButton.setChecked(False)
                     return True
                 elif self.view.rightToolBar.settingsButton.isChecked():
                     self.view.rightToolBar.settingsButton.setChecked(False)

@@ -72,7 +72,7 @@ Drawer {
                 var pid = person.id
                 // Parents-only edit rows are applied by the server on full
                 // accept, not reviewed as cards.
-                if (personalApp && personalApp.isParentsEdit(person))
+                if (pdpController && pdpController.isParentsEdit(person))
                     continue
                 itemsModel.append({
                     "itemType": pid > 0 ? "committed_edit" : "person",
@@ -648,7 +648,7 @@ Drawer {
 
                         Text {
                             anchors.centerIn: parent
-                            text: personalApp ? personalApp.eventKindLabel(root.editingItem ? root.editingItem.kind : null) : ""
+                            text: pdpController ? pdpController.eventKindLabel(root.editingItem ? root.editingItem.kind : null) : ""
                             font.pixelSize: 11
                             font.bold: true
                             color: "white"
@@ -748,7 +748,7 @@ Drawer {
                         PK.TextField {
                             id: editEventPersonField
                             Layout.fillWidth: true
-                            text: personalApp ? personalApp.resolvePersonName(root.editingItem ? root.editingItem.person : null) : ""
+                            text: pdpController ? pdpController.resolvePersonName(root.editingItem ? root.editingItem.person : null) : ""
                             enabled: false
                             color: util.QML_INACTIVE_TEXT_COLOR
                         }
@@ -768,7 +768,7 @@ Drawer {
                         PK.TextField {
                             id: editEventSpouseField
                             Layout.fillWidth: true
-                            text: personalApp ? personalApp.resolvePersonName(root.editingItem ? root.editingItem.spouse : null) : ""
+                            text: pdpController ? pdpController.resolvePersonName(root.editingItem ? root.editingItem.spouse : null) : ""
                             enabled: false
                             color: util.QML_INACTIVE_TEXT_COLOR
                         }
@@ -788,7 +788,7 @@ Drawer {
                         PK.TextField {
                             id: editEventChildField
                             Layout.fillWidth: true
-                            text: personalApp ? personalApp.resolvePersonName(root.editingItem ? root.editingItem.child : null) : ""
+                            text: pdpController ? pdpController.resolvePersonName(root.editingItem ? root.editingItem.child : null) : ""
                             enabled: false
                             color: util.QML_INACTIVE_TEXT_COLOR
                         }
@@ -1094,15 +1094,15 @@ Drawer {
             property var editData: null
             signal horizontalWheel(real deltaX)
 
-            readonly property string entityName: personalApp && editData
-                ? personalApp.scenePersonName(editData.id)
+            readonly property string entityName: pdpController && editData
+                ? pdpController.scenePersonName(editData.id)
                 : (editData ? "" + editData.id : "")
             readonly property bool nameChanged: !!(editData && editData.name !== undefined
-                && editData.name !== "" && personalApp
-                && editData.name !== personalApp.scenePersonName(editData.id))
+                && editData.name !== "" && pdpController
+                && editData.name !== pdpController.scenePersonName(editData.id))
             readonly property bool kindChanged: !!(editData && editData.gender !== undefined
-                && editData.gender !== "" && personalApp
-                && personalApp.kindLabel(editData.gender) !== personalApp.scenePersonKind(editData.id))
+                && editData.gender !== "" && pdpController
+                && pdpController.kindLabel(editData.gender) !== pdpController.scenePersonKind(editData.id))
 
             ColumnLayout {
                 anchors.fill: parent
@@ -1156,9 +1156,9 @@ Drawer {
                                 opacity: 0.7
                             }
                             Text {
-                                text: (personalApp && editData)
+                                text: (pdpController && editData)
                                     ? (nameChanged
-                                        ? personalApp.scenePersonName(editData.id) + " → " + editData.name
+                                        ? pdpController.scenePersonName(editData.id) + " → " + editData.name
                                         : editData.name)
                                     : ""
                                 font.pixelSize: util.TEXT_FONT_SIZE
@@ -1181,10 +1181,10 @@ Drawer {
                                 opacity: 0.7
                             }
                             Text {
-                                text: (personalApp && editData)
+                                text: (pdpController && editData)
                                     ? (kindChanged
-                                        ? personalApp.scenePersonKind(editData.id) + " → " + personalApp.kindLabel(editData.gender)
-                                        : personalApp.kindLabel(editData.gender))
+                                        ? pdpController.scenePersonKind(editData.id) + " → " + pdpController.kindLabel(editData.gender)
+                                        : pdpController.kindLabel(editData.gender))
                                     : ""
                                 font.pixelSize: util.TEXT_FONT_SIZE
                                 color: util.QML_TEXT_COLOR
@@ -1234,8 +1234,8 @@ Drawer {
             property int entityId: 0
             signal horizontalWheel(real deltaX)
 
-            readonly property string entityName: personalApp
-                ? personalApp.resolvePersonName(entityId)
+            readonly property string entityName: pdpController
+                ? pdpController.resolvePersonName(entityId)
                 : "" + entityId
 
             ColumnLayout {

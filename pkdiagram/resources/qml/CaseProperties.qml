@@ -34,7 +34,7 @@ PK.Drawer {
     property var variablesList: variablesList
     property var variablesCrudButtons: variablesCrudButtons
     property var timelineView: timelineView
-    property var copilotView: copilotView
+    property var chatView: chatView
 
     onCanRemoveChanged: sceneModel.selectionChanged()
 
@@ -48,7 +48,7 @@ PK.Drawer {
             index = 0
         else if(tab == 'settings')
             index = 1
-        else if(tab == 'copilot')
+        else if(tab == 'chat')
             index = 2
         else if(tab == 'triangles')
             index = 3
@@ -59,7 +59,7 @@ PK.Drawer {
         return {
             0: 'timeline',
             1: 'settings',
-            2: 'copilot',
+            2: 'chat',
             3: 'triangles'
         }[tabBar.currentIndex]
     }
@@ -99,7 +99,7 @@ PK.Drawer {
                 } else if(tabBar.currentIndex == 1) {
                     return "Settings"
                 } else if(tabBar.currentIndex == 2) {
-                    return "BT Copilot"
+                    return "Chat"
                 } else if(tabBar.currentIndex == 3) {
                     return "Triangles"
                 }
@@ -127,7 +127,7 @@ PK.Drawer {
         Layout.fillWidth: true
         PK.TabButton { text: "Timeline" }
         PK.TabButton { text: "Settings" }
-        PK.TabButton { text: "Copilot" }
+        PK.TabButton { text: "Chat" }
         PK.TabButton { text: "Triangles" }
         /* onCurrentIndexChanged: { */
         /*     hackTimer.running = false // cancel hack to avoid canceling out change from QmlDrawer.setCurrentTab() */
@@ -737,8 +737,9 @@ PK.Drawer {
             }
         }
 
-        CopilotView {
-            id: copilotView
+        Item {
+            id: chatView
+            objectName: 'chatView'
         }
 
         PK.TriangleView {

@@ -678,7 +678,7 @@ class MainWindow(QMainWindow):
                 )
             index = self.serverFileModel.index(row, 0)
             try:
-                self.serverFileModel.setData(
+                saved = self.serverFileModel.setData(
                     index, bdata, self.serverFileModel.DiagramDataRole
                 )
             except HTTPError as e:
@@ -688,9 +688,12 @@ class MainWindow(QMainWindow):
                     "Could not save file to server",
                     self.S_FAILED_TO_SAVE_SERVER_FILE,
                 )
+                saved = False
         else:
             self.document.save(quietly=latent)  # emits 'saved'; calls onDocumentSaved()
-        self.scene.stack().setClean()
+            saved = True
+        if saved:
+            self.scene.stack().setClean()
 
     # def onDocumentSaved(self):
     #     """ Called from CUtils. """

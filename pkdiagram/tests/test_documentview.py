@@ -1084,10 +1084,11 @@ def test_uploadButton(qtbot, dv: DocumentView):
     assert uploadToServer.callCount == 1
 
 
-def test_show_copilot(qtbot, dv: DocumentView):
-    qtbot.mouseClick(dv.view.rightToolBar.copilotButton, Qt.LeftButton)
-    copilotView = dv.caseProps.rootProp("copilotView")
-    assert copilotView.property("visible") == True
+def test_show_chat(qtbot, dv: DocumentView):
+    qtbot.mouseClick(dv.view.rightToolBar.chatButton, Qt.LeftButton)
+    assert dv.caseProps.currentTab() == RightDrawerView.Chat.value
+    assert dv.caseProps.rootProp("chatView").property("visible") == True
+    assert dv.view.rightToolBar.chatButton.isChecked() == True
 
 
 def test_print(dv: DocumentView):

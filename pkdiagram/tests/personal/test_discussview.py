@@ -35,20 +35,14 @@ _log = logging.getLogger(__name__)
 
 @pytest.fixture
 def personalApp(test_session, flask_app, qmlEngine):
-    from _pkdiagram import CUtil
-
     personalApp = PersonalAppController()
     personalApp.appConfig.set(
         "lastSessionData", test_session.account_editor_dict(), pickled=True
     )
     # Set context properties that DiscussView.qml expects
     # Don't call personalApp.init() as it expects QQmlApplicationEngine with objectCreated signal
-    qmlEngine.rootContext().setContextProperty("CUtil", CUtil.instance())
-    qmlEngine.rootContext().setContextProperty("util", personalApp.util)
-    qmlEngine.rootContext().setContextProperty("session", personalApp.session)
-    qmlEngine.rootContext().setContextProperty("personalApp", personalApp)
-    qmlEngine.rootContext().setContextProperty("sceneModel", personalApp.sceneModel)
-    qmlEngine.rootContext().setContextProperty("peopleModel", personalApp.peopleModel)
+    for name, value in personalApp.contextProperties().items():
+        qmlEngine.rootContext().setContextProperty(name, value)
     yield personalApp
 
 
@@ -140,13 +134,13 @@ def test_refresh_diagram(
         server.return_value.nonBlockingRequest = nonBlockingRequest
         user.free_diagram_id = 123
 
-        personalApp._refreshDiagram()
+        personalApp.diagramLoader.refreshDiagram()
 
-        assert len(personalApp._discussions) == 3
-        assert personalApp._discussions[0].id == 1
-        assert personalApp._discussions[0].summary == "my dog flew away"
-        assert personalApp._discussions[1].id == 2
-        assert personalApp._discussions[1].summary == "clouds ate my cake"
+        assert len(personalApp.discussion._discussions) == 3
+        assert personalApp.discussion._discussions[0].id == 1
+        assert personalApp.discussion._discussions[0].summary == "my dog flew away"
+        assert personalApp.discussion._discussions[1].id == 2
+        assert personalApp.discussion._discussions[1].summary == "clouds ate my cake"
 
 
 # def test_create_discussion(view):
@@ -227,16 +221,16 @@ def test_create_discussion(
     qml.mouseClick(discussionsButton)
     delegates = waitForListViewDelegates(discussionList, 1)
     assert discussionList.property("count") == 1
-    assert delegates[0].property("dText") == personalApp.discussions[0].summary
+    assert delegates[0].property("dText") == personalApp.discussion.discussions[0].summary
 
 
 def test_show_discussion(view, personalApp: PersonalAppController, discussions):
     with (
-        patch("pkdiagram.personal.PersonalAppController._refreshDiagram"),
-        patch.object(personalApp, "_currentDiscussion", discussions[1]),
+        patch("pkdiagram.personal.DiagramLoader.refreshDiagram"),
+        patch.object(personalApp.discussion, "_currentDiscussion", discussions[1]),
     ):
         statementsList = view.rootObject().property("statementsList")
-        personalApp.statementsChanged.emit()
+        personalApp.discussion.statementsChanged.emit()
         delegates = waitForListViewDelegates(statementsList, 4)
         assert len(delegates) == len(discussions[1].statements())
 
@@ -255,18 +249,18 @@ def test_ask(qtbot, view, personalApp, discussions):
 
     qml = QmlHelper(view)
     with (
-        patch.object(personalApp, "_currentDiscussion", new=discussions[0]),
-        patch.object(personalApp, "_sendStatement", autospec=True) as _sendStatement,
+        patch.object(personalApp.discussion, "_currentDiscussion", new=discussions[0]),
+        patch.object(personalApp.discussion, "_sendStatement", autospec=True) as _sendStatement,
     ):
-        personalApp.statementsChanged.emit()
+        personalApp.discussion.statementsChanged.emit()
         qml.keyClicks(textEdit, MESSAGE, returnToFinish=False)
         qml.mouseClick(submitButton)
-        personalApp.requestSent.emit(MESSAGE)
+        personalApp.discussion.requestSent.emit(MESSAGE)
         delegates = waitForListViewDelegates(statementsList, 1)
         assert _sendStatement.call_count == 1
         assert _sendStatement.call_args[0][0] == MESSAGE
 
-    personalApp.responseReceived.emit(RESPONSE.statement)
+    personalApp.discussion.responseReceived.emit(RESPONSE.statement)
     delegates = waitForListViewDelegates(statementsList, 2)
     assert textEdit.property("text") == ""
     assert aiBubbleAdded.wait() == True
@@ -324,7 +318,7 @@ def test_ask_full_stack(test_user, view, personalApp, chat_flow, flask_app):
     statementsList = view.rootObject().property("statementsList")
 
     with patch.object(
-        personalApp,
+        personalApp.discussion,
         "_currentDiscussion",
         new=MobileDiscussion(
             id=1,
@@ -333,7 +327,7 @@ def test_ask_full_stack(test_user, view, personalApp, chat_flow, flask_app):
             user_id=123,
         ),
     ):
-        personalApp.statementsChanged.emit()
+        personalApp.discussion.statementsChanged.emit()
         qml.keyClicks(textEdit, MESSAGE, returnToFinish=False)
         qml.mouseClick(submitButton)
         delegates = waitForListViewDelegates(statementsList, 2)

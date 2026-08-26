@@ -5,7 +5,7 @@ class RightDrawerView(enum.Enum):
     EventForm = "eventform"
     Timeline = "timeline"
     Settings = "settings"
-    Copilot = "copilot"
+    Chat = "chat"
     Triangles = "triangles"
 
 

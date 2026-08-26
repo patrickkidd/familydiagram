@@ -152,18 +152,18 @@ def discussions(statements):
 
 def test_select_discussion(personalApp: PersonalAppController, discussions, statements):
     with (
-        patch("pkdiagram.personal.PersonalAppController._refreshDiagram"),
-        patch.object(personalApp, "_discussions", discussions),
+        patch("pkdiagram.personal.DiagramLoader.refreshDiagram"),
+        patch.object(personalApp.discussion, "_discussions", discussions),
     ):
         root = personalApp._engine.rootObjects()[0]
         personalView = root.property("personalView")
         discussView = personalView.property("discussView")
         statementsList = discussView.property("statementsList")
 
-        personalApp.discussionsChanged.emit()
+        personalApp.discussion.discussionsChanged.emit()
 
         # Select the second discussion (id=2) which has statements
-        personalApp.setCurrentDiscussion(2)
+        personalApp.discussion.setCurrentDiscussion(2)
         util.waitALittle()
 
         # Verify statements are displayed

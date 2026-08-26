@@ -893,9 +893,9 @@ class RightToolBar(ToolBar):
                 action=self.ui.actionShow_Triangles,
             ),
             PushButton(
-                objectName="copilotButton",
+                objectName="chatButton",
                 pixmap="callout.png",
-                action=self.ui.actionShow_Copilot,
+                action=self.ui.actionShow_Chat,
             ),
             PushButton(
                 objectName="settingsButton",

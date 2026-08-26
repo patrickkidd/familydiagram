@@ -114,8 +114,8 @@ Page {
                     anchors.right: parent.right
                     anchors.rightMargin: 6
                     anchors.verticalCenter: parent.verticalCenter
-                    checked: personalApp ? personalApp.autoReadAloud : false
-                    onToggled: if (personalApp) personalApp.setAutoReadAloud(checked)
+                    checked: tts ? tts.autoReadAloud : false
+                    onToggled: if (tts) tts.setAutoReadAloud(checked)
 
                     indicator: Rectangle {
                         implicitWidth: 51
@@ -173,7 +173,7 @@ Page {
 
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: personalApp.openSystemVoiceSettings()
+                    onClicked: tts.openSystemSettings()
                 }
             }
 
@@ -191,14 +191,14 @@ Page {
 
                     Repeater {
                         id: voiceRepeater
-                        model: personalApp ? personalApp.ttsVoices : []
+                        model: tts ? tts.voices : []
 
                         Rectangle {
                             width: parent.width
                             height: 50
                             color: "transparent"
 
-                            property bool isCurrent: personalApp && personalApp.ttsVoiceName === modelData.name
+                            property bool isCurrent: tts && tts.voiceName === modelData.name
 
                             // Preview play button
                             Rectangle {
@@ -231,7 +231,7 @@ Page {
                                 MouseArea {
                                     id: previewArea
                                     anchors.fill: parent
-                                    onClicked: personalApp.previewVoice(modelData.name)
+                                    onClicked: tts.preview(modelData.name)
                                 }
                             }
 
@@ -280,7 +280,7 @@ Page {
                             MouseArea {
                                 anchors.fill: parent
                                 z: -1
-                                onClicked: personalApp.setTtsVoice(modelData.name)
+                                onClicked: tts.setVoice(modelData.name)
                             }
                         }
                     }

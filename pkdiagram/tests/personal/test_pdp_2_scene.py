@@ -28,7 +28,7 @@ def _createBlockingRequestMock(diagram):
 
 
 def test_accept_person_updates_scene(test_user, personalApp: PersonalAppController):
-    personalApp._diagram = Diagram(
+    personalApp.setDiagram(Diagram(
         id=1,
         user_id=test_user.id,
         access_rights=[],
@@ -41,16 +41,16 @@ def test_accept_person_updates_scene(test_user, personalApp: PersonalAppControll
                 )
             )
         ),
-    )
+    ))
 
     scene = Scene()
-    personalApp.scene = scene
+    personalApp.scene = personalApp.pdpController.scene = scene
 
     server = MagicMock()
     server.blockingRequest = _createBlockingRequestMock(personalApp._diagram)
 
     with patch.object(personalApp.session, "server", return_value=server):
-        result = personalApp._doAcceptPDPItem(-1)
+        result = personalApp.pdpController._doAcceptPDPItem(-1)
 
     assert result is True
     assert len(scene.people()) == 1
@@ -58,7 +58,7 @@ def test_accept_person_updates_scene(test_user, personalApp: PersonalAppControll
 
 
 def test_accept_event_updates_scene(test_user, personalApp: PersonalAppController):
-    personalApp._diagram = Diagram(
+    personalApp.setDiagram(Diagram(
         id=1,
         user_id=test_user.id,
         access_rights=[],
@@ -81,16 +81,16 @@ def test_accept_event_updates_scene(test_user, personalApp: PersonalAppControlle
                 )
             )
         ),
-    )
+    ))
 
     scene = Scene()
-    personalApp.scene = scene
+    personalApp.scene = personalApp.pdpController.scene = scene
 
     server = MagicMock()
     server.blockingRequest = _createBlockingRequestMock(personalApp._diagram)
 
     with patch.object(personalApp.session, "server", return_value=server):
-        result = personalApp._doAcceptPDPItem(-2)
+        result = personalApp.pdpController._doAcceptPDPItem(-2)
 
     assert result is True
     assert len(scene.people()) == 1
@@ -101,7 +101,7 @@ def test_accept_event_updates_scene(test_user, personalApp: PersonalAppControlle
 def test_accept_married_event_creates_marriage_in_scene(
     test_user, personalApp: PersonalAppController
 ):
-    personalApp._diagram = Diagram(
+    personalApp.setDiagram(Diagram(
         id=1,
         user_id=test_user.id,
         access_rights=[],
@@ -131,16 +131,16 @@ def test_accept_married_event_creates_marriage_in_scene(
                 )
             )
         ),
-    )
+    ))
 
     scene = Scene()
-    personalApp.scene = scene
+    personalApp.scene = personalApp.pdpController.scene = scene
 
     server = MagicMock()
     server.blockingRequest = _createBlockingRequestMock(personalApp._diagram)
 
     with patch.object(personalApp.session, "server", return_value=server):
-        result = personalApp._doAcceptPDPItem(-20)
+        result = personalApp.pdpController._doAcceptPDPItem(-20)
 
     assert result is True
     assert len(scene.people()) == 2
@@ -156,7 +156,7 @@ def test_accept_married_event_creates_marriage_in_scene(
 def test_accept_birth_event_creates_child_with_parents(
     test_user, personalApp: PersonalAppController
 ):
-    personalApp._diagram = Diagram(
+    personalApp.setDiagram(Diagram(
         id=1,
         user_id=test_user.id,
         access_rights=[],
@@ -188,16 +188,16 @@ def test_accept_birth_event_creates_child_with_parents(
                 )
             )
         ),
-    )
+    ))
 
     scene = Scene()
-    personalApp.scene = scene
+    personalApp.scene = personalApp.pdpController.scene = scene
 
     server = MagicMock()
     server.blockingRequest = _createBlockingRequestMock(personalApp._diagram)
 
     with patch.object(personalApp.session, "server", return_value=server):
-        result = personalApp._doAcceptPDPItem(-20)
+        result = personalApp.pdpController._doAcceptPDPItem(-20)
 
     assert result is True
     assert len(scene.people()) == 3
@@ -216,7 +216,7 @@ def test_accept_pdp_preserves_existing_scene_items(
     scene = Scene()
     existing_person = scene.addItem(ScenePerson(name="ExistingPerson"))
 
-    personalApp._diagram = Diagram(
+    personalApp.setDiagram(Diagram(
         id=1,
         user_id=test_user.id,
         access_rights=[],
@@ -230,14 +230,14 @@ def test_accept_pdp_preserves_existing_scene_items(
                 )
             )
         ),
-    )
-    personalApp.scene = scene
+    ))
+    personalApp.scene = personalApp.pdpController.scene = scene
 
     server = MagicMock()
     server.blockingRequest = _createBlockingRequestMock(personalApp._diagram)
 
     with patch.object(personalApp.session, "server", return_value=server):
-        result = personalApp._doAcceptPDPItem(-1)
+        result = personalApp.pdpController._doAcceptPDPItem(-1)
 
     assert result is True
     assert len(scene.people()) == 2
@@ -248,7 +248,7 @@ def test_accept_pdp_preserves_existing_scene_items(
 def test_accept_multiple_pdp_items_sequentially(
     test_user, personalApp: PersonalAppController
 ):
-    personalApp._diagram = Diagram(
+    personalApp.setDiagram(Diagram(
         id=1,
         user_id=test_user.id,
         access_rights=[],
@@ -267,22 +267,22 @@ def test_accept_multiple_pdp_items_sequentially(
                 )
             )
         ),
-    )
+    ))
 
     scene = Scene()
-    personalApp.scene = scene
+    personalApp.scene = personalApp.pdpController.scene = scene
 
     server = MagicMock()
     server.blockingRequest = _createBlockingRequestMock(personalApp._diagram)
 
     with patch.object(personalApp.session, "server", return_value=server):
-        personalApp._doAcceptPDPItem(-1)
+        personalApp.pdpController._doAcceptPDPItem(-1)
         assert len(scene.people()) == 1
 
-        personalApp._doAcceptPDPItem(-2)
+        personalApp.pdpController._doAcceptPDPItem(-2)
         assert len(scene.people()) == 2
 
-        personalApp._doAcceptPDPItem(-3)
+        personalApp.pdpController._doAcceptPDPItem(-3)
         assert len(scene.people()) == 3
 
     names = {p.name() for p in scene.people()}
@@ -296,7 +296,7 @@ def test_save_reload_after_marriage_commit_preserves_marriages(
 
     Regression test for: "None in self.marriages" warning after save/reload.
     """
-    personalApp._diagram = Diagram(
+    personalApp.setDiagram(Diagram(
         id=1,
         user_id=test_user.id,
         access_rights=[],
@@ -325,16 +325,16 @@ def test_save_reload_after_marriage_commit_preserves_marriages(
                 )
             )
         ),
-    )
+    ))
 
     scene = Scene()
-    personalApp.scene = scene
+    personalApp.scene = personalApp.pdpController.scene = scene
 
     server = MagicMock()
     server.blockingRequest = _createBlockingRequestMock(personalApp._diagram)
 
     with patch.object(personalApp.session, "server", return_value=server):
-        result = personalApp._doAcceptPDPItem(-20)
+        result = personalApp.pdpController._doAcceptPDPItem(-20)
 
     assert result is True
     assert len(scene.marriages()) == 1
@@ -377,7 +377,7 @@ def test_accept_all_with_birth_and_separated_events(
     test_user, personalApp: PersonalAppController
 ):
     """Accept-all with mixed event types (birth + separated) must not crash."""
-    personalApp._diagram = Diagram(
+    personalApp.setDiagram(Diagram(
         id=1,
         user_id=test_user.id,
         access_rights=[],
@@ -420,7 +420,7 @@ def test_accept_all_with_birth_and_separated_events(
                 )
             )
         ),
-    )
+    ))
 
     scene = personalApp.scene
 
@@ -428,7 +428,7 @@ def test_accept_all_with_birth_and_separated_events(
     server.blockingRequest = _createBlockingRequestMock(personalApp._diagram)
 
     with patch.object(personalApp.session, "server", return_value=server):
-        personalApp.acceptAllPDPItems()
+        personalApp.pdpController.acceptAllPDPItems()
 
     assert len(scene.people()) == 3
     assert len(scene.marriages()) == 1
@@ -442,7 +442,7 @@ def test_accept_all_birth_without_child_creates_inferred_child(
     test_user, personalApp: PersonalAppController
 ):
     """Accept-all with birth event missing child field creates inferred child in scene."""
-    personalApp._diagram = Diagram(
+    personalApp.setDiagram(Diagram(
         id=1,
         user_id=test_user.id,
         access_rights=[],
@@ -472,7 +472,7 @@ def test_accept_all_birth_without_child_creates_inferred_child(
                 )
             )
         ),
-    )
+    ))
 
     scene = personalApp.scene
 
@@ -480,7 +480,7 @@ def test_accept_all_birth_without_child_creates_inferred_child(
     server.blockingRequest = _createBlockingRequestMock(personalApp._diagram)
 
     with patch.object(personalApp.session, "server", return_value=server):
-        personalApp.acceptAllPDPItems()
+        personalApp.pdpController.acceptAllPDPItems()
 
     assert len(scene.people()) == 3
     assert len(scene.marriages()) == 1
@@ -495,7 +495,7 @@ def test_accept_all_birth_with_person_only_no_crash(
     test_user, personalApp: PersonalAppController
 ):
     """Birth event with only person set must not crash scene.addItem."""
-    personalApp._diagram = Diagram(
+    personalApp.setDiagram(Diagram(
         id=1,
         user_id=test_user.id,
         access_rights=[],
@@ -520,7 +520,7 @@ def test_accept_all_birth_with_person_only_no_crash(
                 )
             )
         ),
-    )
+    ))
 
     scene = personalApp.scene
 
@@ -528,7 +528,7 @@ def test_accept_all_birth_with_person_only_no_crash(
     server.blockingRequest = _createBlockingRequestMock(personalApp._diagram)
 
     with patch.object(personalApp.session, "server", return_value=server):
-        personalApp.acceptAllPDPItems()
+        personalApp.pdpController.acceptAllPDPItems()
 
     # Should have Dad, inferred spouse, inferred child
     assert len(scene.people()) == 3
