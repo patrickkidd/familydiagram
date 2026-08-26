@@ -259,11 +259,12 @@
    "text": "One command stands up backend (dynamically allocated free port) + Pro + Personal against one DB, each from the ticket's worktree (origin fallback stated); never 8888 or the dev DB",
    "track": "agent",
    "harness_drivable": true,
-   "status": "pending",
-   "evidence": "REOPENED 2026-08-26 (F-015): app processes launched by bin/sandbox imported the origin clones; backend evidence stands. Re-verify after the fix.",
+   "status": "agent-verified",
+   "evidence": "REAL SYSTEM (re-verified after F-015): `bin/sandbox up FD-336 --seed family+hostile --llm real --pro --personal` \u2192 backend on a free port, Pro + Personal signed in as family@test, both app processes import from the FD-336 worktrees (ps eww PYTHONPATH), fdserver falls back to origin and says so; tests: test_fd336_app_checkout.py, test_fd336_harness.py 1-4,14,16, test_checkouts.py, test_reexec.py",
    "provenance": "ratified-ac",
    "tests": [
     "mcpserver/tests/test_checkouts.py",
+    "mcpserver/tests/test_fd336_app_checkout.py",
     "mcpserver/tests/test_fd336_harness.py",
     "mcpserver/tests/test_reexec.py"
    ]
@@ -432,6 +433,10 @@
    "cites": "H2"
   },
   {
+   "path": "mcpserver/tests/test_fd336_app_checkout.py",
+   "cites": "H2"
+  },
+  {
    "path": "mcpserver/tests/test_fd336_harness.py",
    "cites": "H2"
   },
@@ -485,7 +490,7 @@
   },
   "validate": {
    "agent_track": {
-    "status": "active",
+    "status": "complete",
     "at": "2026-08-26T20:50:00",
     "token": null,
     "note": "no referee implementation in this project (config gap carried from FD-338); closure is evidence-based per criterion",
@@ -583,11 +588,11 @@
    "severity": "major",
    "repro": "bin/sandbox up FD-336 --seed family+hostile --pro; ps eww <pro pid> | grep PYTHONPATH",
    "validation_status": "human-verified",
-   "status": "open",
+   "status": "fixed",
    "found_in_track": "human",
    "criterion": "H2",
-   "regression_test": "pending (implHx): real-launch test asserting the app imports pkdiagram from the ticket worktree, via TestInstance and via bin/sandbox",
-   "fix": "implHx: app launch PYTHONPATH always from the resolved Checkouts regardless of which mcpserver copy executes"
+   "regression_test": "mcpserver/tests/test_fd336_app_checkout.py (real launch via TestInstance and via bin/sandbox: the app's import path is the ticket worktree)",
+   "fix": "familydiagram a891524: app launches always take PYTHONPATH from the resolved Checkouts regardless of which mcpserver copy executes; VERIFIED live by the coordinator \u2014 both relaunched apps (pids 40987/41004) carry PYTHONPATH=<familydiagram FD-336 worktree>:<btcopilot FD-336 worktree>"
   },
   {
    "id": "F-014",
@@ -793,7 +798,7 @@
   "design_planning_review": "fable (coordinator + critics, FMEA, adversarial test design, diff review, verification judgment)",
   "implementation_and_test_authoring": "opus (model override on every builder/test-author agent, driven by fable-written briefs)"
  },
- "parked_on": "F-015 fix in progress; then relaunch the sandbox for Patrick's walkthrough",
+ "parked_on": "human track: Patrick's walkthrough on the live FD-336 sandbox (C2h, C6h, C8h, C10h, H5h); Jira hand-off comment awaits a yes",
  "model_policy": {
   "decided_by": "Patrick 2026-08-26 (chat): premium chat always uses the latest Opus at equal price; otherwise compare pricing and cost projections",
   "applied": "claude-opus-5 default (btcopilot eace19f); opus-4.6 selectable",
