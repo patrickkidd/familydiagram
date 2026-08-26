@@ -37,6 +37,31 @@ def record(sandbox) -> list:
     return calls
 
 
+def test_naming_a_login_account_still_reports_the_whole_profile(sandbox):
+    """The reported seed is the profile's own response — its named cases and
+    every account — not a narrower one describing only the login user."""
+    profile = {
+        "hardware_uuid": UUID,
+        "primary_user": "me@test",
+        "users": [{"username": "me@test"}, {"username": "family@test"}],
+        "manifest": {"family_case": {"diagram_id": 6}},
+    }
+    posted = []
+
+    def post(route, **kwargs):
+        posted.append(kwargs["json"])
+        return profile
+
+    sandbox.post = post
+    sandbox.seed = "family+hostile"
+    sandbox.auto_auth_user = "me@test"
+
+    assert sandbox._apply_seed() == profile
+    assert len(posted) == 1
+    assert posted[0]["profile"] == "family+hostile"
+    assert posted[0]["primary_user"] == "me@test"
+
+
 def test_a_backend_that_licenses_another_account_fails_the_launch(sandbox):
     sandbox.post = lambda route, **kwargs: {"hardware_uuid": f"{UUID}:someone@test"}
     with pytest.raises(RuntimeError, match="would open unlicensed"):

@@ -159,7 +159,8 @@ the launcher fails if the backend licensed someone else. Naming an account never
 changes *what* is seeded — the profile is seeded in full, and an account that is not
 in it is added rather than replacing it.
 
-Naming one of the **hostile licence cases** is refused before anything is seeded:
+Naming an account that **the seed you asked for** defines as a hostile licence
+case is refused before anything is seeded:
 
     primary_user 'hostile+expired@test' is the expired-license case; the account
     the apps log in as cannot be one the seed leaves unlicensed
@@ -168,7 +169,12 @@ An account cannot be both the licensed account the apps sign in as and the case 
 proves an expired licence. Drive those cases from a normal login account —
 `--user hostile@test` owns the hostile *data* and signs in fine, while
 `hostile+expired@test` and `hostile+nolicense@test` stay unlicensed for you to test
-against. Adding a user to a live
+against.
+
+The refusal knows only what the seed defines, so it is the profile that makes those
+names mean something: `--user hostile+expired@test --seed hostile` is refused, while
+the same name with `--seed family` is just an account that profile never heard of,
+and is created and licensed like any other. Adding a user to a live
 sandbox does not make it usable by the apps; that is why `reseed` resets the
 database first. Reseeding also destroys the previous account, so anything already
 signed in as it is stale — take the sandbox down and back up rather than reseeding

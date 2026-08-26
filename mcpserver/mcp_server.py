@@ -665,6 +665,11 @@ class TestInstance:
         # Generous, because its shutdown drops a restored production database
         # and stops redis and a celery worker before it exits.
         _stop_group(self.server_process, timeout=SERVER_STOP_TIMEOUT)
+        # A backend that had to be killed never ran its own cleanup, so finish
+        # it here: the directory it reported is ours to remove either way.
+        directory = self.manifest.get("dir")
+        if directory:
+            shutil.rmtree(directory, ignore_errors=True)
         self.server_process = None
         self._server_port = None
 
@@ -1655,6 +1660,22 @@ def window(name: str = None, instance_id: Optional[str] = None) -> Dict[str, Any
         return bridge.send_command({"command": "get_windows"})
     else:
         return bridge.send_command({"command": "activate_window", "objectName": name})
+
+
+@mcp.tool()
+def dismiss_dialog(button: str, instance_id: Optional[str] = None) -> Dict[str, Any]:
+    """Press a button on the modal message box that is up: "save", "cancel",
+    "ok", "yes" or "no". Returns the dialog's text.
+
+    A modal blocks the app's main thread inside whatever command raised it, so
+    that command is still in flight: send this over a second connection (an
+    agent's other tool call, or a second BridgeClient in a test). Keys reach
+    only the default button, so anything else needs this.
+    """
+    bridge, err = _resolve_bridge(instance_id)
+    if err:
+        return err
+    return bridge.send_command({"command": "dismiss_dialog", "button": button})
 
 
 @mcp.tool()
