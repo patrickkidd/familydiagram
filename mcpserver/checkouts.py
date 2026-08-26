@@ -72,6 +72,18 @@ class Checkouts:
         path = self.fdserver.path / PROMPTS
         return path if path.exists() else None
 
+    def pythonpath(self, *repos: Repo) -> str:
+        """The named checkouts, ahead of whatever PYTHONPATH is already set.
+
+        The venv installs the origin clones editable, so a checkout only wins by
+        being earlier on the path than the editable finder. Every process the
+        sandbox starts gets its interpreter path from here, so a child can never
+        import a different copy of a repo than the one this resolver named.
+        """
+        return os.pathsep.join(
+            [str(self[r].path) for r in repos] + [os.environ.get("PYTHONPATH", "")]
+        ).rstrip(os.pathsep)
+
     def describe(self) -> str:
         header = f"{self.ticket or 'no ticket'} checkouts (root {self.root}):"
         return "\n".join([header] + [f"  {self[r]}" for r in Repo])

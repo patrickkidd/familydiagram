@@ -23,7 +23,7 @@ from typing import Optional
 import requests
 
 from mcpserver.celeryworker import CeleryWorker
-from mcpserver.checkouts import Checkouts
+from mcpserver.checkouts import Checkouts, Repo
 from mcpserver.ports import free_port
 from mcpserver.proddb import ProdDB
 from mcpserver.redisserver import RedisServer
@@ -177,9 +177,7 @@ class Sandbox:
         return result
 
     def pythonpath(self) -> str:
-        return os.pathsep.join(
-            [str(self.checkouts.btcopilot.path), os.environ.get("PYTHONPATH", "")]
-        ).rstrip(os.pathsep)
+        return self.checkouts.pythonpath(Repo.BTCopilot)
 
     # -- lifecycle --
 

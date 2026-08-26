@@ -286,6 +286,13 @@ itself is running from.
 | Database | per instance: a temp sqlite file, a given uri, or the production restore |
 | Prefs / app data | a temp directory per instance |
 
+**Ask the app, not the launcher.** A report of the resolved checkouts is a statement
+of intent; the running app is the only thing that knows which copy answered its
+imports. The bridge's `get_modules` returns that from the app's own `sys.modules`,
+and `ps -E -p <pid>` shows the import path a launched app was actually given. Use one
+of them whenever an app appears to be running the wrong code — a launcher printing
+worktree checkouts while showing master's UI is exactly the shape of F-015.
+
 **The native module is shared.** `_pkdiagram` comes from the workspace venv, not from
 a worktree. Running `make` in a worktree overwrites that one shared binary for every
 checkout, Patrick's included. There is no per-worktree native build — if a ticket

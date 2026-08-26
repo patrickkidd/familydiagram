@@ -68,6 +68,7 @@ class TestBridgeServer(QObject):
         self._handlers = {
             # App state (high-level)
             "get_app_state": self._handleGetAppState,
+            "get_modules": self._handleGetModules,
             # Element finding
             "find_element": self._handleFindElement,
             "list_elements": self._handleListElements,
@@ -118,7 +119,9 @@ class TestBridgeServer(QObject):
         # Commands that run directly on the bridge thread (no Qt dispatch).
         # These must only read thread-safe state from the inspector.
         # ping reads no Qt state — safe to answer directly on the bridge thread.
-        self._threadSafeHandlers = {"ping"}
+        # get_modules reads sys.modules, never Qt — and has to answer during a
+        # launch, before the main thread is idle.
+        self._threadSafeHandlers = {"ping", "get_modules"}
 
     @property
     def port(self) -> int:
@@ -308,6 +311,10 @@ class TestBridgeServer(QObject):
     def _handlePing(self, command: Dict) -> Dict:
         """Handle ping command."""
         return {"success": True, "message": "pong"}
+
+    def _handleGetModules(self, command: Dict) -> Dict:
+        """Handle get_modules command."""
+        return self._inspector.getModules()
 
     def _handleGetAppState(self, command: Dict) -> Dict:
         """Handle get_app_state command."""

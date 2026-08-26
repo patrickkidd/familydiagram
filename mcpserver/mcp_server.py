@@ -58,7 +58,7 @@ from pkdiagram.server_types import (
 )
 import pkdiagram.util as util
 
-from mcpserver.checkouts import Checkouts
+from mcpserver.checkouts import Checkouts, Repo
 from mcpserver.ports import free_port
 from mcpserver.sandbox import (
     Broker,
@@ -456,12 +456,21 @@ class TestInstance:
     _instances: Dict[str, "TestInstance"] = {}
     _current_id: Optional[str] = None
 
-    def __init__(self, instance_id: str, ticket: Optional[str] = None):
+    def __init__(
+        self,
+        instance_id: str,
+        *,
+        ticket: Optional[str] = None,
+        checkouts: Optional[Checkouts] = None,
+    ):
         self.id = instance_id
         self.process: Optional[subprocess.Popen] = None
         self.server_process: Optional[subprocess.Popen] = None
         self.start_time: Optional[float] = None
-        self.checkouts = Checkouts.resolve(ticket)
+        # A caller that already resolved — bin/sandbox prints the checkouts before
+        # it launches anything — hands the answer over rather than having it
+        # resolved a second time, so what was printed is what the app runs.
+        self.checkouts = checkouts or Checkouts.resolve(ticket)
         self.project_root = self.checkouts.familydiagram.path
         self.manifest: Dict[str, Any] = {}
         self._screenshot_counter = 0
@@ -478,9 +487,17 @@ class TestInstance:
         self._drain_threads: List[threading.Thread] = []
 
     @classmethod
-    def create(cls, ticket: Optional[str] = None) -> "TestInstance":
+    def create(
+        cls,
+        *,
+        ticket: Optional[str] = None,
+        checkouts: Optional[Checkouts] = None,
+    ) -> "TestInstance":
+        """Keyword-only: a positional argument here once landed a caller's own
+        label in the ticket slot, which resolves to no worktree and silently
+        launches the origin clones (F-015)."""
         instance_id = str(uuid.uuid4())[:8]
-        instance = cls(instance_id, ticket=ticket)
+        instance = cls(instance_id, ticket=ticket, checkouts=checkouts)
         cls._instances[instance_id] = instance
         cls._current_id = instance_id
         return instance
@@ -579,7 +596,7 @@ class TestInstance:
         env = os.environ.copy()
         env.pop("VIRTUAL_ENV", None)
         env["PYTHONUNBUFFERED"] = "1"
-        env["PYTHONPATH"] = str(self.checkouts.btcopilot.path)
+        env["PYTHONPATH"] = self.checkouts.pythonpath(Repo.BTCopilot)
 
         logger.info(f"[{self.id}] Starting sandbox backend: {' '.join(cmd)}")
         self.server_process = subprocess.Popen(
@@ -855,16 +872,11 @@ class TestInstance:
             if headless:
                 env["QT_QPA_PLATFORM"] = "offscreen"
             env["QT_QUICK_BACKEND"] = "software"
-            # The venv installs the origin clones editable; PYTHONPATH first makes
-            # the resolved checkouts win over the editable finder. The app imports
-            # btcopilot too (schema, signing), so it gets that checkout as well.
-            env["PYTHONPATH"] = os.pathsep.join(
-                [
-                    str(self.project_root),
-                    str(self.checkouts.btcopilot.path),
-                    env.get("PYTHONPATH", ""),
-                ]
-            ).rstrip(os.pathsep)
+            # The app imports btcopilot too (schema, signing), so it gets that
+            # checkout as well.
+            env["PYTHONPATH"] = self.checkouts.pythonpath(
+                Repo.FamilyDiagram, Repo.BTCopilot
+            )
 
             logger.info(f"[{self.id}] Launching: {' '.join(cmd)}")
             logger.info(
@@ -1968,6 +1980,20 @@ def get_checkouts(ticket: Optional[str] = None) -> Dict[str, Any]:
         "describe": checkouts.describe(),
         **checkouts.asdict(),
     }
+
+
+@mcp.tool()
+def get_app_modules(instance_id: Optional[str] = None) -> Dict[str, Any]:
+    """Which checkout a launched app actually imported each repo from.
+
+    get_checkouts reports what the launcher resolved; this asks the running app's
+    own sys.modules. Use it when an app looks like it is running the wrong code —
+    the two disagreeing is the bug, and only this side is evidence.
+    """
+    instance = TestInstance.get(instance_id)
+    if not instance.bridge:
+        return {"success": False, "error": "No bridge; launch with enable_bridge=True"}
+    return instance.bridge.send_command({"command": "get_modules"})
 
 
 # =============================================================================

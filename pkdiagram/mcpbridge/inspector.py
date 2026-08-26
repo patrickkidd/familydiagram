@@ -6,8 +6,15 @@ including widgets, QML items, and QGraphicsView scene items.
 """
 
 import logging
+import sys
 from enum import Enum
+from pathlib import Path
 from typing import Optional, Dict, Any, List, Union
+
+# The repos whose checkout a launcher chooses, and the app therefore has to be
+# asked about: the launcher only sets an environment, the app is the one that
+# knows which copy actually answered the import.
+IMPORTED_REPOS = ("pkdiagram", "btcopilot")
 
 
 class AppState(str, Enum):
@@ -82,6 +89,20 @@ class QtInspector:
     # -------------------------------------------------------------------------
     # App State (High-level semantic state)
     # -------------------------------------------------------------------------
+
+    def getModules(self) -> Dict[str, Any]:
+        """Where this running app imported each repo from.
+
+        Reads sys.modules only, so it is thread-safe and answers while the main
+        thread is busy — and it answers with what the interpreter resolved, not
+        with what the launcher hoped it had arranged.
+        """
+        checkouts = {}
+        for name in IMPORTED_REPOS:
+            module = sys.modules.get(name)
+            file = getattr(module, "__file__", None) if module else None
+            checkouts[name] = str(Path(file).resolve().parent.parent) if file else None
+        return {"success": True, "checkouts": checkouts, "executable": sys.executable}
 
     def getAppState(self) -> Dict[str, Any]:
         """
