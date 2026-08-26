@@ -65,6 +65,12 @@ throwaway database instead of seeding fixtures.
 Nothing here ever kills a process by name or pattern. Each sandbox kills only the
 children it started, so two units can run at once.
 
+**Driving the launcher yourself: drain its pipes.** If you spawn it with piped
+stdout or stderr and stop reading, it blocks mid-write once the pipe buffer fills —
+the sandbox hangs with no error, and its own cleanup never runs. Read both streams
+in threads, or send them straight to a file. The MCP harness already does this; it
+is only a trap when you build the subprocess yourself.
+
 ---
 
 ## Agent-driven journeys (MCP)
@@ -94,7 +100,10 @@ manifest).
   own database, its own prefs and app-data directories. Passing neither
   `ephemeral_server` nor `server_url` raises — the harness never targets a server it
   did not start, and there is no 8888 fallback.
-- Two apps on one database is the `server_url` case above, and only that.
+- Two apps on one database is the `server_url` case above, and only that. An
+  instance sharing someone else's backend cannot know which account that backend
+  seeded, so pass `username=` — the other manifest's `user` is the account it
+  seeded and licensed. Omitting it is an error, not a guess.
 - A dead bridge, a main thread that never goes idle, or a backend that never answers
   health is a **failed launch**, not a warning.
 - The 40-odd bridge tools (`click`, `find_element`, `get_app_state`, `save_diagram`,
@@ -146,7 +155,20 @@ open the desktop apps at all. The sandbox therefore seeds the login account firs
 | nothing, no seed | nobody — a backend with no account | nothing |
 
 Either way the manifest's `user` is the account that is signed in and licensed, and
-the launcher fails if the backend licensed someone else. Adding a user to a live
+the launcher fails if the backend licensed someone else. Naming an account never
+changes *what* is seeded — the profile is seeded in full, and an account that is not
+in it is added rather than replacing it.
+
+Naming one of the **hostile licence cases** is refused before anything is seeded:
+
+    primary_user 'hostile+expired@test' is the expired-license case; the account
+    the apps log in as cannot be one the seed leaves unlicensed
+
+An account cannot be both the licensed account the apps sign in as and the case that
+proves an expired licence. Drive those cases from a normal login account —
+`--user hostile@test` owns the hostile *data* and signs in fine, while
+`hostile+expired@test` and `hostile+nolicense@test` stay unlicensed for you to test
+against. Adding a user to a live
 sandbox does not make it usable by the apps; that is why `reseed` resets the
 database first. Reseeding also destroys the previous account, so anything already
 signed in as it is stale — take the sandbox down and back up rather than reseeding
@@ -221,14 +243,15 @@ The database is never at risk from that inheritance — the sandbox sets its own
 database before the server starts, and Flask's loader never overwrites a name that
 is already set.
 
-`GET /test/health` reports `llm_keys`, read after that dotenv load: whether the
-serving process still holds **any** credential a sandbox was supposed to be
-stripped of — the model providers, but also transcription, Stripe, Atlassian and
-GitHub. It is the check worth asserting, because `llm: "stub"` only says the
-stand-in is installed. Read it as "this sandbox is not hermetic", not as "this run
-can spend money": a stubbed sandbox that inherited nothing but a GitHub token
-reports `true`. The names belong to btcopilot (`btcopilot.testing.credentials`), so
-what gets blanked and what health reports on cannot drift apart.
+`GET /test/health` reports `credentials_present`, read after that dotenv load:
+whether the serving process still holds **any** credential a sandbox was supposed
+to be stripped of — the model providers, but also transcription, Stripe, Atlassian
+and GitHub. It is the check worth asserting, because `llm: "stub"` only says the
+stand-in is installed. It means "this sandbox is not hermetic", which is broader
+than "this run can spend money": a stubbed sandbox that inherited nothing but a
+GitHub token reports `true`. The names belong to btcopilot
+(`btcopilot.testing.credentials`), so what gets blanked and what health reports on
+cannot drift apart.
 
 Build and release credentials (`FD_BUILD_*`, `TWINE_*`) are deliberately not on that
 list — nothing a sandbox starts reads them at runtime.

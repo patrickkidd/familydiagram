@@ -12,7 +12,6 @@ The app, its config, its test routes and its seed profiles all come from
 import json
 import logging
 import os
-import shutil
 import sys
 import tempfile
 import threading
@@ -88,14 +87,17 @@ class Sandbox:
         self.prompts = prompts
         self.auto_auth_user = auto_auth_user
         self.hardware_uuid = hardware_uuid
-        self.dir = Path(tempfile.mkdtemp(prefix="fd_sandbox_"))
+        # Removed when this object is finalised as well as by shutdown(), so a
+        # sandbox that is built and never run — a rejected argument, a failed
+        # start, a construction just to read the config — leaves nothing behind.
+        self._tmp = tempfile.TemporaryDirectory(prefix="fd_sandbox_")
+        self.dir = Path(self._tmp.name)
         self.redis: Optional[RedisServer] = None
         self.worker: Optional[CeleryWorker] = None
         self.proddb: Optional[ProdDB] = None
         self.manifest: dict = {}
         self._db_uri: Optional[str] = None
         self._broker: Optional[str] = None
-        self._licensed = False
         self._app = None
         self._stopped = threading.Event()
 
@@ -196,6 +198,7 @@ class Sandbox:
             create_sandbox_app,
         )
 
+        self._resolve_login_user()
         self._app = create_sandbox_app(
             db_uri=self._db_uri, fd_dir=str(self.dir), broker=self._broker
         )
@@ -216,7 +219,8 @@ class Sandbox:
         threading.Thread(target=self._serve, daemon=True).start()
         self._wait_for_health()
 
-        seed = self._seed_login_user() or self._apply_seed()
+        seed = self._apply_seed()
+        self._confirm_login_user(seed)
         self.manifest = {
             "url": self.url,
             "port": self.port,
@@ -225,11 +229,19 @@ class Sandbox:
             "llm": self.llm.value,
             "prompts": os.environ.get("FDSERVER_PROMPTS_PATH"),
             "dir": str(self.dir),
-            "user": self._auto_auth(seed),
+            "user": self.auto_auth_user,
             "checkouts": self.checkouts.asdict(),
             "seed": seed,
         }
         return self.manifest
+
+    def _confirm_login_user(self, seed: Optional[dict]) -> None:
+        """The backend has the last word on which account is primary — an import
+        names its own restored user — so take its answer."""
+        named = (seed or {}).get("primary_user")
+        if named and named != self.auto_auth_user:
+            self.auto_auth_user = named
+            os.environ["FLASK_AUTO_AUTH_USER"] = named
 
     def _blank_credentials(self) -> None:
         """Keep Patrick's real keys — and his bill — out of a stubbed sandbox.
@@ -245,18 +257,6 @@ class Sandbox:
         from btcopilot.testing.credentials import BLANKED
 
         os.environ.update({name: "" for name in BLANKED})
-
-    def _auto_auth(self, seed: Optional[dict]) -> Optional[str]:
-        """Log in as the account the seed made, unless the caller named one.
-
-        btcopilot's auth reads this per request, so setting it after the seed
-        still reaches every later request.
-        """
-        if not self.auto_auth_user and seed:
-            self.auto_auth_user = seed.get("primary_user")
-        if self.auto_auth_user:
-            os.environ["FLASK_AUTO_AUTH_USER"] = self.auto_auth_user
-        return self.auto_auth_user
 
     def _serve(self) -> None:
         self._app.run(
@@ -286,27 +286,57 @@ class Sandbox:
             "(is BTCOPILOT_TEST_ROUTES honoured by this btcopilot checkout?)"
         )
 
-    def _seed_login_user(self) -> Optional[dict]:
-        """Seed the named login account before anything else, so it is the one
-        holding this machine's licence. Returns None when no account was named,
-        which leaves the profile's own first user as the account to sign in as.
+    def _resolve_login_user(self) -> Optional[str]:
+        """Decide the login account before the app is built, so the backend has
+        FLASK_AUTO_AUTH_USER from its very first request rather than from the
+        moment seeding happens to finish. The account a profile seeds first is
+        known statically, without asking a server that is not running yet.
         """
         if not self.auto_auth_user:
-            return None
-        first = self._seed("/test/seed", {"users": [{"username": self.auto_auth_user}]})
-        self._apply_seed()
-        return first
+            self.auto_auth_user = self._profile_user()
+        if self.auto_auth_user:
+            os.environ["FLASK_AUTO_AUTH_USER"] = self.auto_auth_user
+        return self.auto_auth_user
 
-    def _apply_seed(self) -> Optional[dict]:
-        """A profile expression, an explicit seed spec, or a production export."""
+    def _profile_user(self) -> Optional[str]:
         if not self.seed:
             return None
         path = Path(self.seed).expanduser()
-        if not path.is_file():
-            return self._seed("/test/seed", {"profile": self.seed})
-        body = json.loads(path.read_text())
-        route = "/test/import" if any(k in body for k in EXPORT_KEYS) else "/test/seed"
-        return self._seed(route, body)
+        if path.is_file():
+            body = json.loads(path.read_text())
+            entry = body.get("user") or next(iter(body.get("users", [])), {})
+            return entry.get("username")
+
+        from btcopilot.testing import fixtures
+
+        users = fixtures.spec(self.seed)["users"]
+        return users[0]["username"] if users else None
+
+    def _apply_seed(self) -> Optional[dict]:
+        """One call: the profile in full, naming the account that must hold this
+        machine's licence. The backend orders the users itself and refuses a
+        login account its own profile leaves unlicensed, so naming an account
+        never changes what is seeded."""
+        body = self._seed_body()
+        if body is None:
+            return None
+        if any(key in body for key in EXPORT_KEYS):
+            return self._seed("/test/import", body)
+        if self.auto_auth_user:
+            body = {**body, "primary_user": self.auto_auth_user}
+        return self._seed("/test/seed", body)
+
+    def _seed_body(self) -> Optional[dict]:
+        """A profile expression, an explicit seed spec, a production export, or
+        just the account to log in as."""
+        if self.seed:
+            path = Path(self.seed).expanduser()
+            if path.is_file():
+                return json.loads(path.read_text())
+            return {"profile": self.seed}
+        if self.auto_auth_user:
+            return {"users": [{"username": self.auto_auth_user}]}
+        return None
 
     def _seed(self, route: str, body: dict) -> dict:
         """Licences land on THIS machine, or the apps open to a licence prompt.
@@ -321,9 +351,8 @@ class Sandbox:
         if self.hardware_uuid:
             body = {**body, "hardware_uuid": self.hardware_uuid}
         result = self.post(route, json=body)
-        if self._licensed or not self.hardware_uuid:
+        if not self.hardware_uuid:
             return result
-        self._licensed = True
         used = result.get("hardware_uuid")
         if used != self.hardware_uuid:
             raise RuntimeError(
@@ -355,4 +384,4 @@ class Sandbox:
         if self.proddb:
             self.proddb.drop()
             self.proddb = None
-        shutil.rmtree(self.dir, ignore_errors=True)
+        self._tmp.cleanup()

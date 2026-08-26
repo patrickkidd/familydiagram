@@ -761,9 +761,15 @@ class TestInstance:
 
             # 3. Populate login if requested
             if login_state == LoginState.LoggedIn:
-                self._sandbox.populate_login(
-                    server_url, username or auto_auth_user or DEFAULT_USER, personal
-                )
+                login_user = username or auto_auth_user
+                if not login_user:
+                    self._sandbox.cleanup()
+                    raise ValueError(
+                        "Sharing another instance's backend, so this one cannot know "
+                        "which account to sign in as. Pass username= — its manifest's "
+                        "'user' is the account that backend seeded and licensed."
+                    )
+                self._sandbox.populate_login(server_url, login_user, personal)
 
             # 4. Build app command
             cmd = [
