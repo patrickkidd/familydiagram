@@ -84,6 +84,7 @@ BRIDGE_PORT = 9876
 # How long the sandbox backend may take to report itself ready.
 SERVER_TIMEOUT = 120
 SERVER_PROD_TIMEOUT = 900
+SERVER_STOP_TIMEOUT = 60
 
 # Set once this process has already moved itself to the ticket's checkout.
 REEXEC_ENV = "FD_MCPSERVER_REEXEC"
@@ -95,6 +96,55 @@ DEFAULT_USER = "test@example.com"
 # =============================================================================
 # Helpers
 # =============================================================================
+
+
+def _stop_group(
+    process: Optional[subprocess.Popen], timeout: int, force: bool = True
+) -> bool:
+    """Stop a child and everything it spawned, and nothing else.
+
+    Every child is started in its own session, so its pid is its process group
+    id: signalling the group reaches the real app behind the `uv run` wrapper,
+    and reaches processes it spawned after teardown began, while no process
+    outside that group can be in it. Returns False only when a graceful stop
+    timed out and force was not asked for.
+    """
+    if process is None or process.poll() is not None:
+        return True
+
+    def signal_group(sig):
+        try:
+            os.killpg(process.pid, sig)
+        except ProcessLookupError:
+            pass  # exited between the poll above and here
+
+    def gone() -> bool:
+        try:
+            os.killpg(process.pid, 0)
+            return False
+        except ProcessLookupError:
+            return True
+
+    # Waiting for the whole group, not just the wrapper: the wrapper exits the
+    # moment it is signalled while the process doing the work is still running
+    # its own shutdown — dropping a database, stopping redis. Returning before
+    # that finishes is how a sandbox appears to leak what it is busy cleaning up.
+    signal_group(signal.SIGTERM)
+    deadline = time.time() + timeout
+    try:
+        process.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        pass
+    while time.time() < deadline and not gone():
+        time.sleep(0.1)
+
+    if gone():
+        return True
+    if not force:
+        return False
+    signal_group(signal.SIGKILL)
+    process.wait(timeout=5)
+    return True
 
 
 # -- Orphan prevention --
@@ -538,6 +588,7 @@ class TestInstance:
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            start_new_session=True,
         )
         # Both pipes are drained by threads: the launcher's own log lines share
         # stdout with READY/MANIFEST, and a line-at-a-time read of a buffered pipe
@@ -611,14 +662,9 @@ class TestInstance:
         self._drain_threads.append(thread)
 
     def _stop_ephemeral_server(self) -> None:
-        if self.server_process and self.server_process.poll() is None:
-            pid = self.server_process.pid
-            self.server_process.terminate()
-            try:
-                self.server_process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                self.server_process.kill()
-                self.server_process.wait(timeout=3)
+        # Generous, because its shutdown drops a restored production database
+        # and stops redis and a celery worker before it exits.
+        _stop_group(self.server_process, timeout=SERVER_STOP_TIMEOUT)
         self.server_process = None
         self._server_port = None
 
@@ -820,12 +866,17 @@ class TestInstance:
                 f"[{self.id}] Server: {server_url}, Bridge port: {self._bridge_port}"
             )
 
+            # Its own session: `uv run` is a wrapper, and the app we actually
+            # want stopped is its child. Signalling the group reaches whatever
+            # the app spawns, including after teardown has begun, and reaches
+            # nothing outside it.
             self.process = subprocess.Popen(
                 cmd,
                 cwd=str(self.project_root),
                 env=env,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
+                start_new_session=True,
             )
             self.start_time = time.time()
             self._drain(self.process.stdout, self._stdout_lines)
@@ -906,16 +957,8 @@ class TestInstance:
             self._bridge = None
 
         try:
-            if self.process and self.process.poll() is None:
-                self.process.terminate()
-                try:
-                    self.process.wait(timeout=timeout)
-                except subprocess.TimeoutExpired:
-                    if force:
-                        self.process.kill()
-                        self.process.wait(timeout=5)
-                    else:
-                        return False, "Graceful shutdown timed out. Use force=True."
+            if not _stop_group(self.process, timeout=timeout, force=force):
+                return False, "Graceful shutdown timed out. Use force=True."
         except OSError as e:
             logger.exception(f"[{self.id}] Error closing app: {e}")
         finally:
