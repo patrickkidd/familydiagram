@@ -22,6 +22,7 @@ import time
 import wsgiref.handlers
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 import pytest
 import requests
@@ -71,6 +72,12 @@ HOSTILE_OWNER = "hostile@test"
 FAMILY_PROFILE = "family"
 FAMILY_OWNER = "family@test"
 NAMED_ACCOUNT = "named@test"
+EXPIRED_ACCOUNT = "hostile+expired@test"
+
+# family+hostile seeds six accounts. Naming one of them narrows who signs in and
+# leaves the count alone; naming an outsider adds a seventh — the regression that
+# a login account was once prepended by dropping the rest of the profile.
+PROFILE_ACCOUNTS = 6
 SHARED_USER = "harness@example.com"
 SEED_PASSWORD = "test"
 STUB_PREFIX = coach_reply("").strip()
@@ -577,10 +584,26 @@ def _codes_licensed_here(url: str, username: str) -> set:
     }
 
 
-def _assert_pro_opened_usable(instance: TestInstance, expected_user: str) -> None:
+def _seeded_accounts(instance: TestInstance) -> list:
+    return [user["username"] for user in (instance.manifest.get("seed") or {}).get("users", [])]
+
+
+def _assert_pro_opened_usable(
+    instance: TestInstance, expected_user: str, expected_accounts: Optional[int] = None
+) -> None:
     assert instance.manifest["user"] == expected_user, (
         f"launcher signed in {instance.manifest['user']}, expected {expected_user}"
     )
+
+    if expected_accounts is not None:
+        accounts = _seeded_accounts(instance)
+        assert len(accounts) == expected_accounts, (
+            f"seeded {len(accounts)} accounts, expected {expected_accounts}: {accounts}"
+        )
+
+        assert accounts[0] == expected_user, (
+            f"the login account must be seeded first to hold this machine: {accounts}"
+        )
 
     codes = _codes_licensed_here(instance.manifest["url"], expected_user)
     assert REQUIRED_LICENCE in codes, (
@@ -602,34 +625,70 @@ def test_pro_launches_licensed_on_a_seed_profile():
     try:
         ok, message = instance.launch(
             headless=True,
-            seed=FAMILY_PROFILE,
+            seed=FULL_PROFILE,
             llm=Llm.Stub.value,
             login_state=LoginState.LoggedIn,
             timeout=APP_TIMEOUT,
         )
         assert ok, message
 
-        _assert_pro_opened_usable(instance, FAMILY_OWNER)
+        _assert_pro_opened_usable(instance, FAMILY_OWNER, PROFILE_ACCOUNTS)
     finally:
         instance.close(force=True)
 
 
 def test_pro_launches_licensed_for_a_named_account():
-    """H4/F-009: naming an account narrows who signs in, never what is seeded, and
-    the named account is the one that must hold this machine's licence."""
+    """H4/F-009: naming an account already in the profile narrows who signs in and
+    licenses that account, without dropping any of the other five."""
     instance = TestInstance.create(ticket=TICKET)
     try:
         ok, message = instance.launch(
             headless=True,
-            seed=FAMILY_PROFILE,
-            username=NAMED_ACCOUNT,
+            seed=FULL_PROFILE,
+            username=HOSTILE_OWNER,
             llm=Llm.Stub.value,
             login_state=LoginState.LoggedIn,
             timeout=APP_TIMEOUT,
         )
         assert ok, message
 
-        _assert_pro_opened_usable(instance, NAMED_ACCOUNT)
+        _assert_pro_opened_usable(instance, HOSTILE_OWNER, PROFILE_ACCOUNTS)
+    finally:
+        instance.close(force=True)
+
+
+def test_naming_an_account_outside_the_profile_keeps_the_profile():
+    """H4: an outsider is added and licensed, and the six profile accounts survive —
+    the defect being that a login account was once prepended by replacing them."""
+    instance = TestInstance.create(ticket=TICKET)
+    try:
+        ok, message = instance.start_backend(
+            auto_auth_user=NAMED_ACCOUNT, seed=FULL_PROFILE
+        )
+        assert ok, message
+
+        accounts = _seeded_accounts(instance)
+        assert accounts[0] == NAMED_ACCOUNT and len(accounts) == PROFILE_ACCOUNTS + 1, accounts
+
+        assert REQUIRED_LICENCE in _codes_licensed_here(instance.manifest["url"], NAMED_ACCOUNT)
+    finally:
+        instance.close(force=True)
+
+
+def test_launcher_refuses_an_account_the_seed_leaves_unlicensed():
+    """H4/F-009: the apps cannot log in as a case the profile deliberately leaves
+    unlicensed — that would open to a licence prompt and look like a harness bug.
+    Refused before anything is seeded, not diagnosed afterwards."""
+    instance = TestInstance.create(ticket=TICKET)
+    try:
+        ok, message = instance.start_backend(
+            auto_auth_user=EXPIRED_ACCOUNT, seed=FULL_PROFILE
+        )
+        assert ok is False, f"launcher accepted the expired-licence account: {message}"
+
+        assert EXPIRED_ACCOUNT in message, f"refusal does not name the account: {message[:300]}"
+
+        assert instance.server_port is None
     finally:
         instance.close(force=True)
 
