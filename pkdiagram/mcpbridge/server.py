@@ -96,6 +96,7 @@ class TestBridgeServer(QObject):
             # Windows
             "get_windows": self._handleGetWindows,
             "activate_window": self._handleActivateWindow,
+            "dismiss_dialog": self._handleDismissDialog,
             # File operations
             "open_file": self._handleOpenFile,
             "open_server_diagram": self._handleOpenServerDiagram,
@@ -531,6 +532,13 @@ class TestBridgeServer(QObject):
             return {"success": False, "error": "Missing 'objectName'"}
 
         return self._inspector.activateWindow(objectName)
+
+    def _handleDismissDialog(self, command: Dict) -> Dict:
+        """Handle dismiss_dialog command."""
+        button = command.get("button")
+        if not button:
+            return {"success": False, "error": "Missing 'button'"}
+        return self._inspector.dismissDialog(button)
 
     def _handleOpenFile(self, command: Dict) -> Dict:
         """Handle open_file command."""

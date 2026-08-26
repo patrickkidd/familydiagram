@@ -23,6 +23,14 @@ class AppLoginState(str, Enum):
     LoggedIn = "logged_in"
 
 
+class DialogButton(str, Enum):
+    Save = "save"
+    Cancel = "cancel"
+    Ok = "ok"
+    Yes = "yes"
+    No = "no"
+
+
 class AppView(str, Enum):
     FileManager = "file_manager"
     DocumentView = "document_view"
@@ -1193,7 +1201,10 @@ class QtInspector:
                 continue
             from pkdiagram.scene.person import Person
             person = Person()
-            scene.addItems(person)
+            # Undoable, like the user's own add: without a command on the stack
+            # the document never goes dirty and no journey can reach the
+            # unsaved-edit paths.
+            scene.addItems(person, undo=True)
             return {"success": True, "id": person.id}
         return {"success": False, "error": "No scene found"}
 
@@ -1428,24 +1439,32 @@ class QtInspector:
         loaded = {"ok": False, "error": None}
         loop = QEventLoop()
 
-        def onLoaded():
-            if controller._diagram and controller._diagram.id == diagramId:
+        def onLoaded(diagram, scene, discussions):
+            # diagramLoaded, not diagramChanged: the loader announces the new
+            # diagram before the controller has adopted it, so a load is only
+            # done once this fires — and it carries what was loaded, including
+            # the free diagram the loader falls back to.
+            if diagram and diagram.id == diagramId:
                 loaded["ok"] = True
-                loop.quit()
+            else:
+                loaded["error"] = (
+                    f"Loaded diagram {diagram.id if diagram else None}, not {diagramId}"
+                )
+            loop.quit()
 
         def onError(msg=""):
             loaded["error"] = f"Failed to load diagram {diagramId}: {msg}"
             loop.quit()
 
         controller.appConfig.set("lastDiagramId", diagramId)
-        controller.diagramLoader.diagramChanged.connect(onLoaded)
+        controller.diagramLoader.diagramLoaded.connect(onLoaded)
         controller.diagramLoader.serverError.connect(onError)
         controller.diagramLoader.serverDown.connect(onError)
         try:
             controller.diagramLoader.refreshDiagram()
             loop.exec_()
         finally:
-            controller.diagramLoader.diagramChanged.disconnect(onLoaded)
+            controller.diagramLoader.diagramLoaded.disconnect(onLoaded)
             controller.diagramLoader.serverError.disconnect(onError)
             controller.diagramLoader.serverDown.disconnect(onError)
 
@@ -1462,6 +1481,35 @@ class QtInspector:
                 self._app.processEvents()
                 return {"success": True}
         return {"success": False, "error": f"Window not found: {objectName}"}
+
+    def dismissDialog(self, button: str) -> Dict[str, Any]:
+        """Press a button on the modal message box that is up.
+
+        A modal blocks the main thread inside the command that raised it, so
+        keys are the only other way in and they only ever reach the default
+        button — anything but the default needs this."""
+        standard = {
+            DialogButton.Save: QMessageBox.Save,
+            DialogButton.Cancel: QMessageBox.Cancel,
+            DialogButton.Ok: QMessageBox.Ok,
+            DialogButton.Yes: QMessageBox.Yes,
+            DialogButton.No: QMessageBox.No,
+        }[DialogButton(button)]
+
+        for widget in self._app.topLevelWidgets():
+            if not isinstance(widget, QMessageBox) or not widget.isVisible():
+                continue
+            target = widget.button(standard)
+            if target is None:
+                return {
+                    "success": False,
+                    "error": f"Dialog '{widget.text()}' has no {button} button",
+                }
+            target.click()
+            self._app.processEvents()
+            return {"success": True, "button": button, "text": widget.text()}
+
+        return {"success": False, "error": "No message box is up"}
 
     def takeScreenshot(self, objectName: Optional[str] = None) -> Dict[str, Any]:
         """

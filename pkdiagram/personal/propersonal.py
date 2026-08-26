@@ -1,5 +1,7 @@
 import logging
+import pickle
 
+from btcopilot.schema import DiagramData
 from pkdiagram.app import Session
 from pkdiagram.models import ServerFileManagerModel
 from pkdiagram.personal.api import JSON_HEADERS
@@ -52,6 +54,7 @@ class ProPersonal(QObject):
         self._diagram: Diagram | None = None
         self._settings = Settings(QApplication.instance().prefs(), self)
 
+        self.saver = fileModel.saver
         self.gate = SaveGate(self)
         self.discussion = DiscussionController(self.session, self._settings, self)
         self.discussion.gate = self.gate
@@ -64,6 +67,8 @@ class ProPersonal(QObject):
         self.voice = VoiceRecorder(self.session, self)
 
         self.pdpController.pdpChanged.connect(self.sarfGraphModel.refresh)
+        self.pdpController.committed.connect(self.clusterModel.detect)
+        self.clusterModel.clustersDetected.connect(self._onClustersDetected)
 
     def contextProperties(self) -> dict:
         """What the Personal QML needs beyond what Pro's engine already
@@ -82,8 +87,33 @@ class ProPersonal(QObject):
 
     def deinit(self):
         self.pdpController.pdpChanged.disconnect(self.sarfGraphModel.refresh)
+        self.pdpController.committed.disconnect(self.clusterModel.detect)
+        self.clusterModel.clustersDetected.disconnect(self._onClustersDetected)
         self.sarfGraphModel.deinit()
         self.clusterModel.deinit()
+
+    def _onClustersDetected(self):
+        """A detection result belongs on the row, not only in the local cache,
+        or Learn re-detects on every reopen and the other client never sees it
+        (FD-336 F-007). It is not a user edit, so a clean document stays clean."""
+        if self._diagram is None or self.scene is None:
+            return
+        clusters = self.clusterModel.clusters
+        cacheKey = self.clusterModel.cacheKey
+        wasClean = self.scene.stack().isClean()
+
+        def mutate(diagramData: DiagramData) -> DiagramData:
+            diagramData.clusters = clusters
+            diagramData.clusterCacheKey = cacheKey
+            return diagramData
+
+        saved = self.saver.save(
+            self._diagram.id, pickle.dumps(self.scene.data()), mutate=mutate
+        )
+        if not saved:
+            _log.warning(f"Could not persist clusters for diagram {self._diagram.id}")
+        elif wasClean:
+            self.scene.stack().setClean()
 
     # Enablement (D3)
 
