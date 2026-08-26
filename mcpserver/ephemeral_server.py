@@ -53,6 +53,11 @@ def parse_args(argv=None) -> argparse.Namespace:
         help=f"{Prompts.Auto.value} | {Prompts.Off.value} | <path to private_prompts.py>",
     )
     parser.add_argument("--auto-auth-user", help="email logged in without a password")
+    parser.add_argument(
+        "--hardware-uuid",
+        help="this machine's uuid, so seeded licenses actually activate the apps "
+        "(pkdiagram.util.HARDWARE_UUID); omit only for a backend nothing will connect to",
+    )
     return parser.parse_args(argv)
 
 
@@ -71,6 +76,7 @@ def main(argv=None) -> None:
         llm=args.llm,
         prompts=args.prompts,
         auto_auth_user=args.auto_auth_user,
+        hardware_uuid=args.hardware_uuid,
     )
     atexit.register(sandbox.shutdown)
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))

@@ -76,6 +76,7 @@ class Sandbox:
         llm: str = Llm.Stub.value,
         prompts: str = Prompts.Auto.value,
         auto_auth_user: Optional[str] = None,
+        hardware_uuid: Optional[str] = None,
         checkouts: Optional[Checkouts] = None,
     ):
         self.checkouts = checkouts or Checkouts.resolve(ticket)
@@ -86,6 +87,7 @@ class Sandbox:
         self.llm = Llm(llm)
         self.prompts = prompts
         self.auto_auth_user = auto_auth_user
+        self.hardware_uuid = hardware_uuid
         self.dir = Path(tempfile.mkdtemp(prefix="fd_sandbox_"))
         self.redis: Optional[RedisServer] = None
         self.worker: Optional[CeleryWorker] = None
@@ -289,10 +291,30 @@ class Sandbox:
             return None
         path = Path(self.seed).expanduser()
         if not path.is_file():
-            return self.post("/test/seed", json={"profile": self.seed})
+            return self._seed("/test/seed", {"profile": self.seed})
         body = json.loads(path.read_text())
         route = "/test/import" if any(k in body for k in EXPORT_KEYS) else "/test/seed"
-        return self.post(route, json=body)
+        return self._seed(route, body)
+
+    def _seed(self, route: str, body: dict) -> dict:
+        """Licenses land on THIS machine, or the apps open to a license prompt.
+
+        The app counts a license as active only when one of its activations names
+        a machine whose code is the app's own hardware uuid, so a seed that does
+        not carry the caller's uuid produces rows that look licensed and behave
+        unlicensed. The backend echoes what it used; a mismatch is a failure here
+        rather than a puzzling modal an hour later.
+        """
+        if self.hardware_uuid:
+            body = {**body, "hardware_uuid": self.hardware_uuid}
+        result = self.post(route, json=body)
+        used = result.get("hardware_uuid")
+        if self.hardware_uuid and used != self.hardware_uuid:
+            raise RuntimeError(
+                f"{route} licensed the primary user to {used!r}, not this machine's "
+                f"{self.hardware_uuid!r} — the apps would open unlicensed"
+            )
+        return result
 
     def post(self, route: str, **kwargs) -> dict:
         response = requests.post(f"{self.url}{route}", timeout=300, **kwargs)

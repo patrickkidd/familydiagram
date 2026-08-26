@@ -515,6 +515,8 @@ class TestInstance:
             llm,
             "--auto-auth-user",
             auto_auth_user,
+            "--hardware-uuid",
+            util.HARDWARE_UUID,
         ]
         if self.checkouts.ticket:
             cmd.extend(["--ticket", self.checkouts.ticket])
@@ -1879,6 +1881,8 @@ def seed_server_data(
     payload = dict(data or {})
     if profile:
         payload["profile"] = profile
+    # Without this the rows look licensed and the apps still open unlicensed.
+    payload.setdefault("hardware_uuid", util.HARDWARE_UUID)
     try:
         response = requests.post(
             f"http://127.0.0.1:{instance.server_port}/test/seed",

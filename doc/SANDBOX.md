@@ -51,7 +51,15 @@ throwaway database instead of seeding fixtures.
   its own health check and the seed is applied. The manifest carries the url, the
   database, the broker, the resolved checkouts and everything the seed created.
   Flags: `--ticket`, `--port` (default: a free one), `--db`, `--seed`, `--broker`,
-  `--llm`, `--prompts`, `--auto-auth-user`.
+  `--llm`, `--prompts`, `--auto-auth-user`, `--hardware-uuid`.
+
+  **`--hardware-uuid` is what makes the desktop apps open licensed.** The app
+  treats a license as active only when one of its activations names a machine
+  whose code is the app's own hardware uuid, so a seed without it produces rows
+  that look licensed and behave unlicensed — the apps open to a "beta version
+  without a license" prompt. Pass `pkdiagram.util.HARDWARE_UUID`; anything
+  launching an app through `TestInstance` already does. The backend echoes the
+  code it used and the launcher fails if it does not match.
 - `mcpserver/mcp_server.py` — the same backend plus real apps, driven by an agent.
 
 Nothing here ever kills a process by name or pattern. Each sandbox kills only the
@@ -131,6 +139,12 @@ first profile — and the sandbox logs the apps and the web UI in as that accoun
 unless `--auto-auth-user` names someone else. Reseeding to a different profile
 destroys the previous account: anything already signed in as it is stale, so take the
 sandbox down and back up rather than reseeding under a live app.
+
+Only the **first** account seeded can hold this machine's hardware uuid — the
+backend's machine codes are globally unique, so everyone seeded after it gets a
+per-user code and cannot open the desktop apps. That is why `reseed` resets the
+database first, and why the account you intend to drive should come from the
+profile you seed rather than being added afterwards.
 
 The hostile profile exists because language models under-generate bad data. It
 covers: empty, single-token, last-name-only, unicode and 200-character names;
