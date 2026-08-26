@@ -88,6 +88,9 @@ SERVER_PROD_TIMEOUT = 900
 # Set once this process has already moved itself to the ticket's checkout.
 REEXEC_ENV = "FD_MCPSERVER_REEXEC"
 
+# The account a sandbox signs in as when no seed profile names one.
+DEFAULT_USER = "test@example.com"
+
 
 # =============================================================================
 # Helpers
@@ -489,7 +492,7 @@ class TestInstance:
 
     def _start_ephemeral_server(
         self,
-        auto_auth_user: str,
+        auto_auth_user: Optional[str] = None,
         seed: Optional[str] = None,
         db: str = Db.Sqlite.value,
         broker: str = Broker.Memory.value,
@@ -513,11 +516,11 @@ class TestInstance:
             broker,
             "--llm",
             llm,
-            "--auto-auth-user",
-            auto_auth_user,
             "--hardware-uuid",
             util.HARDWARE_UUID,
         ]
+        if auto_auth_user:
+            cmd.extend(["--auto-auth-user", auto_auth_user])
         if self.checkouts.ticket:
             cmd.extend(["--ticket", self.checkouts.ticket])
         if seed:
@@ -568,7 +571,7 @@ class TestInstance:
 
     def start_backend(
         self,
-        auto_auth_user: str = "test@example.com",
+        auto_auth_user: Optional[str] = None,
         seed: Optional[str] = None,
         db: str = Db.Sqlite.value,
         broker: str = Broker.Memory.value,
@@ -606,22 +609,6 @@ class TestInstance:
         thread = threading.Thread(target=run, daemon=True)
         thread.start()
         self._drain_threads.append(thread)
-
-    def _seed_default_user(self, email: str) -> None:
-        import requests
-
-        response = requests.post(
-            f"http://127.0.0.1:{self._server_port}/test/seed",
-            json={
-                "users": [
-                    {"username": email, "password": "test", "status": "confirmed"}
-                ],
-                "hardware_uuid": util.HARDWARE_UUID,
-            },
-            timeout=10,
-        )
-        if response.status_code != 200:
-            raise RuntimeError(f"Failed to seed default user: {response.text}")
 
     def _stop_ephemeral_server(self) -> None:
         if self.server_process and self.server_process.poll() is None:
@@ -723,7 +710,7 @@ class TestInstance:
         login_state: LoginState = LoginState.NoData,
         username: str = None,
         ephemeral_server: bool = True,
-        auto_auth_user: str = "test@example.com",
+        auto_auth_user: Optional[str] = None,
         server_url: Optional[str] = None,
         seed: Optional[str] = None,
         db: str = Db.Sqlite.value,
@@ -755,22 +742,27 @@ class TestInstance:
                     self._sandbox.cleanup()
                     return False, msg
             else:
+                # A named account is seeded first so it holds this machine's
+                # licence; with a seed profile and no name, its own first user is
+                # the one to sign in as and the launcher reports it.
+                login_user = username or auto_auth_user
+                if not login_user and not seed:
+                    login_user = DEFAULT_USER
                 ok, msg = self._start_ephemeral_server(
-                    auto_auth_user, seed=seed, db=db, broker=broker, llm=llm
+                    login_user, seed=seed, db=db, broker=broker, llm=llm
                 )
                 if not ok:
                     self._sandbox.cleanup()
                     return False, msg
                 server_url = self.manifest["url"]
-                if login_state == LoginState.LoggedIn:
-                    self._seed_default_user(username or auto_auth_user)
+                username = self.manifest["user"]
 
             sandbox_env["FD_SERVER_URL_ROOT"] = server_url
 
             # 3. Populate login if requested
             if login_state == LoginState.LoggedIn:
                 self._sandbox.populate_login(
-                    server_url, username or auto_auth_user, personal
+                    server_url, username or auto_auth_user or DEFAULT_USER, personal
                 )
 
             # 4. Build app command
@@ -1047,7 +1039,7 @@ def launch_app(
     login_state: str = LoginState.LoggedIn.value,
     username: Optional[str] = None,
     ephemeral_server: bool = True,
-    auto_auth_user: str = "test@example.com",
+    auto_auth_user: Optional[str] = None,
     server_url: Optional[str] = None,
     ticket: Optional[str] = None,
     seed: Optional[str] = None,
@@ -1190,16 +1182,10 @@ def launch_app_in_simulator(
     try:
         # Optional ephemeral server
         if ephemeral_server:
-            sandbox_env = instance._sandbox.create_sandbox(personal=True)
-            ok, msg = instance._start_ephemeral_server(auto_auth_user)
+            ok, msg = instance.start_backend(auto_auth_user)
             if not ok:
-                instance._sandbox.cleanup()
                 TestInstance._instances.pop(instance.id, None)
                 return {"success": False, "error": msg}
-
-            server_url = f"http://127.0.0.1:{instance._server_port}"
-            if login_enum == LoginState.LoggedIn:
-                instance._seed_default_user(auto_auth_user)
 
         # Launch in simulator
         ok, msg = instance._launch_in_simulator(app_path, bundle_id, udid)

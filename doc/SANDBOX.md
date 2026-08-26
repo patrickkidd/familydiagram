@@ -134,17 +134,23 @@ arguments after `:`.
 Every seed returns a **manifest**: a map from case name to the ids it created and one
 line saying what the case is for. Use it instead of hard-coding ids.
 
-**Who you are logged in as.** The seed names a `primary_user` — the first user of the
-first profile — and the sandbox logs the apps and the web UI in as that account
-unless `--auto-auth-user` names someone else. Reseeding to a different profile
-destroys the previous account: anything already signed in as it is stale, so take the
-sandbox down and back up rather than reseeding under a live app.
+**Who you are logged in as, and why it decides licensing.** Only the **first**
+account seeded can hold this machine's hardware uuid — the backend's machine codes
+are globally unique, so everyone seeded after it gets a per-user code and cannot
+open the desktop apps at all. The sandbox therefore seeds the login account first:
 
-Only the **first** account seeded can hold this machine's hardware uuid — the
-backend's machine codes are globally unique, so everyone seeded after it gets a
-per-user code and cannot open the desktop apps. That is why `reseed` resets the
-database first, and why the account you intend to drive should come from the
-profile you seed rather than being added afterwards.
+| You pass | Signed in as | Seeded |
+|---|---|---|
+| `--user EMAIL` | that account | it first, then the profile |
+| nothing, with a seed | the seed's own `primary_user` | the profile, whose first user it is |
+| nothing, no seed | nobody — a backend with no account | nothing |
+
+Either way the manifest's `user` is the account that is signed in and licensed, and
+the launcher fails if the backend licensed someone else. Adding a user to a live
+sandbox does not make it usable by the apps; that is why `reseed` resets the
+database first. Reseeding also destroys the previous account, so anything already
+signed in as it is stale — take the sandbox down and back up rather than reseeding
+under a live app.
 
 The hostile profile exists because language models under-generate bad data. It
 covers: empty, single-token, last-name-only, unicode and 200-character names;

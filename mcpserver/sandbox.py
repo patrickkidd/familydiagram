@@ -95,6 +95,7 @@ class Sandbox:
         self.manifest: dict = {}
         self._db_uri: Optional[str] = None
         self._broker: Optional[str] = None
+        self._licensed = False
         self._app = None
         self._stopped = threading.Event()
 
@@ -215,7 +216,7 @@ class Sandbox:
         threading.Thread(target=self._serve, daemon=True).start()
         self._wait_for_health()
 
-        seed = self._apply_seed()
+        seed = self._seed_login_user() or self._apply_seed()
         self.manifest = {
             "url": self.url,
             "port": self.port,
@@ -285,6 +286,17 @@ class Sandbox:
             "(is BTCOPILOT_TEST_ROUTES honoured by this btcopilot checkout?)"
         )
 
+    def _seed_login_user(self) -> Optional[dict]:
+        """Seed the named login account before anything else, so it is the one
+        holding this machine's licence. Returns None when no account was named,
+        which leaves the profile's own first user as the account to sign in as.
+        """
+        if not self.auto_auth_user:
+            return None
+        first = self._seed("/test/seed", {"users": [{"username": self.auto_auth_user}]})
+        self._apply_seed()
+        return first
+
     def _apply_seed(self) -> Optional[dict]:
         """A profile expression, an explicit seed spec, or a production export."""
         if not self.seed:
@@ -297,19 +309,23 @@ class Sandbox:
         return self._seed(route, body)
 
     def _seed(self, route: str, body: dict) -> dict:
-        """Licenses land on THIS machine, or the apps open to a license prompt.
+        """Licences land on THIS machine, or the apps open to a licence prompt.
 
-        The app counts a license as active only when one of its activations names
+        The app counts a licence as active only when one of its activations names
         a machine whose code is the app's own hardware uuid, so a seed that does
         not carry the caller's uuid produces rows that look licensed and behave
-        unlicensed. The backend echoes what it used; a mismatch is a failure here
-        rather than a puzzling modal an hour later.
+        unlicensed. Machine codes are globally unique, so only the first account
+        seeded can hold it — which is why the login account goes first, and why
+        only that first call is checked against the code the backend echoes back.
         """
         if self.hardware_uuid:
             body = {**body, "hardware_uuid": self.hardware_uuid}
         result = self.post(route, json=body)
+        if self._licensed or not self.hardware_uuid:
+            return result
+        self._licensed = True
         used = result.get("hardware_uuid")
-        if self.hardware_uuid and used != self.hardware_uuid:
+        if used != self.hardware_uuid:
             raise RuntimeError(
                 f"{route} licensed the primary user to {used!r}, not this machine's "
                 f"{self.hardware_uuid!r} — the apps would open unlicensed"
