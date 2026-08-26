@@ -250,7 +250,9 @@
    "status": "agent-verified",
    "evidence": "Root CLAUDE.md (theapp 3de7564) names only `bin/sandbox` and familydiagram/doc/SANDBOX.md; familydiagram CLAUDE.md doc index + MCP section point at SANDBOX.md; bin/mcp_launch.py deleted; mcpserver/README.md registration/tree sections replaced by a pointer; adrs/0002 addendum; the two 2026-04/05 harness plans marked historical; no fd3xx_* sandbox scripts on the FD-336 branches (FD-342's remain only on its own unmerged branch). Residual: mcpserver/README.md:484 keeps a bridge-debug snippet (`--test-server-port`) \u2014 a bridge note, not a sandbox recipe",
    "provenance": "ratified-ac",
-   "tests": []
+   "tests": [
+    "mcpserver/tests/test_fd336_one_harness.py"
+   ]
   },
   {
    "id": "H2",
@@ -261,8 +263,9 @@
    "evidence": "REAL SYSTEM: `bin/sandbox up FD-336 --seed family+hostile --llm stub --pro --personal` \u2192 backend on a fresh free port, Pro + Personal both signed in as family@test on one DB (implHf run, pids 58098/58115/58136), `down` reaps all; mcpserver/tests/test_fd336_harness.py tests 1-4,10-14 (15/15, real processes): distinct free ports never 8888, worktree resolution proven from inside the running server, no-8888 fallback, two instances share a DB",
    "provenance": "ratified-ac",
    "tests": [
+    "mcpserver/tests/test_checkouts.py",
     "mcpserver/tests/test_fd336_harness.py",
-    "mcpserver/tests/test_checkouts.py"
+    "mcpserver/tests/test_reexec.py"
    ]
   },
   {
@@ -421,11 +424,19 @@
    "cites": "C10b"
   },
   {
+   "path": "mcpserver/tests/test_fd336_one_harness.py",
+   "cites": "H1"
+  },
+  {
+   "path": "mcpserver/tests/test_checkouts.py",
+   "cites": "H2"
+  },
+  {
    "path": "mcpserver/tests/test_fd336_harness.py",
    "cites": "H2"
   },
   {
-   "path": "mcpserver/tests/test_checkouts.py",
+   "path": "mcpserver/tests/test_reexec.py",
    "cites": "H2"
   },
   {
