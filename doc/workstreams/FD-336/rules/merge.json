@@ -1,0 +1,15 @@
+{
+  "_comment": "SEED rules installed into <worktree>/doc/workstreams/rules/merge.json on first merge. BASELINE machine-check rules every unit inherits at the merge gate (AC-6). merge-ci-green = PR CI-green is a merge precondition: before the unit is declared merge-ready, the PR's CI (the project's own test/lint/build pipeline, bound as ci.status in workstream_config.json) must be GREEN — orthogonal to and additional to the referee token (agent track) and the human track. FAIL-CLOSED: a red or not-yet-run CI blocks; the bound ci.status is itself fail-closed so a pipeline that never ran reads non-green. Per-unit corrections append/supersede here; the seed is never the whole list. The skill copies this file into the worktree if merge.json is absent, then merges any unit-specific rules already present.",
+  "rules": [
+    {
+      "id": "merge-ci-green",
+      "category": "ci-health",
+      "rule": "PR CI-GREEN IS A MERGE PRECONDITION, DEBUGGED LOCAL-FIRST (AC-6). Before the unit is declared merge-ready, the PR's CI — the project's OWN test/lint/build pipeline, bound as ci.status in workstream_config.json (AC-13: the skill names zero repo-specific commands) — must be GREEN. This is PR HEALTH (regression + hygiene) and is ORTHOGONAL to the referee's acceptance-criteria grading (the agent-track token, AC-4) AND to the human track: a PR can pass CI yet miss the criteria, or meet the criteria yet break CI — ALL are required, for different reasons, and none substitutes for the others. Cost discipline lives in the build gate: run the bound LOCAL CI-equivalent (ci.local) BEFORE pushing to catch locally-catchable failures cheaply, so the remote pipeline mostly CONFIRMS rather than discovers; never burn a remote CI cycle on a locally-catchable failure. This is mechanically gated, not remembered: before declaring merge-ready, run this check against the unit state file. A non-zero exit means the PR's CI is RED or NOT-YET-RUN (ci.status is fail-closed, so a pipeline that never ran also reads non-green) — do NOT declare merge-ready; fix it LOCAL-FIRST back in build and re-push, never merge around a red CI or weaken CI to get green. A missing ci.status binding is a block on SETUP, never a silent pass. This guard is CI health ONLY; it never merges and never touches the referee token or the human track (those are separate gates).",
+      "check": "python3 ~/.claude/skills/workstream/bin/check_ci_green.py {state_path}",
+      "check_artifact": "state_file",
+      "check_kind": "command_exit_zero",
+      "added": "2026-07-12",
+      "supersedes": null
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "base_branch": "master",
+  "worktree_root": "/Users/patrick/theapp/familydiagram/.claude/worktrees",
+  "worktree_layout": "<repo>/.claude/worktrees/<ticket> (built-in Claude Code worktree tooling; one per child repo in scope)",
+  "test_commands": {
+    "unit": "PYTHONPATH=$PWD:/Users/patrick/theapp/btcopilot/.claude/worktrees/FD-336 /Users/patrick/theapp/.venv/bin/python -m pytest pkdiagram/tests -x -q",
+    "integration": "cd /Users/patrick/theapp/familydiagram/.claude/worktrees/FD-336 && PYTHONPATH=$PWD:/Users/patrick/theapp/btcopilot/.claude/worktrees/FD-336 /Users/patrick/theapp/.venv/bin/python -m pytest pkdiagram/tests -q",
+    "btcopilot_unit": "cd /Users/patrick/theapp/btcopilot/.claude/worktrees/FD-336 && PYTHONPATH=$PWD /Users/patrick/theapp/.venv/bin/python -m pytest btcopilot/tests -x -q"
+  },
+  "e2e_harness": {
+    "what": "drive a sandboxed instance end-to-end as a human would (isolated ports/state)",
+    "command": "familydiagram-testing MCP bridge (real Qt app UI) with ephemeral_server=True (sandboxed Flask + SQLite)",
+    "notes": "Production Flask on 8888 is user-managed - never touch. Sandbox Flask on 8889 from the worktree via PYTHONPATH. Pro launched with ephemeral_server=True; Personal with server_url= the same port shares one DB.",
+    "subharnesses": {
+      "pro_app": "familydiagram-testing MCP launch_app(app='pro', ephemeral_server=True); get_app_state() first; headless=false for screenshots",
+      "personal_app": "familydiagram-testing MCP launch_app(app='personal', server_url=<pro.server_port>)",
+      "backend_api": "curl against sandbox Flask 8889 started from the worktree with PYTHONPATH"
+    }
+  },
+  "referee": {
+    "command": null,
+    "oracle_dir": "doc/workstreams/oracles",
+    "gate_definitions_dir": "doc/workstreams/gates",
+    "token_dir": "doc/workstreams/tokens",
+    "notes": "SETUP GAP carried from btcopilot config: no referee implementation exists in this project; units close evidence-based per criterion."
+  },
+  "jira": {
+    "project": "FD",
+    "via": "REST v3, basic auth patrick@alaskafamilysystems.com + ATLASSIAN_TOKEN from ~/theapp/.env (grep|cut, never source/echo), site https://alaskafamilysystems.atlassian.net",
+    "gate_status_map": {
+      "ground": "In Progress",
+      "merge": "Done"
+    }
+  },
+  "pr_lookup": "gh pr list --repo patrickkidd/familydiagram --head {branch} --state open --json url --jq '.[].url'",
+  "ci": {
+    "status": "gh pr checks {pr_url} --required --json state --jq 'if length==0 then error(\"no checks\") elif all(.[]; .state==\"SUCCESS\") then empty else error(\"not green\") end'",
+    "local": "cd /Users/patrick/theapp/familydiagram/.claude/worktrees/FD-336 && PYTHONPATH=$PWD:/Users/patrick/theapp/btcopilot/.claude/worktrees/FD-336 /Users/patrick/theapp/.venv/bin/python -m pytest pkdiagram/tests -q -x"
+  },
+  "protected_paths": [],
+  "human_docs": {
+    "dir": "doc/workstreams",
+    "convention": "*-human-*.md"
+  }
+}

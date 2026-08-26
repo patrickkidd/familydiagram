@@ -1,0 +1,75 @@
+{
+ "ticket": "FD-336",
+ "title": "Replace Pro \"Copilot\" view with embedded Personal app (Discuss/Learn/Plan)",
+ "base_branch": "master",
+ "worktree": "/Users/patrick/theapp/familydiagram/.claude/worktrees/FD-336",
+ "worktree_btcopilot": "/Users/patrick/theapp/btcopilot/.claude/worktrees/FD-336",
+ "branch": "FD-336",
+ "subfolder_namespaced": true,
+ "test_registry_traced": true,
+ "human_track_skip": {"proposed": false, "skip_question": null, "human_answer": null, "answer_bundled_with": null, "confirmed_by_human": false},
+ "state": "gate-build",
+ "decisions_doc": "doc/workstreams/FD-336/fd-336-decisions.md",
+ "grounding_artifacts": ["doc/workstreams/FD-336/fd-336-code-map.md", "doc/workstreams/FD-336/fd-336-critics.json", "doc/workstreams/FD-336/fd-336-reconciled.json"],
+ "scope_corrections": [
+  "btcopilot changes ARE required (ticket said none): discussions must honor diagram_id (D1); chat defaults/unversioned row writes must not apply to non-free diagrams (D2); committed person chunk must carry lastName (D10)."
+ ],
+ "oracle": {"path": "doc/workstreams/oracles/FD-336/2026-08-25--1-fd-336.oracle.md", "committed": false, "content_hash": null},
+ "oracle_proposal": {
+  "depth": "team",
+  "note": "single save owner over clinical case persistence + lifecycle seam across two apps: 3 critics (persistence, lifecycle, e2e) + reconciler",
+  "posted_to": null,
+  "proposed_criteria": [],
+  "pending_ratification": false,
+  "ratified_by_human": true,
+  "ratification_note": "Patrick 2026-08-25 (chat, mid-turn): 'the AC's are ratified, so you should be able to just go for it' - the ticket's AC set is the ratified oracle; critic output is test-design input, not new criteria.",
+  "ratified_criteria": ["C1","C2","C2h","C3","C4","C5","C6","C6h","C7","C8","C8h","C9","C10a","C10b","C10h"]
+ },
+ "criteria": [
+  {"id": "C1", "text": "Copilot view removed: Pro has no Copilot tab, no CopilotView/CopilotEngine code; the right-drawer chat button opens the embedded Personal tabs instead", "track": "agent", "harness_drivable": true, "status": "pending", "evidence": null, "provenance": "ratified-ac", "tests": []},
+  {"id": "C2", "text": "Discuss/Learn/Plan render in the former Copilot slot of the CaseProperties right drawer behind the same chat icon", "track": "agent", "harness_drivable": true, "status": "pending", "evidence": null, "provenance": "ratified-ac", "tests": []},
+  {"id": "C2h", "text": "The embedded Discuss/Learn/Plan beside the canvas look and feel right at desktop size (layout, no clipped controls)", "track": "human", "harness_drivable": false, "status": "pending", "evidence": null, "provenance": "ratified-ac", "tests": []},
+  {"id": "C3", "text": "Feature enabled only for server diagrams: with a local-only .fd file open the chat drawer is disabled/unavailable; with a server diagram it is available", "track": "agent", "harness_drivable": true, "status": "pending", "evidence": null, "provenance": "ratified-ac", "tests": []},
+  {"id": "C4", "text": "Personal hamburger/slide-out menu (account drawer, diagram list/create) is hidden when embedded in Pro", "track": "agent", "harness_drivable": true, "status": "pending", "evidence": null, "provenance": "ratified-ac", "tests": []},
+  {"id": "C5", "text": "Embedded tabs operate on Pro's already-open Scene/Diagram: exactly one Scene per open case, no GET of the diagram by the Personal pipeline on open, PDP-accepted items appear in the same Scene the canvas draws", "track": "agent", "harness_drivable": true, "status": "pending", "evidence": null, "provenance": "ratified-ac", "tests": []},
+  {"id": "C6", "text": "discussion -> extract -> PDP accept -> committed scene data works end-to-end on a Pro server case (real Qt app, sandboxed server): accepted people/events land in the open canvas and persist in the server row", "track": "agent", "harness_drivable": true, "status": "pending", "evidence": null, "provenance": "ratified-ac", "tests": []},
+  {"id": "C6h", "text": "On a real server case with the real coach/extractor: chat beside the canvas, accept a PDP, see it appear on the diagram and survive reopen", "track": "human", "harness_drivable": false, "status": "pending", "evidence": null, "provenance": "ratified-ac", "tests": []},
+  {"id": "C7", "text": "Exactly one save path: Pro autosave and the Personal PDP commit both persist through the same DiagramSaver; concurrent-save tests (Pro save vs Personal commit interleavings) pass with no data loss; Personal's JSON save path is gone", "track": "agent", "harness_drivable": true, "status": "pending", "evidence": null, "provenance": "ratified-ac", "tests": []},
+  {"id": "C8", "text": "Save-before-chat prompt: sending a statement with unsaved Pro edits prompts to save first; saving proceeds; declining does not send", "track": "agent", "harness_drivable": true, "status": "pending", "evidence": null, "provenance": "ratified-ac", "tests": []},
+  {"id": "C8h", "text": "The save-before-chat prompt reads sensibly and is not annoying in normal flow", "track": "human", "harness_drivable": false, "status": "pending", "evidence": null, "provenance": "ratified-ac", "tests": []},
+  {"id": "C9", "text": "PersonalAppController decomposed into components under pkdiagram/personal/; when embedded in Pro exactly one Session object exists in-process", "track": "agent", "harness_drivable": true, "status": "pending", "evidence": null, "provenance": "ratified-ac", "tests": []},
+  {"id": "C10a", "text": "A Person with only name='Connie' renders label 'Connie' in the scene (unit test, familydiagram)", "track": "agent", "harness_drivable": true, "status": "pending", "evidence": null, "provenance": "ratified-ac", "tests": []},
+  {"id": "C10b", "text": "Committing an extracted person yields the agreed scene field population: name -> name, last_name -> lastName so last names survive commit; a person with only a last name still gets a visible label (unit tests, btcopilot + familydiagram)", "track": "agent", "harness_drivable": true, "status": "pending", "evidence": null, "provenance": "ratified-ac", "tests": []},
+  {"id": "C10h", "text": "Reopen diagram 1924 in the Pro app: every person has a visible label", "track": "human", "harness_drivable": false, "status": "pending", "evidence": null, "provenance": "ratified-ac", "tests": []}
+ ],
+ "suite_tests": [],
+ "gates": {
+  "ground": {"status": "active", "at": "2026-08-25T21:30:00", "artifact": null},
+  "build": {"status": "pending", "at": null, "artifact": null},
+  "validate": {"agent_track": {"status": "pending", "at": null, "token": null}, "human_track": {"status": "pending", "at": null, "script": null}},
+  "merge": {"status": "pending", "at": null, "pr_url": null}
+ },
+ "gate_definitions_path": "doc/workstreams/gates/FD-336/gates.json",
+ "handoff_path": "doc/workstreams/FD-336/fd-336-handoff.md",
+ "act_step_runs": [],
+ "findings": [],
+ "deferred_risk": [],
+ "grounded_facts": [
+  "GROUNDED: a scene Person read from a commit-shaped chunk {name:'Connie', last_name:None} renders label 'Connie' on current master (probe 2026-08-25). The ticket's 'single-token name gets no label' premise does NOT reproduce with that shape.",
+  "GROUNDED: commit chunks carry last_name (snake) but the scene reads lastName; the snake->camel rename in compat is gated to data versions <= 2.1.11b1, so at the current version the last name is silently dropped on commit and on load.",
+  "GROUNDED: a person with name=None and last_name only renders an empty label.",
+  "GROUNDED: both writers already send the full pickled DiagramData blob; the Personal path base64-wraps the same pickle onto PUT /personal/diagrams/<id>; Pro PUTs pickle onto /v1/diagrams/<id>. The difference is the applyChange field set (Pro: scene collections + metadata + UI flags; Personal: scene collections + version/name/lastItemId + clusters) and transport.",
+  "GROUNDED: server-side commit-pdp writes pdp/lastItemId/people/events/pair_bonds into the row; Pro's applyChange never touches pdp/clusters so they survive a Pro save.",
+  "GROUNDED: no local copy of diagram 1924 (dev sqlite empty, docker/postgres down, no pg_restore on host) - C10h stays human.",
+  "PRE-EXISTING (not this unit's write): the familydiagram origin clone carries Patrick's own uncommitted edits to CMakeLists.txt and _pkdiagram/pyproject.toml (the M5 build fixes named in the 2026-08-25 brainstorm housekeeping list) before this unit started; the origin-clean guard reports them. Left untouched."
+ ],
+ "history": [
+  {"gate": "ground", "entered": "2026-08-25T21:30:00", "exited": null, "note": "worktrees created in familydiagram+btcopilot; both suites collect from worktree code (1262 / 856); ACs ratified by Patrick in chat; adversarial workflow running"}
+ ],
+ "worker_model_policy": {
+  "decided_by": "Patrick 2026-08-25 (chat)",
+  "design_planning_review": "fable (coordinator + critics, FMEA, adversarial test design, diff review, verification judgment)",
+  "implementation_and_test_authoring": "opus (model override on every builder/test-author agent, driven by fable-written briefs)"
+ },
+ "parked_on": "nothing"
+}

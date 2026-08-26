@@ -1,0 +1,55 @@
+{
+  "_comment": "SEED rules installed into <worktree>/doc/workstreams/rules/build.json on first build. BASELINE machine-check rules every unit inherits (AC-5, AC-6, AC-8, AC-12). build-pr-visibility = the git-visibility invariant: once the unit branch has a commit ahead of base, an open PR for that branch must exist (the first commit auto-opens exactly one PR against base_branch; subsequent commits push to it). build-origin-clean = the launch/origin clone must stay distinct from the worktree AND clean (porcelain empty) throughout — every unit write goes to the WORKTREE, including project-routed docs (e.g. a decision log) via the worktree copy. build-branch-matches-ticket = the resolved branch is named for this ticket and its history carries no foreign ticket IDs (re-checked through build as commits accrue). build-test-registry-trace = the human's bar defines the test suite (AC-5a): every required registry entry (criteria[]/promoted-complaint findings[]) has a defending test and every counted suite test cites a real registry entry — bidirectional, deterministic, no-op for units not under the convention. Per-unit corrections append/supersede here; the seed is never the whole list. The skill copies this file into the worktree if build.json is absent, then merges any unit-specific rules already present.",
+  "rules": [
+    {
+      "id": "build-pr-visibility",
+      "category": "git-visibility",
+      "rule": "GIT VISIBILITY — THE HUMAN ALWAYS SEES THE CODE (AC-6). Work like a human developer: the FIRST commit on the unit branch opens exactly ONE pull request against the unit's base_branch (the epic integration branch — NEVER master directly), and EVERY subsequent commit is pushed to that same PR branch, so the code is continuously visible in the PR and no work is ever held only in the local worktree once a PR exists. This is the DEFAULT, not something done only when the human asks: the moment a commit exists on the branch, the PR must exist. Opening the PR (and the commit/push that precede it) are Lane-B git mutations — each its own action, gated by the human's consent dialog, never chained, never pre-asked in chat; this rule does NOT bypass that gate, it only enforces that the PR EXISTS once a commit exists. Immediately after PR creation, post the mandatory hand-off note (branch, worktree path, PR URL, repos in scope) via the project jira skill. This is mechanically gated, not remembered: after any commit and before continuing to grind silently, run this check against the unit state file. A non-zero exit means the branch has commits but no open PR — the next Lane-B action is to open the one PR (and post the hand-off note), not to keep working in the worktree. PR-existence is checked via the project-bound pr_lookup command in workstream_config.json (AC-13: the skill names zero repo-specific commands); a missing pr_lookup binding is itself a block on setup, never a silent pass.",
+      "check": "python3 ~/.claude/skills/workstream/bin/check_pr_visibility.py {state_path}",
+      "check_artifact": "state_file",
+      "check_kind": "command_exit_zero",
+      "added": "2026-06-09",
+      "supersedes": null
+    },
+    {
+      "id": "build-ticket-subfolder",
+      "category": "artifact-namespacing",
+      "rule": "PER-UNIT ARTIFACTS ARE NAMESPACED IN A PER-TICKET SUBFOLDER, NEVER FLAT (AC-13). The gate definitions authored in this gate (the executable acceptance criteria the referee runs) are a per-unit artifact: they must be written under gate_definitions_dir/<ticket>/ (the ticket-named subfolder), not flat in gate_definitions_dir alongside other units' gate files, and gate_definitions_path must record that namespaced path. Every config-bound dir (oracle_dir, gate_definitions_dir, token_dir, the human-docs dir) and the status/rules dir holds a per-ticket subfolder named for the unit's ticket id; the unit's files live inside it. The parent dirs stay bound in workstream_config.json (AC-13 genericity: the skill names NO concrete path, only the one-subfolder-per-ticket CONVENTION). SCOPE: units grounded under the convention only (subfolder_namespaced=true in state); in-flight flat units are a no-op pass with no migration. This is mechanically gated: after authoring the gate definitions, run this check against the unit state file; a non-zero exit means a recorded per-unit artifact (here, the gate definitions) sits flat in its bound dir — write it under <bound-dir>/<ticket>/ and re-check. The check is a pure function of the recorded artifact paths in state and the bound dirs in workstream_config.json.",
+      "check": "python3 ~/.claude/skills/workstream/bin/check_ticket_subfolder.py {state_path}",
+      "check_artifact": "state_file",
+      "check_kind": "command_exit_zero",
+      "added": "2026-06-18",
+      "supersedes": null
+    },
+    {
+      "id": "build-origin-clean",
+      "category": "origin-isolation",
+      "rule": "ORIGIN/LAUNCH CLONE STAYS CLEAN — DETERMINISTIC GUARD, NOT AN ASSERTION (AC-12, AC-8). The launch/origin clone is read-only coordinator ground: it stays on its base branch with its working tree CLEAN (git status --porcelain empty) THROUGHOUT, and any modification to it is a DEFECT the skill catches and REFUSES, not discovers later. EVERY unit write goes to the WORKTREE, never the launch/origin clone — INCLUDING project-wide docs the project routes to a fixed in-repo path (e.g. a decision log): the entry goes to the unit's WORKTREE copy of that path (committed, visible in the PR, merges to base). A fixed project doc-routing rule does NOT override origin cleanliness; it is satisfied via the worktree copy. This closes the exact leak that dirtied the origin clone: the launch-clone doc path resolved to the origin copy and the write was not caught. Isolation must be PROVABLE from durable state (worktree path read from state, origin clean), not asserted. Run this check (passing the launch/origin clone via --launch-clone, or run it from inside the origin clone) after any write and before advancing; a non-zero exit means a unit write leaked into the origin OR the worktree was resolved as the origin itself — back the write out and route it to the worktree copy.",
+      "check": "python3 ~/.claude/skills/workstream/bin/check_origin_clean.py {state_path} --launch-clone {launch_clone}",
+      "check_artifact": "git_and_state",
+      "check_kind": "command_exit_zero",
+      "added": "2026-06-09",
+      "supersedes": null
+    },
+    {
+      "id": "build-branch-matches-ticket",
+      "category": "branch-blast-radius",
+      "rule": "THE RESOLVED BRANCH/WORKTREE MUST MATCH THE TICKET, RE-CHECKED THROUGH BUILD (AC-6). As commits accrue during build, the branch must stay named for THIS ticket and its history (base..HEAD) must carry NO OTHER ticket IDs — another unit's work riding the same branch silently merges unrelated work and corrupts the unit's blast radius. After commits land and before advancing, run this check; a non-zero exit means STOP and surface for the human's ack (a foreign ticket ID in the log, or a mis-named branch). Deterministically checkable from the branch name and its commit log.",
+      "check": "python3 ~/.claude/skills/workstream/bin/check_branch_matches_ticket.py {state_path}",
+      "check_artifact": "state_file",
+      "check_kind": "command_exit_zero",
+      "added": "2026-06-09",
+      "supersedes": null
+    },
+    {
+      "id": "build-test-registry-trace",
+      "category": "test-registry-trace",
+      "rule": "THE HUMAN'S BAR DEFINES THE TEST SUITE — NO SELF-AUTHORED, UNTRACED TESTS (AC-5a). The set of things the unit's tests must cover is a STRUCTURAL, MACHINE-READABLE REGISTRY, not prose: it IS the existing criteria[] (the AC-track half) plus the human-complaint entries that findings[] promote into it. Every entry's PROVENANCE is one of exactly TWO human-originated sources — (a) a human-ratified acceptance criterion (criterion.provenance='ratified-ac', derived from the ticket AC at grounding — AC-3), or (b) a testing complaint the human raised during validation (criterion.provenance='human-complaint' with 'from_finding' naming the origin finding). NOTHING ELSE seeds a required test; the agent never invents the bar it is graded against. When the human reports a defect while testing, it is appended to this same registry as a first-class entry carrying its own bound regression test (finding.criterion + finding.regression_test) in the SAME gesture — a complaint that lands as an unenforced note (no entry, no bound test) is the silent gap this forbids. The skill does NOT ban fine-grained tests below a criterion's altitude — they are legitimate, authored UNDER a ratified entry by an INDEPENDENT sub-agent (never the implementer — AC-3/AC-5); what is banned is an UNTRACED test. Coverage runs BOTH directions and is mechanically checkable: NO required entry without a defending test (criterion.tests, or a promoted finding's bound regression_test), and NO counted suite test (suite_tests[].path) without a 'cites' resolving to a real registry entry (a criterion id, or a complaint finding bound to one). The trace keys on a property that cannot be faked — a real reference to a real entry — never a magic phrase; independence (the implementer never authors its grader) COMPOSES with the trace and is enforced separately at build (a traced test is still author-independent). SCOPE: units carrying test_registry_traced=true in state (set at grounding under the convention); a unit without that flag is a NO-OP PASS (no retroactive migration). This is mechanically gated: after the tests are authored/updated, run this check against the unit state file; a non-zero exit means an uncovered required entry, a bad-provenance seed, a complaint-entry with no bound regression test, or an untraced counted test — prune the untraced test or bind the missing one under its ratified entry, never weaken the registry. The check is a pure function of criteria[], findings[], and suite_tests[] in state — never prose, never an LLM, never a hard-coded path.",
+      "check": "python3 ~/.claude/skills/workstream/bin/check_test_registry_trace.py {state_path}",
+      "check_artifact": "state_file",
+      "check_kind": "command_exit_zero",
+      "added": "2026-06-29",
+      "supersedes": null
+    }
+  ]
+}
