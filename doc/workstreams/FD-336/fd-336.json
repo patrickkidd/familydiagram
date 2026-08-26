@@ -259,8 +259,8 @@
    "text": "One command stands up backend (dynamically allocated free port) + Pro + Personal against one DB, each from the ticket's worktree (origin fallback stated); never 8888 or the dev DB",
    "track": "agent",
    "harness_drivable": true,
-   "status": "agent-verified",
-   "evidence": "REAL SYSTEM: `bin/sandbox up FD-336 --seed family+hostile --llm stub --pro --personal` \u2192 backend on a fresh free port, Pro + Personal both signed in as family@test on one DB (implHf run, pids 58098/58115/58136), `down` reaps all; mcpserver/tests/test_fd336_harness.py tests 1-4,10-14 (15/15, real processes): distinct free ports never 8888, worktree resolution proven from inside the running server, no-8888 fallback, two instances share a DB",
+   "status": "pending",
+   "evidence": "REOPENED 2026-08-26 (F-015): app processes launched by bin/sandbox imported the origin clones; backend evidence stands. Re-verify after the fix.",
    "provenance": "ratified-ac",
    "tests": [
     "mcpserver/tests/test_checkouts.py",
@@ -485,7 +485,7 @@
   },
   "validate": {
    "agent_track": {
-    "status": "complete",
+    "status": "active",
     "at": "2026-08-26T20:50:00",
     "token": null,
     "note": "no referee implementation in this project (config gap carried from FD-338); closure is evidence-based per criterion",
@@ -553,6 +553,42 @@
   }
  ],
  "findings": [
+  {
+   "id": "F-016",
+   "summary": "PRE-EXISTING (found by the model-policy change): Premium chat never used the Opus-tuned prompt \u2014 chat.py's prompt selector tested the client alias ('opus-4.6') with a 'claude-' prefix check, so every Premium request took the Gemini prompt branch. Fixed in btcopilot eace19f (alias resolved to the API id before prompt assembly). CONSEQUENCE: coach responses change style; one-line revert if worse.",
+   "severity": "major",
+   "repro": "btcopilot personal/chat.py get_conversation_flow_prompt with model='opus-4.6' (before eace19f)",
+   "validation_status": "agent-verified",
+   "status": "fixed",
+   "found_in_track": "agent",
+   "criterion": null,
+   "regression_test": "btcopilot/tests/personal/test_claude_backend.py",
+   "fix": "btcopilot eace19f"
+  },
+  {
+   "id": "F-017",
+   "summary": "Model policy: backend default alone was inert \u2014 the Personal client hardcodes 'opus-4.6' as menu default and sends it on every statement (discussioncontroller.py:36-48). Client change + one-time stored-setting migration in progress (implM2).",
+   "severity": "major",
+   "repro": "send a statement from the Personal app; backend receives alias opus-4.6",
+   "validation_status": "agent-verified",
+   "status": "open",
+   "found_in_track": "agent",
+   "criterion": null,
+   "regression_test": "pkdiagram/tests/personal (settings/discussion) \u2014 pending",
+   "fix": "implM2: menu lists Opus 5 first as default; stored opus-4.6 migrated once; explicit later choice sticks"
+  },
+  {
+   "id": "F-015",
+   "summary": "HUMAN-FOUND (Patrick, live): `bin/sandbox up \u2026 --pro --personal` launched both apps with PYTHONPATH pointing at the ORIGIN clones (old Copilot view visible) while the env block claimed Worktree checkouts; backend was on the worktree. Journeys never caught it because they run TestInstance from the worktree's own mcpserver module.",
+   "severity": "major",
+   "repro": "bin/sandbox up FD-336 --seed family+hostile --pro; ps eww <pro pid> | grep PYTHONPATH",
+   "validation_status": "human-verified",
+   "status": "open",
+   "found_in_track": "human",
+   "criterion": "H2",
+   "regression_test": "pending (implHx): real-launch test asserting the app imports pkdiagram from the ticket worktree, via TestInstance and via bin/sandbox",
+   "fix": "implHx: app launch PYTHONPATH always from the resolved Checkouts regardless of which mcpserver copy executes"
+  },
   {
    "id": "F-014",
    "summary": "MERGE-ORDER NOTE (not a defect): .mcp.json registers the ORIGIN clone's mcpserver/mcp_server.py, which re-execs from the FD_TICKET checkout only once FD-336 is on master; until familydiagram #150 merges, an MCP client reaches master's harness for every ticket. mcpserver/tests/test_reexec.py carries a strict xfail that flips to pass after merge (delete the marker then).",
@@ -757,5 +793,11 @@
   "design_planning_review": "fable (coordinator + critics, FMEA, adversarial test design, diff review, verification judgment)",
   "implementation_and_test_authoring": "opus (model override on every builder/test-author agent, driven by fable-written briefs)"
  },
- "parked_on": "human track: C2h, C6h, C8h, C10h, H5h via doc/workstreams/FD-336/fd-336-human-script.md; Jira hand-off comment awaits a yes"
+ "parked_on": "F-015 fix in progress; then relaunch the sandbox for Patrick's walkthrough",
+ "model_policy": {
+  "decided_by": "Patrick 2026-08-26 (chat): premium chat always uses the latest Opus at equal price; otherwise compare pricing and cost projections",
+  "applied": "claude-opus-5 default (btcopilot eace19f); opus-4.6 selectable",
+  "cost_projection": "same per-token price ($5/$25 per Mtok); Opus 5 tokenizer measured 1.36x input tokens on the real coach prompt + 10 statements (3,987 -> 5,411) => ~36% more input spend per coach turn; output/thinking effects unmeasured",
+  "decision_log": "btcopilot decisions/log.md 2026-08-26 'Premium chat model policy'"
+ }
 }
