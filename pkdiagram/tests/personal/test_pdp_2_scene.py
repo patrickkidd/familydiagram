@@ -21,7 +21,7 @@ def _createBlockingRequestMock(diagram):
     def blockingRequest(verb, endpoint, data=None, bdata=None, headers=None, **kwargs):
         response = MagicMock()
         response.status_code = 200
-        response.body = json.dumps({"version": diagram.version + 1}).encode("utf-8")
+        response.body = pickle.dumps({"version": diagram.version + 1})
         return response
 
     return blockingRequest
@@ -50,7 +50,7 @@ def test_accept_person_updates_scene(test_user, personalApp: PersonalAppControll
     server.blockingRequest = _createBlockingRequestMock(personalApp._diagram)
 
     with patch.object(personalApp.session, "server", return_value=server):
-        result = personalApp.pdpController._doAcceptPDPItem(-1)
+        result = personalApp.pdpController.acceptPDPItem(-1)
 
     assert result is True
     assert len(scene.people()) == 1
@@ -90,7 +90,7 @@ def test_accept_event_updates_scene(test_user, personalApp: PersonalAppControlle
     server.blockingRequest = _createBlockingRequestMock(personalApp._diagram)
 
     with patch.object(personalApp.session, "server", return_value=server):
-        result = personalApp.pdpController._doAcceptPDPItem(-2)
+        result = personalApp.pdpController.acceptPDPItem(-2)
 
     assert result is True
     assert len(scene.people()) == 1
@@ -140,7 +140,7 @@ def test_accept_married_event_creates_marriage_in_scene(
     server.blockingRequest = _createBlockingRequestMock(personalApp._diagram)
 
     with patch.object(personalApp.session, "server", return_value=server):
-        result = personalApp.pdpController._doAcceptPDPItem(-20)
+        result = personalApp.pdpController.acceptPDPItem(-20)
 
     assert result is True
     assert len(scene.people()) == 2
@@ -197,7 +197,7 @@ def test_accept_birth_event_creates_child_with_parents(
     server.blockingRequest = _createBlockingRequestMock(personalApp._diagram)
 
     with patch.object(personalApp.session, "server", return_value=server):
-        result = personalApp.pdpController._doAcceptPDPItem(-20)
+        result = personalApp.pdpController.acceptPDPItem(-20)
 
     assert result is True
     assert len(scene.people()) == 3
@@ -237,7 +237,7 @@ def test_accept_pdp_preserves_existing_scene_items(
     server.blockingRequest = _createBlockingRequestMock(personalApp._diagram)
 
     with patch.object(personalApp.session, "server", return_value=server):
-        result = personalApp.pdpController._doAcceptPDPItem(-1)
+        result = personalApp.pdpController.acceptPDPItem(-1)
 
     assert result is True
     assert len(scene.people()) == 2
@@ -276,13 +276,13 @@ def test_accept_multiple_pdp_items_sequentially(
     server.blockingRequest = _createBlockingRequestMock(personalApp._diagram)
 
     with patch.object(personalApp.session, "server", return_value=server):
-        personalApp.pdpController._doAcceptPDPItem(-1)
+        personalApp.pdpController.acceptPDPItem(-1)
         assert len(scene.people()) == 1
 
-        personalApp.pdpController._doAcceptPDPItem(-2)
+        personalApp.pdpController.acceptPDPItem(-2)
         assert len(scene.people()) == 2
 
-        personalApp.pdpController._doAcceptPDPItem(-3)
+        personalApp.pdpController.acceptPDPItem(-3)
         assert len(scene.people()) == 3
 
     names = {p.name() for p in scene.people()}
@@ -334,7 +334,7 @@ def test_save_reload_after_marriage_commit_preserves_marriages(
     server.blockingRequest = _createBlockingRequestMock(personalApp._diagram)
 
     with patch.object(personalApp.session, "server", return_value=server):
-        result = personalApp.pdpController._doAcceptPDPItem(-20)
+        result = personalApp.pdpController.acceptPDPItem(-20)
 
     assert result is True
     assert len(scene.marriages()) == 1

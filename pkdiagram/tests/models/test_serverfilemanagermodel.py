@@ -438,361 +438,285 @@ def test_save_empty_pdp_stays_empty(create_model):
     assert pdp.get("pair_bonds", []) == []
 
 
-# --- Concurrent save simulation tests ---
+# --- Concurrent save tests (C7: exactly one save path, no data loss) ---
 #
-# These tests verify the data merge logic of each app's applyChange callback
-# directly on DiagramData, without server round-trips. They simulate the 409
-# replay flow: one app saves, creating a new server state, then the second
-# app's applyChange runs against that state as if replaying after a conflict.
+# Two writers land on one server row: the Pro app saving its Scene, and the
+# embedded pipeline committing a staged PDP item. Both go through the single
+# production saver and the Flask test app, so a merge that only works in a
+# test-local copy cannot pass. `test_concurrent_merge_is_the_production_one`
+# pins that: it spies on the real merge and fails if the save path skips it.
+
+import contextlib
 
 from btcopilot.schema import (
     DiagramData,
     PDP,
     Person as SchemaPerson,
-    Event as SchemaEvent,
-    EventKind,
+    asdict as schema_asdict,
 )
-import pickle
-import copy
+from pkdiagram.server_types import Server
 
-
-def _pro_apply_change(
-    diagramData: DiagramData,
-    localData: dict,
-    openSnapshot: dict | None = None,
-) -> DiagramData:
-    """Reproduce Pro app's applyChange from serverfilemanagermodel.py."""
-    if openSnapshot is None:
-        openSnapshot = {}
-    for fname in DiagramData.SCENE_COLLECTION_FIELDS:
-        setattr(
-            diagramData,
-            fname,
-            DiagramData.apply_local_changes(
-                getattr(diagramData, fname),
-                openSnapshot.get(fname, []),
-                localData.get(fname, []),
-            ),
-        )
-    diagramData.uuid = localData.get("uuid")
-    diagramData.name = localData.get("name")
-    diagramData.tags = localData.get("tags", [])
-    diagramData.loggedDateTime = localData.get("loggedDateTime", [])
-    diagramData.masterKey = localData.get("masterKey")
-    diagramData.alias = localData.get("alias")
-    diagramData.version = localData.get("version")
-    diagramData.versionCompat = localData.get("versionCompat")
-    diagramData.lastItemId = localData.get("lastItemId", 0)
-    diagramData.readOnly = localData.get("readOnly", False)
-    diagramData.contributeToResearch = localData.get("contributeToResearch", False)
-    diagramData.useRealNames = localData.get("useRealNames", False)
-    diagramData.password = localData.get("password")
-    diagramData.requirePasswordForRealNames = localData.get(
-        "requirePasswordForRealNames", False
-    )
-    diagramData.showAliases = localData.get("showAliases", False)
-    diagramData.hideNames = localData.get("hideNames", False)
-    diagramData.hideToolBars = localData.get("hideToolBars", False)
-    diagramData.hideEmotionalProcess = localData.get("hideEmotionalProcess", False)
-    diagramData.hideEmotionColors = localData.get("hideEmotionColors", False)
-    diagramData.hideDateSlider = localData.get("hideDateSlider", False)
-    diagramData.hideVariablesOnDiagram = localData.get(
-        "hideVariablesOnDiagram", False
-    )
-    diagramData.hideVariableSteadyStates = localData.get(
-        "hideVariableSteadyStates", False
-    )
-    diagramData.hideSARFGraphics = localData.get("hideSARFGraphics", True)
-    diagramData.exclusiveLayerSelection = localData.get(
-        "exclusiveLayerSelection", True
-    )
-    diagramData.storePositionsInLayers = localData.get(
-        "storePositionsInLayers", False
-    )
-    diagramData.currentDateTime = localData.get("currentDateTime")
-    diagramData.scaleFactor = localData.get("scaleFactor")
-    diagramData.pencilColor = localData.get("pencilColor")
-    diagramData.eventProperties = localData.get("eventProperties", [])
-    diagramData.legendData = localData.get("legendData")
-    return diagramData
-
-
-def _personal_apply_change(
-    diagramData: DiagramData,
-    sceneDiagramData: DiagramData,
-    clusters: list,
-    clusterCacheKey: str | None,
-    openSnapshot: dict | None = None,
-) -> DiagramData:
-    """Reproduce Personal app's applyChange from personalappcontroller.py."""
-    if openSnapshot is None:
-        openSnapshot = {}
-    for fname in DiagramData.SCENE_COLLECTION_FIELDS:
-        setattr(
-            diagramData,
-            fname,
-            DiagramData.apply_local_changes(
-                getattr(diagramData, fname),
-                openSnapshot.get(fname, []),
-                getattr(sceneDiagramData, fname),
-            ),
-        )
-    diagramData.version = sceneDiagramData.version
-    diagramData.versionCompat = sceneDiagramData.versionCompat
-    diagramData.name = sceneDiagramData.name
-    diagramData.lastItemId = max(diagramData.lastItemId, sceneDiagramData.lastItemId)
-    diagramData.clusters = clusters
-    diagramData.clusterCacheKey = clusterCacheKey
-    return diagramData
-
-
-def _names(dd: DiagramData) -> set[str]:
-    return {p.get("name") for p in dd.people}
-
-
-def test_concurrent_pro_saves_first_personal_replays():
-    """Pro saves scene edit (Alice), Personal replays with PDP + clusters on 409."""
-    serverState = DiagramData(
-        people=[{"id": 1, "name": "Alice", "kind": "Person"}],
-        lastItemId=1,
-    )
-
-    personalScene = DiagramData(
-        people=[{"id": 1, "name": "Alice", "kind": "Person"}],
-        lastItemId=1,
-    )
-    clusters = [{"id": "c1", "pattern": "anxiety_cascade", "event_ids": [10]}]
-    cacheKey = "personal-key-1"
-
-    # Personal's applyChange does NOT set pdp — it's preserved from server state.
-    # Simulate Personal having written PDP to server previously.
-    serverState.pdp = PDP(
-        people=[SchemaPerson(id=-1, name="PDPBob")],
-        events=[SchemaEvent(id=-2, kind=EventKind.Shift, person=-1)],
-        pair_bonds=[],
-    )
-
-    result = _personal_apply_change(serverState, personalScene, clusters, cacheKey)
-
-    assert "Alice" in _names(result)
-    assert result.pdp.people[0].name == "PDPBob"
-    assert len(result.pdp.events) == 1
-    assert result.clusters == clusters
-    assert result.clusterCacheKey == cacheKey
-
-
-def test_concurrent_personal_saves_first_pro_replays():
-    """Personal saves PDP + committed person Bob + clusters. Pro replays with scene edit
-    (Charlie) on 409. Bob (server-only, added by Personal) survives the merge.
-    """
-    serverState = DiagramData(
-        people=[{"id": 1, "name": "Bob", "kind": "Person"}],
-        pdp=PDP(people=[], events=[], pair_bonds=[]),
-        clusters=[{"id": "c1", "pattern": "anxiety_cascade"}],
-        clusterCacheKey="personal-key-1",
-        lastItemId=1,
-    )
-
-    proLocalData = {
-        "people": [{"id": 2, "name": "Charlie", "kind": "Person"}],
-        "events": [],
-        "pair_bonds": [],
-        "emotions": [],
-        "lastItemId": 2,
-    }
-
-    result = _pro_apply_change(serverState, proLocalData)
-
-    assert "Charlie" in _names(result)
-    assert "Bob" in _names(result)
-    # Personal-owned fields survive because Pro doesn't touch them
-    assert result.clusters == [{"id": "c1", "pattern": "anxiety_cascade"}]
-    assert result.clusterCacheKey == "personal-key-1"
-
-
-def test_concurrent_pdp_commit_then_pro_saves_stale():
-    """Personal committed PDP person Bob into `people` and saved. Pro (stale,
-    no Bob in local Scene) saves and gets 409, then replays. Merge keeps Bob
-    (server-only) and ExistingPerson (in both).
-    """
-    serverState = DiagramData(
+STAGED_PDP = schema_asdict(
+    PDP(
         people=[
-            {"id": 1, "name": "ExistingPerson", "kind": "Person"},
-            {"id": 2, "name": "Bob", "kind": "Person"},  # committed from PDP
-        ],
-        pdp=PDP(people=[], events=[], pair_bonds=[]),  # Bob already committed out
-        lastItemId=2,
+            SchemaPerson(id=-1, name="Ana"),
+            SchemaPerson(id=-2, name="Ben"),
+        ]
     )
-
-    # Pro's local Scene is stale — only has ExistingPerson
-    proLocalData = {
-        "people": [{"id": 1, "name": "ExistingPerson", "kind": "Person"}],
-        "events": [],
-        "pair_bonds": [],
-        "emotions": [],
-        "lastItemId": 1,
-    }
-
-    result = _pro_apply_change(serverState, proLocalData)
-
-    # Bob survives — server-only items are kept by the merge
-    assert "Bob" in _names(result)
-    assert "ExistingPerson" in _names(result)
-    # PDP is empty — Bob was already committed out of it
-    assert result.pdp.people == []
+)
 
 
-def test_concurrent_ui_flags_survive_personal_apply():
-    """Pro set hideNames=True and hideSARFGraphics=False. Personal replays
-    (doesn't set UI flags). UI flags must survive on the server."""
-    serverState = DiagramData(
+def _row(diagram_id) -> dict:
+    db.session.expire_all()
+    return pickle.loads(Diagram.query.get(diagram_id).data)
+
+
+def _row_version(diagram_id) -> int:
+    db.session.expire_all()
+    return Diagram.query.get(diagram_id).version
+
+
+def _names(diagram_id) -> set:
+    return {p.get("name") for p in _row(diagram_id).get("people", [])}
+
+
+def _other_client_write(diagram_id, **fields):
+    """Another client's save: the blob changes and the row version advances, so
+    a client that has not re-synced holds a stale version and its next PUT
+    conflicts."""
+    diagram = Diagram.query.get(diagram_id)
+    data = pickle.loads(diagram.data) if diagram.data else {}
+    data.update(fields)
+    diagram.update_with_version_check(None, new_data=pickle.dumps(data))
+    diagram.updated_at = datetime.datetime.utcnow() + datetime.timedelta(seconds=1)
+    db.session.commit()
+
+
+def _commit(*itemIds):
+    """The pipeline's mutation: promote staged PDP items into the Scene
+    collections. Returned so the saver may either use the return value or rely
+    on the in-place mutation."""
+
+    def mutate(diagramData: DiagramData) -> DiagramData:
+        diagramData.commit_pdp_items(list(itemIds))
+        return diagramData
+
+    return mutate
+
+
+def _flagged_scene(*people) -> Scene:
+    """Non-default UI flags make the whole metadata block load-bearing: a save
+    path that rebuilt them from defaults would flip every one of these."""
+    return Scene(
         hideNames=True,
-        hideSARFGraphics=False,
-        exclusiveLayerSelection=False,
-        storePositionsInLayers=True,
-        readOnly=True,
-        scaleFactor=1.5,
+        hideToolBars=True,
+        hideEmotionalProcess=True,
+        hideDateSlider=True,
+        showAliases=True,
+        items=list(people),
     )
 
-    personalScene = DiagramData(
-        people=[{"id": 1, "name": "Someone"}],
-        lastItemId=1,
+
+def _pro_save(model, sceneBytes) -> bool:
+    return model.setData(model.index(0, 0), sceneBytes, role=model.DiagramDataRole)
+
+
+@contextlib.contextmanager
+def _put_statuses(monkeypatch):
+    """Status code of every diagram PUT, so a 409 replay is observable."""
+    statuses = []
+    request = Server.blockingRequest
+
+    def blockingRequest(self, verb, path, *args, **kwargs):
+        response = request(self, verb, path, *args, **kwargs)
+        if verb == "PUT" and "/diagrams/" in path:
+            statuses.append(response.status_code)
+        return response
+
+    monkeypatch.setattr(Server, "blockingRequest", blockingRequest)
+    yield statuses
+
+
+def _open_with_pdp(create_model):
+    """A model whose cached diagram is in sync with a row carrying staged
+    people."""
+    model = create_model()
+    diagram_id = model.index(0, 0).data(model.IDRole)
+    _other_client_write(diagram_id, pdp=STAGED_PDP)
+    model.syncDiagramFromServer(diagram_id)
+    return model, diagram_id
+
+
+def test_concurrent_pro_save_then_pdp_commit(create_model):
+    """Pro writes a Scene edit, then the pipeline commits a staged person. The
+    Scene edit must still be on the row and the committed person added."""
+    model, diagram_id = _open_with_pdp(create_model)
+
+    scene = Scene(items=Person(name="Alice"))
+    sceneBytes = pickle.dumps(scene.data())
+    assert _pro_save(model, sceneBytes) == True
+
+    assert model.saver.save(diagram_id, sceneBytes, mutate=_commit(-1)) == True
+    assert _names(diagram_id) == {"Alice", "Ana"}
+    assert [p["name"] for p in _row(diagram_id)["pdp"]["people"]] == ["Ben"]
+
+
+def test_concurrent_pdp_commit_then_pro_save(create_model):
+    """Reverse order: the committed person is server-only when Pro saves, and
+    the merge must keep it rather than read it as a deletion."""
+    model, diagram_id = _open_with_pdp(create_model)
+
+    scene = Scene(items=Person(name="Alice"))
+    sceneBytes = pickle.dumps(scene.data())
+    assert model.saver.save(diagram_id, sceneBytes, mutate=_commit(-1)) == True
+
+    scene.addItems(Person(name="Carol"))
+    assert _pro_save(model, pickle.dumps(scene.data())) == True
+    assert _names(diagram_id) == {"Alice", "Carol", "Ana"}
+    assert [p["name"] for p in _row(diagram_id)["pdp"]["people"]] == ["Ben"]
+
+
+def test_concurrent_alternating_saves_three_rounds(create_model):
+    """Pro, pipeline, Pro. Nothing written by an earlier round may be lost by a
+    later one."""
+    model, diagram_id = _open_with_pdp(create_model)
+
+    scene = Scene(items=Person(name="Alice"))
+    assert _pro_save(model, pickle.dumps(scene.data())) == True
+
+    assert (
+        model.saver.save(diagram_id, pickle.dumps(scene.data()), mutate=_commit(-1))
+        == True
     )
 
-    result = _personal_apply_change(serverState, personalScene, clusters=[], clusterCacheKey=None)
+    scene.addItems(Person(name="Dave"))
+    assert _pro_save(model, pickle.dumps(scene.data())) == True
 
-    # Personal's applyChange only touches scene collections, version metadata,
-    # and clusters. All UI flags are untouched — they survive from server state.
-    assert result.hideNames is True
-    assert result.hideSARFGraphics is False
-    assert result.exclusiveLayerSelection is False
-    assert result.storePositionsInLayers is True
-    assert result.readOnly is True
-    assert result.scaleFactor == 1.5
+    assert _names(diagram_id) == {"Alice", "Dave", "Ana"}
+    assert [p["name"] for p in _row(diagram_id)["pdp"]["people"]] == ["Ben"]
 
 
-def test_concurrent_clusters_survive_pro_apply():
-    """Personal wrote clusters + clusterCacheKey. Pro replays. Both must survive."""
-    clusters = [
-        {"id": "c1", "pattern": "anxiety_cascade", "event_ids": [10, 11]},
-        {"id": "c2", "pattern": "triangle_activation", "event_ids": [12]},
-    ]
-    serverState = DiagramData(
-        clusters=clusters,
-        clusterCacheKey="cache-abc",
+def test_concurrent_ui_flags_survive_pipeline_save(create_model):
+    """The pipeline writes the whole Scene now, so a pipeline save is the path
+    that could silently reset Pro's UI flags to their defaults."""
+    model, diagram_id = _open_with_pdp(create_model)
+
+    scene = _flagged_scene(Person(name="Alice"))
+    assert _pro_save(model, pickle.dumps(scene.data())) == True
+
+    scene.addItems(Person(name="Carol"))
+    assert (
+        model.saver.save(diagram_id, pickle.dumps(scene.data()), mutate=_commit(-1))
+        == True
     )
 
-    proLocalData = {
-        "people": [{"id": 1, "name": "Eve"}],
-        "events": [],
-        "pair_bonds": [],
-        "emotions": [],
-        "lastItemId": 1,
-    }
-
-    result = _pro_apply_change(serverState, proLocalData)
-
-    assert result.clusters == clusters
-    assert result.clusterCacheKey == "cache-abc"
+    row = _row(diagram_id)
+    assert "Carol" in _names(diagram_id)
+    assert (
+        row["hideNames"],
+        row["hideToolBars"],
+        row["hideEmotionalProcess"],
+        row["hideDateSlider"],
+        row["showAliases"],
+    ) == (True, True, True, True, True)
+    assert "Ana" in _names(diagram_id)
 
 
-def test_concurrent_pdp_survives_pro_apply():
-    """Personal wrote non-empty PDP. Pro replays. PDP must survive intact."""
-    pdp = PDP(
-        people=[
-            SchemaPerson(id=-1, name="PDPAlice"),
-            SchemaPerson(id=-2, name="PDPBob"),
-        ],
-        events=[
-            SchemaEvent(id=-3, kind=EventKind.Shift, person=-1, description="anxiety spike"),
-            SchemaEvent(id=-4, kind=EventKind.Married, person=-1, spouse=-2),
-        ],
-        pair_bonds=[],
+def test_concurrent_clusters_survive_pro_save(create_model):
+    """Clusters and their cache key belong to the row, not to Pro's Scene: a
+    Pro save must carry them through untouched."""
+    model = create_model()
+    diagram_id = model.index(0, 0).data(model.IDRole)
+    _other_client_write(
+        diagram_id, clusters=SAMPLE_CLUSTERS, clusterCacheKey="cache-abc"
     )
-    serverState = DiagramData(pdp=pdp)
+    model.syncDiagramFromServer(diagram_id)
 
-    proLocalData = {
-        "people": [{"id": 1, "name": "ScenePerson"}],
-        "events": [],
-        "pair_bonds": [],
-        "emotions": [],
-        "lastItemId": 1,
-    }
+    assert _pro_save(model, pickle.dumps(Scene(items=Person(name="Eve")).data())) == True
 
-    result = _pro_apply_change(serverState, proLocalData)
-
-    assert len(result.pdp.people) == 2
-    assert result.pdp.people[0].name == "PDPAlice"
-    assert result.pdp.people[1].name == "PDPBob"
-    assert len(result.pdp.events) == 2
-    assert result.pdp.events[0].kind == EventKind.Shift
-    assert result.pdp.events[1].kind == EventKind.Married
+    row = _row(diagram_id)
+    assert row["clusters"] == SAMPLE_CLUSTERS
+    assert row["clusterCacheKey"] == "cache-abc"
+    assert "Eve" in _names(diagram_id)
 
 
-def test_concurrent_alternating_saves_three_rounds():
-    """Simulate Pro → Personal (409) → Pro (409). Each app adds distinct data.
-    Verify final state within known limitations.
+def test_concurrent_pdp_survives_pro_save_opened_before_extraction(
+    create_model, monkeypatch
+):
+    """Pro opened the case before the extraction was written, so its save
+    conflicts. One replay against the refreshed row must keep the staged people
+    and still land the Scene edit."""
+    model = create_model()
+    diagram_id = model.index(0, 0).data(model.IDRole)
+    _other_client_write(diagram_id, pdp=STAGED_PDP)
 
-    Round 1: Pro saves Alice + hideNames=True
-    Round 2: Personal gets 409, replays with clusters + its scene (which includes Alice)
-    Round 3: Pro gets 409, replays with Dave added to scene (stale, doesn't have clusters change)
+    with _put_statuses(monkeypatch) as statuses:
+        assert (
+            _pro_save(model, pickle.dumps(Scene(items=Person(name="Alice")).data()))
+            == True
+        )
+    assert statuses == [409, 200]
 
-    After round 3, Pro's replay preserves clusters (not in Pro's field list) but
-    Pro's people array replaces server's — so the final people list is whatever
-    Pro's local Scene had.
-    """
-    # Round 1: Pro saves
-    serverState = DiagramData()
-    proLocalR1 = {
-        "people": [{"id": 1, "name": "Alice"}],
-        "events": [],
-        "pair_bonds": [],
-        "emotions": [],
-        "hideNames": True,
-        "lastItemId": 1,
-    }
-    serverState = _pro_apply_change(serverState, proLocalR1)
+    row = _row(diagram_id)
+    assert [p["name"] for p in row["pdp"]["people"]] == ["Ana", "Ben"]
+    assert _names(diagram_id) == {"Alice"}
 
-    assert "Alice" in _names(serverState)
-    assert serverState.hideNames is True
 
-    # Round 2: Personal gets 409, replays. Personal's scene has Alice (synced before editing).
-    personalSceneR2 = DiagramData(
-        people=[{"id": 1, "name": "Alice"}],
-        lastItemId=1,
+def test_concurrent_row_version_advances_once_per_write(create_model):
+    """Optimistic locking is only sound if one successful save is one version
+    step: a double bump would make every other client's next save conflict."""
+    model, diagram_id = _open_with_pdp(create_model)
+    versions = [_row_version(diagram_id)]
+
+    scene = Scene(items=Person(name="Alice"))
+    assert _pro_save(model, pickle.dumps(scene.data())) == True
+    versions.append(_row_version(diagram_id))
+
+    assert (
+        model.saver.save(diagram_id, pickle.dumps(scene.data()), mutate=_commit(-1))
+        == True
     )
-    clustersR2 = [{"id": "c1", "pattern": "anxiety_cascade"}]
-    serverState.pdp = PDP(
-        people=[SchemaPerson(id=-1, name="PDPEve")], events=[], pair_bonds=[]
+    versions.append(_row_version(diagram_id))
+
+    scene.addItems(Person(name="Dave"))
+    assert _pro_save(model, pickle.dumps(scene.data())) == True
+    versions.append(_row_version(diagram_id))
+
+    assert [b - a for a, b in zip(versions, versions[1:])] == [1, 1, 1]
+
+
+def test_concurrent_merge_is_the_production_one(create_model, monkeypatch):
+    """Guard for the whole section: the saver must call the real snapshot-diff
+    merge with the row's items, the baseline it kept, and the Scene's items. A
+    save path that inlined its own merge would leave this unexercised."""
+    model = create_model()
+    diagram_id = model.index(0, 0).data(model.IDRole)
+
+    firstBytes = pickle.dumps(Scene(items=Person(name="Mine")).data())
+    assert _pro_save(model, firstBytes) == True
+
+    _other_client_write(
+        diagram_id,
+        people=_row(diagram_id)["people"]
+        + [{"id": 9001, "name": "Theirs", "kind": "Person"}],
     )
-    serverState = _personal_apply_change(
-        serverState, personalSceneR2, clustersR2, "cache-r2"
-    )
+    model.syncDiagramFromServer(diagram_id)
+    rowBytes = model.findDiagram(diagram_id).data
 
-    assert "Alice" in _names(serverState)
-    assert serverState.clusters == clustersR2
-    assert serverState.clusterCacheKey == "cache-r2"
-    assert serverState.hideNames is True  # UI flag survived Personal's replay
-    assert serverState.pdp.people[0].name == "PDPEve"
+    calls = []
+    merge = DiagramData.apply_local_changes
 
-    # Round 3: Pro gets 409, replays. Pro's local scene has Alice + Dave, but
-    # Pro doesn't know about clusters or PDP (stale).
-    proLocalR3 = {
-        "people": [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Dave"}],
-        "events": [],
-        "pair_bonds": [],
-        "emotions": [],
-        "hideNames": True,
-        "hideSARFGraphics": False,
-        "lastItemId": 2,
-    }
-    serverState = _pro_apply_change(serverState, proLocalR3)
+    def spy(server, snapshot, local):
+        calls.append((server, snapshot, local))
+        return merge(server, snapshot, local)
 
-    # Pro-owned fields reflect Pro's latest
-    assert _names(serverState) == {"Alice", "Dave"}
-    assert serverState.hideNames is True
-    assert serverState.hideSARFGraphics is False
-    # Personal-owned fields survive all three rounds
-    assert serverState.clusters == clustersR2
-    assert serverState.clusterCacheKey == "cache-r2"
-    assert serverState.pdp.people[0].name == "PDPEve"
+    monkeypatch.setattr(DiagramData, "apply_local_changes", staticmethod(spy))
+
+    secondBytes = pickle.dumps(Scene(items=Person(name="Mine2")).data())
+    assert _pro_save(model, secondBytes) == True
+
+    assert len(calls) == len(DiagramData.SCENE_COLLECTION_FIELDS)
+    server, snapshot, local = calls[DiagramData.SCENE_COLLECTION_FIELDS.index("people")]
+    assert server == pickle.loads(rowBytes)["people"]
+    assert snapshot == pickle.loads(firstBytes)["people"]
+    assert local == pickle.loads(secondBytes)["people"]

@@ -1,4 +1,6 @@
 import logging
+import pickle
+from copy import deepcopy
 
 from btcopilot.schema import (
     DateCertainty,
@@ -16,13 +18,14 @@ from PyQt5.QtCore import QDateTime, QTimer
 
 from pkdiagram import util
 from pkdiagram.app import Session
+from pkdiagram.models.diagramsaver import DiagramSaver
 from pkdiagram.personal.api import JSON_HEADERS
-from pkdiagram.personal.commands import HandlePDPItem, PDPAction
+from pkdiagram.personal.commands import AcceptPDPItems
 from pkdiagram.personal.discussioncontroller import DiscussionController
-from pkdiagram.personal.saveguard import SaveGuard
 from pkdiagram.pyqt import (
+    QLineF,
     QObject,
-    QUndoStack,
+    QPointF,
     QUrl,
     QVariant,
     pyqtProperty,
@@ -35,6 +38,10 @@ from pkdiagram.server_types import Diagram
 # Rebuild fails if no progress advance arrives within this window — catches a
 # crashed/killed worker or a lost task, which otherwise poll a dead task forever.
 REBUILD_STALL_MS = 180_000
+
+# Committed items carry no position, so they cascade from the centre of the
+# people already on the diagram instead of stacking on the origin (FD-336 D11).
+PLACEMENT_OFFSET = 60
 
 _log = logging.getLogger(__name__)
 
@@ -60,17 +67,12 @@ class PDPController(QObject):
     rebuildProgress = pyqtSignal(int, str, arguments=["percent", "message"])
     rebuildCancelled = pyqtSignal()
 
-    def __init__(
-        self,
-        session: Session,
-        saveGuard: SaveGuard,
-        undoStack: QUndoStack,
-        parent=None,
-    ):
+    ITEM_FIELDS = ("people", "events", "pair_bonds")
+
+    def __init__(self, session: Session, saver: DiagramSaver, parent=None):
         super().__init__(parent)
         self.session = session
-        self._saveGuard = saveGuard
-        self._undoStack = undoStack
+        self.saver = saver
         self._diagram: Diagram | None = None
         self._discussion: DiscussionController | None = None
         self.scene: Scene | None = None
@@ -129,46 +131,38 @@ class PDPController(QObject):
         return bool(diagramData.people)
 
     @pyqtSlot(int, result=bool)
-    def acceptPDPItem(self, id: int, undo=True):
-        if id > 0:
-            return self._saveGuard(
-                lambda: self._doHandleCommittedItem(id, accept=True, undo=undo)
-            )
+    def acceptPDPItem(self, id: int, undo=True) -> bool:
         if id == 0:
             _log.error(f"acceptPDPItem called with id 0, ignoring")
             return False
-
-        def _do():
-            prev_data = self._diagram.getDiagramData() if undo else None
-            success = self._doAcceptPDPItem(id)
-            if success:
-                self.committed.emit()
-                if undo:
-                    cmd = HandlePDPItem(PDPAction.Accept, self, id, prev_data)
-                    self._undoStack.push(cmd)
-            return success
-
-        return self._saveGuard(_do)
+        result = self._acceptIds([id])
+        if result and undo and self.scene:
+            self.scene.push(AcceptPDPItems(self, [id], *result))
+        return result is not None
 
     @pyqtSlot(int, result=bool)
-    def rejectPDPItem(self, id: int, undo=True):
-        if id > 0:
-            return self._saveGuard(
-                lambda: self._doHandleCommittedItem(id, accept=False, undo=undo)
-            )
+    def rejectPDPItem(self, id: int) -> bool:
+        """Not undoable: nothing lands on the Scene, and the next extraction
+        re-proposes the item."""
         if id == 0:
             _log.error(f"rejectPDPItem called with id 0, ignoring")
             return False
 
-        def _do():
-            prev_data = self._diagram.getDiagramData() if undo else None
-            success = self._doRejectPDPItem(id)
-            if success and undo:
-                cmd = HandlePDPItem(PDPAction.Reject, self, id, prev_data)
-                self._undoStack.push(cmd)
-            return success
+        def mutate(diagramData: DiagramData) -> DiagramData:
+            if id < 0:
+                diagramData.reject_pdp_item(id)
+            elif id in (diagramData.pdp.delete or []):
+                diagramData.reject_committed_delete(id)
+            else:
+                diagramData.reject_committed_edit(id)
+            return diagramData
 
-        return self._saveGuard(_do)
+        success = self.saver.save(self._diagram.id, self._sceneBytes(), mutate=mutate)
+        if success:
+            self.pdpChanged.emit()
+        else:
+            _log.warning(f"Failed to reject PDP item {id} after retries")
+        return success
 
     def _postCommitPdp(self, itemIds: list[int], fullAccept: bool):
         """Tell the backend which staged items were accepted so the
@@ -218,61 +212,133 @@ class PDPController(QObject):
             or diagramData.pdp.pair_bonds
         )
 
-    def _doAcceptPDPItem(self, id: int) -> bool:
-        _log.info(f"Accepting PDP item with id: {id}")
+    def _sceneBytes(self) -> bytes:
+        """This client's view of the row. With no Scene loaded — the blob was
+        corrupt enough that Scene.read raised — the row stands in for it, so
+        the merge is a no-op and only the mutation lands."""
+        return pickle.dumps(self.scene.data()) if self.scene else self._diagram.data
 
-        committedItems = {"people": [], "events": [], "pair_bonds": [], "emotions": []}
-        drained = {}
+    @classmethod
+    def _itemFields(cls, diagramData: DiagramData) -> dict:
+        fields = {
+            name: deepcopy(getattr(diagramData, name)) for name in cls.ITEM_FIELDS
+        }
+        fields["pdp"] = deepcopy(diagramData.pdp)
+        return fields
 
-        def applyChange(diagramData: DiagramData):
-            _log.info(f"Applying accept PDP item change for id: {id}")
-            if not diagramData.pdp:
-                _log.warning("No PDP data available")
-                return diagramData
-            if self.scene is not None:
-                diagramData.lastItemId = max(
-                    diagramData.lastItemId, self.scene.lastItemId()
-                )
-            # Capture IDs before commit to identify what was added
-            prevPeopleIds = {p["id"] for p in diagramData.people}
-            prevEventIds = {e["id"] for e in diagramData.events}
-            prevPairBondIds = {pb["id"] for pb in diagramData.pair_bonds}
+    def _acceptIds(self, ids: list[int]) -> tuple[dict, dict] | None:
+        """Commit staged items onto the row and mirror the result onto the
+        Scene. Returns the row's committed collections either side of the
+        accept, or None if the save failed."""
+        _log.info(f"Accepting PDP items: {ids}")
+        prev, post, drained = {}, {}, {}
 
-            diagramData.commit_pdp_items([id])
-
-            # Find newly committed items
-            committedItems["people"] = [
-                p for p in diagramData.people if p["id"] not in prevPeopleIds
-            ]
-            committedItems["events"] = [
-                e for e in diagramData.events if e["id"] not in prevEventIds
-            ]
-            committedItems["pair_bonds"] = [
-                pb for pb in diagramData.pair_bonds if pb["id"] not in prevPairBondIds
-            ]
+        def mutate(diagramData: DiagramData) -> DiagramData:
+            prev.update(self._itemFields(diagramData))
+            newIds = [x for x in ids if x < 0]
+            if newIds:
+                diagramData.commit_pdp_items(newIds)
+            for id in (x for x in ids if x > 0):
+                if id in (diagramData.pdp.delete or []):
+                    diagramData.accept_committed_delete(id)
+                else:
+                    diagramData.accept_committed_edit(id)
             drained["v"] = self._pdpDrained(diagramData)
-
+            post.update(self._itemFields(diagramData))
             return diagramData
 
-        def stillValidAfterRefresh(diagramData: DiagramData):
-            return True
+        if not self.saver.save(self._diagram.id, self._sceneBytes(), mutate=mutate):
+            _log.warning(f"Failed to accept PDP items {ids} after retries")
+            return None
 
-        success = self._diagram.save(
-            self.session.server(), applyChange, stillValidAfterRefresh, useJson=True
-        )
+        self._syncSceneTo(post)
+        self.pdpChanged.emit()
+        self.committed.emit()
+        self._postCommitPdp(ids, drained["v"])
+        return prev, post
 
+    def _revertTo(self, prev: dict) -> bool:
+        """Undo half of AcceptPDPItems: the cards and the committed
+        collections go back on the row, and the Scene follows."""
+
+        def mutate(diagramData: DiagramData) -> DiagramData:
+            for name in self.ITEM_FIELDS:
+                setattr(diagramData, name, deepcopy(prev[name]))
+            diagramData.pdp = deepcopy(prev["pdp"])
+            return diagramData
+
+        self._syncSceneTo(prev)
+        success = self.saver.save(self._diagram.id, self._sceneBytes(), mutate=mutate)
         if success:
-            self._addCommittedItemsToScene(committedItems)
             self.pdpChanged.emit()
-            self._postCommitPdp([id], drained.get("v", False))
         else:
-            _log.warning(f"Failed to accept PDP item after retries")
-
+            _log.warning("Failed to undo an accept after retries")
         return success
 
-    def _addCommittedItemsToScene(self, committedItems: dict):
+    def _syncSceneTo(self, fields: dict):
+        """Match the Scene to the row's committed collections: add what it
+        lacks, drop what the row no longer carries, take name/gender edits."""
         if self.scene is None:
             return
+        adds = {name: [] for name in self.ITEM_FIELDS}
+        keep = set()
+        for name in self.ITEM_FIELDS:
+            for chunk in fields[name]:
+                keep.add(chunk["id"])
+                item = self.scene.itemRegistry.get(chunk["id"])
+                if item is None:
+                    adds[name].append(chunk)
+                elif name == "people":
+                    if chunk.get("name") is not None:
+                        item.setName(chunk["name"])
+                    if chunk.get("gender") is not None:
+                        item.setGender(chunk["gender"])
+        stale = [
+            item
+            for item in list(self.scene.events())
+            + list(self.scene.marriages())
+            + list(self.scene.people())
+            if item.id not in keep
+        ]
+        if stale:
+            self.scene.setBatchAddingRemovingItems(True)
+            try:
+                for item in stale:
+                    self.scene.removeItem(item)
+            finally:
+                self.scene.setBatchAddingRemovingItems(False)
+        self._addCommittedItemsToScene(adds)
+
+    def _place(self, people: list):
+        """Committed chunks carry no position (D11). Cascade each new person off
+        the centre of the people already on the diagram, stepping until it
+        clears every one of them, so nothing lands on top of anything — within
+        this batch or across separate accepts. Reads stored positions, not
+        scene bounding rects, which lag a person placed moments ago."""
+        placed = [person.itemPos() for person in self.scene.people()]
+        if placed:
+            xs = [pos.x() for pos in placed]
+            ys = [pos.y() for pos in placed]
+            anchor = QPointF((min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2)
+        else:
+            anchor = QPointF()
+
+        def candidate(step):
+            return anchor + QPointF(PLACEMENT_OFFSET * step, PLACEMENT_OFFSET * step)
+
+        step = 1
+        for person in people:
+            pos = candidate(step)
+            while any(
+                QLineF(pos, other).length() < PLACEMENT_OFFSET for other in placed
+            ):
+                step += 1
+                pos = candidate(step)
+            person.setItemPosNow(pos)
+            placed.append(pos)
+            step += 1
+
+    def _addCommittedItemsToScene(self, committedItems: dict):
         if (
             not committedItems["people"]
             and not committedItems["events"]
@@ -326,6 +392,8 @@ class PDPController(QObject):
             droppedSet = set(dropped)
             itemChunks = [(i, c) for (i, c) in itemChunks if i not in droppedSet]
 
+        self._place([item for item, chunk in itemChunks if isinstance(item, Person)])
+
         # Phase 3: Add all items to scene.
         # isInitializing: suppress cross-reference validation (FR-4)
         # batch mode: defer signals and geometry updates
@@ -337,115 +405,6 @@ class PDPController(QObject):
         finally:
             self.scene.isInitializing = False
             self.scene.setBatchAddingRemovingItems(False)
-
-    def _doHandleCommittedItem(self, id: int, accept: bool, undo: bool = True) -> bool:
-        """Accept or reject a committed item (positive id in pdp.people or pdp.delete)."""
-        prev_data = self._diagram.getDiagramData() if undo else None
-        result: dict = {"is_delete": False, "edit_fields": {}, "drained": False}
-
-        def applyChange(diagramData: DiagramData):
-            if not diagramData.pdp:
-                return diagramData
-            is_delete = id in (diagramData.pdp.delete or [])
-            result["is_delete"] = is_delete
-            if accept:
-                if is_delete:
-                    diagramData.accept_committed_delete(id)
-                else:
-                    pdp_person = next(
-                        (p for p in diagramData.pdp.people if p.id == id), None
-                    )
-                    if pdp_person is not None:
-                        if pdp_person.name is not None:
-                            result["edit_fields"]["name"] = pdp_person.name
-                        if pdp_person.gender is not None:
-                            result["edit_fields"]["gender"] = pdp_person.gender
-                    diagramData.accept_committed_edit(id)
-            else:
-                if is_delete:
-                    diagramData.reject_committed_delete(id)
-                else:
-                    diagramData.reject_committed_edit(id)
-            result["drained"] = self._pdpDrained(diagramData)
-            return diagramData
-
-        success = self._diagram.save(
-            self.session.server(), applyChange, lambda d: True, useJson=True
-        )
-
-        if success:
-            if self.scene is not None and accept:
-                if result["is_delete"]:
-                    person = self.scene.find(id=id)
-                    if person is not None:
-                        self.scene.removeItem(person)
-                elif result["edit_fields"]:
-                    person = self.scene.find(id=id)
-                    if person is not None:
-                        if "name" in result["edit_fields"]:
-                            person.setName(result["edit_fields"]["name"])
-                        if "gender" in result["edit_fields"]:
-                            person.setGender(result["edit_fields"]["gender"])
-            self.pdpChanged.emit()
-            if accept:
-                # The route acknowledges echoed positive ids as no-ops; the
-                # flag is what advances the cursor when this was the last card.
-                self._postCommitPdp([id], result["drained"])
-            if undo and prev_data:
-                action = PDPAction.Accept if accept else PDPAction.Reject
-                self._undoStack.push(HandlePDPItem(action, self, id, prev_data))
-        else:
-            _log.warning(f"Failed to handle committed item {id}")
-
-        return success
-
-    @pyqtSlot(int, result=bool)
-    def acceptCommittedEdit(self, id: int) -> bool:
-        return bool(
-            self._saveGuard(lambda: self._doHandleCommittedItem(id, accept=True))
-        )
-
-    @pyqtSlot(int, result=bool)
-    def rejectCommittedEdit(self, id: int) -> bool:
-        return bool(
-            self._saveGuard(lambda: self._doHandleCommittedItem(id, accept=False))
-        )
-
-    @pyqtSlot(int, result=bool)
-    def acceptCommittedDelete(self, id: int) -> bool:
-        return bool(
-            self._saveGuard(lambda: self._doHandleCommittedItem(id, accept=True))
-        )
-
-    @pyqtSlot(int, result=bool)
-    def rejectCommittedDelete(self, id: int) -> bool:
-        return bool(
-            self._saveGuard(lambda: self._doHandleCommittedItem(id, accept=False))
-        )
-
-    def _doRejectPDPItem(self, id: int) -> bool:
-        _log.info(f"Rejecting PDP item with id: {id}")
-
-        def applyChange(diagramData: DiagramData):
-            if not diagramData.pdp:
-                _log.warning("No PDP data available")
-                return diagramData
-            diagramData.reject_pdp_item(id)
-            return diagramData
-
-        def stillValidAfterRefresh(diagramData: DiagramData):
-            return True
-
-        success = self._diagram.save(
-            self.session.server(), applyChange, stillValidAfterRefresh, useJson=True
-        )
-
-        if success:
-            self.pdpChanged.emit()
-        else:
-            _log.warning(f"Failed to reject PDP item after retries")
-
-        return success
 
     @pyqtProperty("QVariantMap", notify=pdpChanged)
     def pdp(self):
@@ -615,147 +574,54 @@ class PDPController(QObject):
         if not self._diagram:
             return
 
-        def _do():
-            diagramData = self._diagram.getDiagramData()
-            if not diagramData.pdp:
-                return
+        pdp = self._diagram.getDiagramData().pdp
+        newIds = [
+            item.id
+            for item in list(pdp.people) + list(pdp.events) + list(pdp.pair_bonds)
+            if item.id is not None and item.id < 0
+        ]
+        editIds = [
+            p.id
+            for p in pdp.people
+            if p.id is not None and p.id > 0 and not is_parents_edit(p)
+        ]
+        deleteIds = list(pdp.delete or [])
 
-            newIds = []
-            for person in diagramData.pdp.people:
-                if person.id is not None and person.id < 0:
-                    newIds.append(person.id)
-            for event in diagramData.pdp.events:
-                if event.id < 0:
-                    newIds.append(event.id)
-            for pair_bond in diagramData.pdp.pair_bonds:
-                if pair_bond.id is not None and pair_bond.id < 0:
-                    newIds.append(pair_bond.id)
+        if not newIds and not editIds and not deleteIds:
+            self._postCommitPdp([], True)
+            return
 
-            committedEdits = [
-                p
-                for p in diagramData.pdp.people
-                if p.id is not None and p.id > 0 and not is_parents_edit(p)
-            ]
-            deleteIds = list(diagramData.pdp.delete or [])
-
-            if not newIds and not committedEdits and not deleteIds:
-                self._postCommitPdp([], True)
-                return
-
-            _log.info(
-                f"Accepting all PDP items: new={newIds}, edits={[p.id for p in committedEdits]}, deletes={deleteIds}"
-            )
-
-            newItems = {"people": [], "events": [], "pair_bonds": [], "emotions": []}
-            editFields: dict[int, dict] = {}
-            drained = {}
-
-            def applyChange(diagramData: DiagramData):
-                if not diagramData.pdp:
-                    _log.warning("No PDP data available")
-                    return diagramData
-                if self.scene is not None:
-                    diagramData.lastItemId = max(
-                        diagramData.lastItemId, self.scene.lastItemId()
-                    )
-
-                if newIds:
-                    prevPeopleIds = {p["id"] for p in diagramData.people}
-                    prevEventIds = {e["id"] for e in diagramData.events}
-                    prevPairBondIds = {pb["id"] for pb in diagramData.pair_bonds}
-                    diagramData.commit_pdp_items(newIds)
-                    newItems["people"] = [
-                        p for p in diagramData.people if p["id"] not in prevPeopleIds
-                    ]
-                    newItems["events"] = [
-                        e for e in diagramData.events if e["id"] not in prevEventIds
-                    ]
-                    newItems["pair_bonds"] = [
-                        pb
-                        for pb in diagramData.pair_bonds
-                        if pb["id"] not in prevPairBondIds
-                    ]
-
-                for pdp_person in committedEdits:
-                    if pdp_person.name is not None:
-                        editFields.setdefault(pdp_person.id, {})[
-                            "name"
-                        ] = pdp_person.name
-                    if pdp_person.gender is not None:
-                        editFields.setdefault(pdp_person.id, {})[
-                            "gender"
-                        ] = pdp_person.gender
-                    diagramData.accept_committed_edit(pdp_person.id)
-
-                for del_id in deleteIds:
-                    diagramData.accept_committed_delete(del_id)
-
-                drained["v"] = self._pdpDrained(diagramData)
-                return diagramData
-
-            success = self._diagram.save(
-                self.session.server(), applyChange, lambda d: True, useJson=True
-            )
-
-            if success:
-                self._addCommittedItemsToScene(newItems)
-                if self.scene is not None:
-                    for person_id, fields in editFields.items():
-                        person = self.scene.find(id=person_id)
-                        if person is not None:
-                            if "name" in fields:
-                                person.setName(fields["name"])
-                            if "gender" in fields:
-                                person.setGender(fields["gender"])
-                    for del_id in deleteIds:
-                        person = self.scene.find(id=del_id)
-                        if person is not None:
-                            self.scene.removeItem(person)
-                self.pdpChanged.emit()
-                self.committed.emit()
-                allIds = newIds + [p.id for p in committedEdits] + deleteIds
-                self._postCommitPdp(allIds, drained.get("v", True))
-            else:
-                _log.warning("Failed to accept all PDP items after retries")
-
-        self._saveGuard(_do)
+        ids = newIds + editIds + deleteIds
+        result = self._acceptIds(ids)
+        if result and self.scene:
+            self.scene.push(AcceptPDPItems(self, ids, *result))
 
     @pyqtSlot(int, str, "QVariant")
     def updatePDPItem(self, id: int, field: str, value):
         if not self._diagram:
             return
 
-        def _do():
-            _log.info(f"Updating PDP item {id}: {field} = {value}")
+        _log.info(f"Updating PDP item {id}: {field} = {value}")
 
-            def applyChange(diagramData: DiagramData):
-                if not diagramData.pdp:
-                    return diagramData
+        def mutate(diagramData: DiagramData) -> DiagramData:
+            for event in diagramData.pdp.events:
+                if event.id == id:
+                    if hasattr(event, field):
+                        setattr(event, field, value)
+                    break
 
-                for event in diagramData.pdp.events:
-                    if event.id == id:
-                        if hasattr(event, field):
-                            setattr(event, field, value)
-                        break
+            for person in diagramData.pdp.people:
+                if person.id == id:
+                    if hasattr(person, field):
+                        setattr(person, field, value)
+                    break
 
-                for person in diagramData.pdp.people:
-                    if person.id == id:
-                        if hasattr(person, field):
-                            setattr(person, field, value)
-                        break
+            return diagramData
 
-                return diagramData
-
-            success = self._diagram.save(
-                self.session.server(), applyChange, lambda d: True, useJson=True
-            )
-
-            if success:
-                self.pdpChanged.emit()
-            else:
-                _log.warning(f"Failed to update PDP item {id} after retries")
-
-        self._saveGuard(_do)
+        if self.saver.save(self._diagram.id, self._sceneBytes(), mutate=mutate):
+            self.pdpChanged.emit()
+        else:
+            _log.warning(f"Failed to update PDP item {id} after retries")
 
     ## Clear Diagram Data
 
@@ -764,51 +630,44 @@ class PDPController(QObject):
         if not self._diagram:
             return
 
-        def _do():
-            _log.info(
-                f"Clearing diagram data (clearPeople={clearPeople}, "
-                f"scene-loaded={self.scene is not None})"
-            )
+        _log.info(
+            f"Clearing diagram data (clearPeople={clearPeople}, "
+            f"scene-loaded={self.scene is not None})"
+        )
 
-            if self.scene is not None:
-                self.scene.setBatchAddingRemovingItems(True)
-                try:
-                    for event in list(self.scene.events()):
-                        self.scene.removeItem(event)
+        if self.scene is not None:
+            self.scene.setBatchAddingRemovingItems(True)
+            try:
+                for event in list(self.scene.events()):
+                    self.scene.removeItem(event)
 
-                    if clearPeople:
-                        for emotion in list(self.scene.emotions()):
-                            self.scene.removeItem(emotion)
-                        for marriage in list(self.scene.marriages()):
-                            self.scene.removeItem(marriage)
-                        for person in list(self.scene.people()):
-                            if person.id not in (1, 2):
-                                self.scene.removeItem(person)
-                finally:
-                    self.scene.setBatchAddingRemovingItems(False)
-
-            def applyChange(diagramData: DiagramData):
-                diagramData.events = []
-                diagramData.pdp = None
                 if clearPeople:
-                    diagramData.people = [
-                        p for p in diagramData.people if p.get("id") in (1, 2)
-                    ]
-                    diagramData.pair_bonds = []
-                    diagramData.emotions = []
-                return diagramData
+                    for emotion in list(self.scene.emotions()):
+                        self.scene.removeItem(emotion)
+                    for marriage in list(self.scene.marriages()):
+                        self.scene.removeItem(marriage)
+                    for person in list(self.scene.people()):
+                        if person.id not in (1, 2):
+                            self.scene.removeItem(person)
+            finally:
+                self.scene.setBatchAddingRemovingItems(False)
 
-            success = self._diagram.save(
-                self.session.server(), applyChange, lambda d: True, useJson=True
-            )
+        def mutate(diagramData: DiagramData) -> DiagramData:
+            diagramData.events = []
+            diagramData.pdp = PDP()
+            if clearPeople:
+                diagramData.people = [
+                    p for p in diagramData.people if p.get("id") in (1, 2)
+                ]
+                diagramData.pair_bonds = []
+                diagramData.emotions = []
+            return diagramData
 
-            if success:
-                self.pdpChanged.emit()
-                _log.info("Diagram data cleared successfully")
-            else:
-                _log.warning("Failed to clear diagram data")
-
-        self._saveGuard(_do)
+        if self.saver.save(self._diagram.id, self._sceneBytes(), mutate=mutate):
+            self.pdpChanged.emit()
+            _log.info("Diagram data cleared successfully")
+        else:
+            _log.warning("Failed to clear diagram data")
 
     ## Journal Import
 
@@ -825,26 +684,17 @@ class PDPController(QObject):
             if not self._isCurrent(diagram):
                 return
             if data.get("pdp"):
-                # Use the optimistic-locking save loop so a concurrent
-                # Pro/Personal save during the import doesn't get clobbered
-                # by a blind setDiagramData. The applyChange overwrites
-                # only the pdp field; everything else passes through from
-                # the server's current state.
-                # Wrapped in the save guard so it serializes against any
-                # in-flight saveDiagram (Personal auto-save during import).
+                # Through the saver so a concurrent Pro/Personal save during
+                # the import isn't clobbered by a blind setDiagramData, and so
+                # this serializes against any in-flight save.
                 # Plan: doc/plans/2026-05-01--mvp-merge-fix/README.md
                 imported_pdp = from_dict(PDP, data["pdp"])
 
-                def _do():
-                    def applyChange(diagramData: DiagramData):
-                        diagramData.pdp = imported_pdp
-                        return diagramData
+                def mutate(diagramData: DiagramData) -> DiagramData:
+                    diagramData.pdp = imported_pdp
+                    return diagramData
 
-                    diagram.save(
-                        self.session.server(), applyChange, lambda d: True, useJson=True
-                    )
-
-                self._saveGuard(_do)
+                self.saver.save(diagram.id, self._sceneBytes(), mutate=mutate)
             self.pdpChanged.emit()
             self.journalImportCompleted.emit(data.get("summary", {}))
             self.committed.emit()
@@ -1011,19 +861,11 @@ class PDPController(QObject):
                 self._rebuildActive = False
                 rebuilt_pdp = from_dict(PDP, data["pdp"])
 
-                def _do():
-                    def applyChange(diagramData: DiagramData):
-                        diagramData.pdp = rebuilt_pdp
-                        return diagramData
+                def mutate(diagramData: DiagramData) -> DiagramData:
+                    diagramData.pdp = rebuilt_pdp
+                    return diagramData
 
-                    diagram.save(
-                        self.session.server(),
-                        applyChange,
-                        lambda d: True,
-                        useJson=True,
-                    )
-
-                self._saveGuard(_do)
+                self.saver.save(diagram.id, self._sceneBytes(), mutate=mutate)
                 self.pdpChanged.emit()
                 self.extractCompleted.emit(
                     {

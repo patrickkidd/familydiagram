@@ -15,6 +15,7 @@ from pkdiagram.personal.models import (
     SpeakerType,
 )
 from pkdiagram import util
+from pkdiagram.scene import Person as ScenePerson
 from pkdiagram.server_types import Diagram
 from pkdiagram.pyqt import QNetworkReply
 from PyQt5.QtCore import QByteArray
@@ -36,6 +37,25 @@ def discussion(test_user):
     discussion = Discussion(user_id=test_user.id, diagram_id=test_user.free_diagram_id)
     db.session.add(discussion)
     return discussion
+
+
+def scenePerson(scene, id, name):
+    """A person the row already carries, as the Scene would have loaded it."""
+    person = ScenePerson(name=name)
+    person.id = id
+    scene.addItem(person)
+    return person
+
+
+def applying_save(diagram):
+    """Diagram.save stub that runs the mutation onto the local blob, so a test
+    can drive the real saver without a server."""
+
+    def save(server, applyChange, stillValidAfterRefresh, maxRetries=3):
+        diagram.setDiagramData(applyChange(diagram.getDiagramData()))
+        return True
+
+    return save
 
 
 def test_refreshDiagram(
@@ -99,59 +119,55 @@ def test_sendStatement(
 
 
 def test_acceptPDPItem_undo(test_user, personalApp: PersonalAppController):
+    """FD-336 D5: accepting is one step on the Scene's own stack, and undoing it
+    takes the person back off the diagram and puts the card back on the row."""
     initial_diagram_data = DiagramData(pdp=PDP(people=[Person(id=-1, name="Test")]))
-    personalApp.setDiagram(Diagram(
+    diagram = Diagram(
         id=1,
         user_id=test_user.id,
         access_rights=[],
         created_at=datetime.utcnow(),
         data=pickle.dumps(asdict(initial_diagram_data)),
-    ))
+    )
+    personalApp.setDiagram(diagram)
+    stack = personalApp.scene.stack()
+    depth = stack.count()
 
-    with patch.object(personalApp.pdpController, "_doAcceptPDPItem") as accept:
+    with patch.object(diagram, "save", applying_save(diagram)):
         personalApp.pdpController.acceptPDPItem(-1)
-        assert accept.call_count == 1
-        assert personalApp._undoStack.count() == 1
-        assert personalApp._undoStack.canUndo()
+        assert [p.name() for p in personalApp.scene.people()] == ["Test"]
+        assert stack.count() == depth + 1
 
-        personalApp._undoStack.undo()
+        stack.undo()
+        assert personalApp.scene.people() == []
         expected = asdict(initial_diagram_data.pdp)
         expected["committedPeople"] = []
         assert personalApp.pdpController.pdp == expected
-        assert not personalApp._undoStack.canUndo()
-        assert personalApp._undoStack.canRedo()
 
-        personalApp._undoStack.redo()
-        assert accept.call_count == 2
-        assert not personalApp._undoStack.canRedo()
+        stack.redo()
+        assert [p.name() for p in personalApp.scene.people()] == ["Test"]
+        assert personalApp.pdpController.pdp["people"] == []
 
 
-def test_rejectPDPItem_undo(test_user, personalApp: PersonalAppController):
+def test_rejectPDPItem_is_not_undoable(test_user, personalApp: PersonalAppController):
+    """Rejecting only drops a card — nothing lands on the Scene, so it takes no
+    undo step (FD-336 D5)."""
     initial_diagram_data = DiagramData(pdp=PDP(people=[Person(id=-1, name="Test")]))
-    personalApp.setDiagram(Diagram(
+    diagram = Diagram(
         id=1,
         user_id=test_user.id,
         access_rights=[],
         created_at=datetime.utcnow(),
         data=pickle.dumps(asdict(initial_diagram_data)),
-    ))
+    )
+    personalApp.setDiagram(diagram)
+    depth = personalApp.scene.stack().count()
 
-    with patch.object(personalApp.pdpController, "_doRejectPDPItem") as reject:
-        personalApp.pdpController.rejectPDPItem(-1)
-        assert reject.call_count == 1
-        assert personalApp._undoStack.count() == 1
-        assert personalApp._undoStack.canUndo()
+    with patch.object(diagram, "save", applying_save(diagram)):
+        assert personalApp.pdpController.rejectPDPItem(-1) is True
 
-        personalApp._undoStack.undo()
-        expected = asdict(initial_diagram_data.pdp)
-        expected["committedPeople"] = []
-        assert personalApp.pdpController.pdp == expected
-        assert not personalApp._undoStack.canUndo()
-        assert personalApp._undoStack.canRedo()
-
-        personalApp._undoStack.redo()
-        assert reject.call_count == 2
-        assert not personalApp._undoStack.canRedo()
+    assert personalApp.pdpController.pdp["people"] == []
+    assert personalApp.scene.stack().count() == depth
 
 
 def test_pdp_surfaces_pair_bonds_and_parents_link(
@@ -187,80 +203,90 @@ def test_pdp_surfaces_pair_bonds_and_parents_link(
 
 
 def test_undo_stack_multiple_operations(test_user, personalApp: PersonalAppController):
-    diagram_data1 = DiagramData(pdp=PDP(people=[Person(id=-1, name="Person1")]))
-    diagram_data2 = DiagramData(
+    """Two accepts are two steps, undone newest first."""
+    diagram_data = DiagramData(
         pdp=PDP(people=[Person(id=-1, name="Person1"), Person(id=-2, name="Person2")])
     )
-
-    personalApp.setDiagram(Diagram(
+    diagram = Diagram(
         id=1,
         user_id=test_user.id,
         access_rights=[],
         created_at=datetime.utcnow(),
-        data=pickle.dumps(asdict(diagram_data1)),
-    ))
+        data=pickle.dumps(asdict(diagram_data)),
+    )
+    personalApp.setDiagram(diagram)
+    stack = personalApp.scene.stack()
+    depth = stack.count()
 
-    with (
-        patch.object(personalApp.pdpController, "_doAcceptPDPItem"),
-        patch.object(personalApp.pdpController, "_doRejectPDPItem"),
-    ):
+    with patch.object(diagram, "save", applying_save(diagram)):
         personalApp.pdpController.acceptPDPItem(-1)
-        personalApp._diagram.setDiagramData(diagram_data2)
-        personalApp.pdpController.rejectPDPItem(-2)
+        personalApp.pdpController.acceptPDPItem(-2)
+        assert stack.count() == depth + 2
+        assert sorted(p.name() for p in personalApp.scene.people()) == [
+            "Person1",
+            "Person2",
+        ]
 
-        assert personalApp._undoStack.count() == 2
+        stack.undo()
+        assert [p.name() for p in personalApp.scene.people()] == ["Person1"]
+        assert [p["name"] for p in personalApp.pdpController.pdp["people"]] == [
+            "Person2"
+        ]
 
-        personalApp._undoStack.undo()
-        expected2 = asdict(diagram_data2.pdp)
-        expected2["committedPeople"] = []
-        assert personalApp.pdpController.pdp == expected2
-
-        personalApp._undoStack.undo()
-        expected1 = asdict(diagram_data1.pdp)
-        expected1["committedPeople"] = []
-        assert personalApp.pdpController.pdp == expected1
+        stack.undo()
+        assert personalApp.scene.people() == []
+        assert sorted(p["name"] for p in personalApp.pdpController.pdp["people"]) == [
+            "Person1",
+            "Person2",
+        ]
 
 
 def test_acceptPDPItem_failure_doesnt_push_to_stack(
     test_user, personalApp: PersonalAppController
 ):
     initial_diagram_data = DiagramData(pdp=PDP(people=[Person(id=-1, name="Test")]))
-    personalApp.setDiagram(Diagram(
+    diagram = Diagram(
         id=1,
         user_id=test_user.id,
         access_rights=[],
         created_at=datetime.utcnow(),
         data=pickle.dumps(asdict(initial_diagram_data)),
-    ))
+    )
+    personalApp.setDiagram(diagram)
+    depth = personalApp.scene.stack().count()
 
-    count_before = personalApp._undoStack.count()
-
-    with patch.object(personalApp.pdpController, "_doAcceptPDPItem", return_value=False):
+    with (
+        patch.object(diagram, "save", return_value=False),
+        patch.object(QMessageBox, "warning"),
+    ):
         result = personalApp.pdpController.acceptPDPItem(-1)
 
     assert result is False
-    assert personalApp._undoStack.count() == count_before
+    assert personalApp.scene.stack().count() == depth
+    assert personalApp.scene.people() == []
 
 
-def test_rejectPDPItem_failure_doesnt_push_to_stack(
+def test_rejectPDPItem_failure_returns_false(
     test_user, personalApp: PersonalAppController
 ):
     initial_diagram_data = DiagramData(pdp=PDP(people=[Person(id=-1, name="Test")]))
-    personalApp.setDiagram(Diagram(
+    diagram = Diagram(
         id=1,
         user_id=test_user.id,
         access_rights=[],
         created_at=datetime.utcnow(),
         data=pickle.dumps(asdict(initial_diagram_data)),
-    ))
+    )
+    personalApp.setDiagram(diagram)
 
-    count_before = personalApp._undoStack.count()
-
-    with patch.object(personalApp.pdpController, "_doRejectPDPItem", return_value=False):
+    with (
+        patch.object(diagram, "save", return_value=False),
+        patch.object(QMessageBox, "warning"),
+    ):
         result = personalApp.pdpController.rejectPDPItem(-1)
 
     assert result is False
-    assert personalApp._undoStack.count() == count_before
+    assert len(personalApp.pdpController.pdp["people"]) == 1
 
 
 def test_diagram_save_shows_error_on_unexpected_status(test_user):
@@ -289,9 +315,7 @@ def test_diagram_save_shows_error_on_unexpected_status(test_user):
         def stillValidAfterRefresh(diagramData: DiagramData):
             return True
 
-        success = diagram.save(
-            mock_server, applyChange, stillValidAfterRefresh, useJson=True
-        )
+        success = diagram.save(mock_server, applyChange, stillValidAfterRefresh)
 
         assert success is False
         assert mock_critical.call_count == 1
@@ -377,7 +401,9 @@ def test_acceptAllPDPItems_adds_to_scene(test_user, personalApp: PersonalAppCont
     ))
 
     with patch.object(personalApp.pdpController, "_addCommittedItemsToScene") as add_mock:
-        with patch.object(personalApp._diagram, "save", return_value=True):
+        with patch.object(
+            personalApp._diagram, "save", applying_save(personalApp._diagram)
+        ):
             personalApp.pdpController.acceptAllPDPItems()
             assert add_mock.call_count == 1
             args = add_mock.call_args[0][0]
@@ -438,10 +464,10 @@ def test_acceptPDPItem_posts_commit_pdp_partial(
     server = MagicMock()
     with (
         patch.object(personalApp.pdpController, "_addCommittedItemsToScene"),
-        patch.object(personalApp._diagram, "save", return_value=True),
+        patch.object(personalApp._diagram, "save", applying_save(personalApp._diagram)),
         patch.object(personalApp.session, "server", return_value=server),
     ):
-        personalApp.pdpController._doAcceptPDPItem(-1)
+        personalApp.pdpController.acceptPDPItem(-1, undo=False)
 
     server.nonBlockingRequest.assert_called_once()
     args, kwargs = server.nonBlockingRequest.call_args
@@ -469,7 +495,7 @@ def test_acceptAllPDPItems_posts_commit_pdp_full(
     server = MagicMock()
     with (
         patch.object(personalApp.pdpController, "_addCommittedItemsToScene"),
-        patch.object(personalApp._diagram, "save", return_value=True),
+        patch.object(personalApp._diagram, "save", applying_save(personalApp._diagram)),
         patch.object(personalApp.session, "server", return_value=server),
     ):
         personalApp.pdpController.acceptAllPDPItems()
@@ -495,7 +521,9 @@ def test_acceptPDPItem_triggers_cluster_detection(
     ))
 
     with (
-        patch.object(personalApp.pdpController, "_doAcceptPDPItem", return_value=True),
+        patch.object(
+            personalApp._diagram, "save", applying_save(personalApp._diagram)
+        ),
         patch.object(personalApp.clusterModel, "detect") as detect_mock,
     ):
         personalApp.pdpController.acceptPDPItem(-1)
@@ -516,7 +544,8 @@ def test_acceptPDPItem_failure_skips_cluster_detection(
     ))
 
     with (
-        patch.object(personalApp.pdpController, "_doAcceptPDPItem", return_value=False),
+        patch.object(personalApp._diagram, "save", return_value=False),
+        patch.object(QMessageBox, "warning"),
         patch.object(personalApp.clusterModel, "detect") as detect_mock,
     ):
         personalApp.pdpController.acceptPDPItem(-1)
@@ -545,7 +574,7 @@ def test_acceptAllPDPItems_triggers_cluster_detection(
 
     with (
         patch.object(personalApp.pdpController, "_addCommittedItemsToScene"),
-        patch.object(personalApp._diagram, "save", return_value=True),
+        patch.object(personalApp._diagram, "save", applying_save(personalApp._diagram)),
         patch.object(personalApp.clusterModel, "detect") as detect_mock,
     ):
         personalApp.pdpController.acceptAllPDPItems()
@@ -586,7 +615,7 @@ def test_clearDiagramData_batch_removal(test_user, personalApp: PersonalAppContr
         origSetBatch(on)
 
     with (
-        patch.object(personalApp._diagram, "save", return_value=True),
+        patch.object(personalApp._diagram, "save", applying_save(personalApp._diagram)),
         patch.object(scene, "setBatchAddingRemovingItems", side_effect=trackBatch),
     ):
         personalApp.pdpController.clearDiagramData(True)
@@ -637,7 +666,7 @@ def test_clearDiagramData_works_when_scene_is_None(
     assert probeData.pair_bonds == []
     assert probeData.emotions == []
     assert {p["id"] for p in probeData.people} == {1, 2}
-    assert probeData.pdp is None
+    assert probeData.pdp == PDP()
 
 
 # ── Voice Recording & Transcription Tests ──
@@ -1300,17 +1329,20 @@ def test_acceptCommittedEdit_applies_and_undoes(
         data=pickle.dumps(asdict(initial_diagram_data)),
     ))
 
-    result = personalApp.pdpController.acceptCommittedEdit(10)
+    scenePerson(personalApp.scene, 10, "Alice")
+
+    result = personalApp.pdpController.acceptPDPItem(10)
     assert result is True
     diagramData = personalApp._diagram.getDiagramData()
     assert diagramData.people[0]["name"] == "Alicia"
     assert diagramData.pdp.people == []
-    assert personalApp._undoStack.canUndo()
+    assert personalApp.scene.find(id=10).name() == "Alicia"
 
-    personalApp._undoStack.undo()
+    personalApp.scene.stack().undo()
     diagramData = personalApp._diagram.getDiagramData()
     assert diagramData.people[0]["name"] == "Alice"
     assert len(diagramData.pdp.people) == 1
+    assert personalApp.scene.find(id=10).name() == "Alice"
 
 
 def test_rejectCommittedEdit_discards_and_undoes(
@@ -1328,16 +1360,15 @@ def test_rejectCommittedEdit_discards_and_undoes(
         data=pickle.dumps(asdict(initial_diagram_data)),
     ))
 
-    result = personalApp.pdpController.rejectCommittedEdit(10)
+    scenePerson(personalApp.scene, 10, "Alice")
+    depth = personalApp.scene.stack().count()
+
+    result = personalApp.pdpController.rejectPDPItem(10)
     assert result is True
     diagramData = personalApp._diagram.getDiagramData()
     assert diagramData.people[0]["name"] == "Alice"
     assert diagramData.pdp.people == []
-    assert personalApp._undoStack.canUndo()
-
-    personalApp._undoStack.undo()
-    diagramData = personalApp._diagram.getDiagramData()
-    assert len(diagramData.pdp.people) == 1
+    assert personalApp.scene.stack().count() == depth
 
 
 def test_acceptCommittedDelete_cascade_and_undoes(
@@ -1365,19 +1396,23 @@ def test_acceptCommittedDelete_cascade_and_undoes(
         data=pickle.dumps(asdict(initial_diagram_data)),
     ))
 
-    result = personalApp.pdpController.acceptCommittedDelete(10)
+    scenePerson(personalApp.scene, 10, "Alice")
+    scenePerson(personalApp.scene, 11, "Bob")
+
+    result = personalApp.pdpController.acceptPDPItem(10)
     assert result is True
     diagramData = personalApp._diagram.getDiagramData()
     assert all(p["id"] != 10 for p in diagramData.people)
     assert diagramData.events == []
     assert diagramData.pair_bonds == []
     assert 10 not in diagramData.pdp.delete
-    assert personalApp._undoStack.canUndo()
+    assert personalApp.scene.find(id=10) is None
 
-    personalApp._undoStack.undo()
+    personalApp.scene.stack().undo()
     diagramData = personalApp._diagram.getDiagramData()
     assert any(p["id"] == 10 for p in diagramData.people)
     assert len(diagramData.pdp.delete) == 1
+    assert personalApp.scene.find(id=10) is not None
 
 
 def test_rejectCommittedDelete_preserves_entity(
@@ -1395,12 +1430,14 @@ def test_rejectCommittedDelete_preserves_entity(
         data=pickle.dumps(asdict(initial_diagram_data)),
     ))
 
-    result = personalApp.pdpController.rejectCommittedDelete(10)
+    scenePerson(personalApp.scene, 10, "Alice")
+
+    result = personalApp.pdpController.rejectPDPItem(10)
     assert result is True
     diagramData = personalApp._diagram.getDiagramData()
     assert any(p["id"] == 10 for p in diagramData.people)
     assert diagramData.pdp.delete == []
-    assert personalApp._undoStack.canUndo()
+    assert personalApp.scene.find(id=10) is not None
 
 
 # --- FD-338: parents-only edit rows are the server-applied channel ---
@@ -1436,6 +1473,7 @@ def test_acceptAll_excludes_parents_only_row(
         test_user,
         PDP(people=[Person(id=-1, name="Mom"), Person(id=10, parents=30)]),
     ))
+    scenePerson(personalApp.scene, 10, "Alice")
     with (
         patch.object(personalApp.pdpController, "_addCommittedItemsToScene"),
         patch.object(personalApp.clusterModel, "detect"),
@@ -1457,11 +1495,12 @@ def test_acceptPDPItem_last_negative_full_accept_with_parents_row_staged(
         test_user,
         PDP(people=[Person(id=-1, name="Mom"), Person(id=10, parents=30)]),
     ))
+    scenePerson(personalApp.scene, 10, "Alice")
     with (
         patch.object(personalApp.pdpController, "_addCommittedItemsToScene"),
         patch.object(personalApp.pdpController, "_postCommitPdp") as post,
     ):
-        personalApp.pdpController._doAcceptPDPItem(-1)
+        personalApp.pdpController.acceptPDPItem(-1, undo=False)
 
     post.assert_called_once_with([-1], True)
 
@@ -1474,6 +1513,7 @@ def test_acceptAll_name_edit_row_still_echoed(
     personalApp.setDiagram(_diagram_with_pdp(
         test_user, PDP(people=[Person(id=10, name="Alicia")])
     ))
+    scenePerson(personalApp.scene, 10, "Alice")
     with (
         patch.object(personalApp.pdpController, "_addCommittedItemsToScene"),
         patch.object(personalApp.clusterModel, "detect"),
@@ -1494,8 +1534,9 @@ def test_acceptCommittedEdit_posts_full_accept_when_last_card(
     personalApp.setDiagram(_diagram_with_pdp(
         test_user, PDP(people=[Person(id=10, name="Alicia")])
     ))
+    scenePerson(personalApp.scene, 10, "Alice")
     with patch.object(personalApp.pdpController, "_postCommitPdp") as post:
-        assert personalApp.pdpController.acceptCommittedEdit(10) is True
+        assert personalApp.pdpController.acceptPDPItem(10) is True
 
     post.assert_called_once_with([10], True)
 

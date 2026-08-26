@@ -39,10 +39,20 @@ class DiagramLoader(QObject):
         self._diagrams: list[dict] = []
 
     def clear(self):
-        self._diagram = None
         self._diagrams = []
-        self.diagramChanged.emit()
+        self.setDiagram(None)
         self.diagramsChanged.emit()
+
+    def setDiagram(self, diagram: Diagram | None):
+        if diagram is self._diagram:
+            return
+        self._diagram = diagram
+        self.diagramChanged.emit()
+
+    def findDiagram(self, diagramId: int) -> Diagram | None:
+        """The lookup DiagramSaver resolves through, so a save always writes
+        the Diagram object Personal currently has open."""
+        return self._diagram if self._diagram and self._diagram.id == diagramId else None
 
     def onError(self, reply: QNetworkReply):
         if reply.attribute(QNetworkRequest.HttpStatusCodeAttribute) == 0:
@@ -89,10 +99,9 @@ class DiagramLoader(QObject):
         corrupt blob yields a null scene; the diagram itself still loads."""
         rawData = base64.b64decode(data["data"])
         data["data"] = rawData
-        self._diagram = Diagram(**data)
+        self.setDiagram(Diagram(**data))
         discussions = [Discussion.create(x) for x in data["discussions"]]
         self._saveLastDiagramId(self._diagram.id)
-        self.diagramChanged.emit()
         _log.info(
             f"Loaded personal diagram: {self._diagram.id}, version: {self._diagram.version}"
         )

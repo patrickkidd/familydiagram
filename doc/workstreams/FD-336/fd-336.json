@@ -47,7 +47,7 @@
   "ground": {"status": "active", "at": "2026-08-25T21:30:00", "artifact": null},
   "build": {"status": "pending", "at": null, "artifact": null},
   "validate": {"agent_track": {"status": "pending", "at": null, "token": null}, "human_track": {"status": "pending", "at": null, "script": null}},
-  "merge": {"status": "pending", "at": null, "pr_url": null, "pr_url_btcopilot": "https://github.com/patrickkidd/btcopilot/pull/132"}
+  "merge": {"status": "pending", "at": null, "pr_url": "https://github.com/patrickkidd/familydiagram/pull/150", "pr_url_btcopilot": "https://github.com/patrickkidd/btcopilot/pull/132"}
  },
  "gate_definitions_path": "doc/workstreams/gates/FD-336/gates.json",
  "handoff_path": "doc/workstreams/FD-336/fd-336-handoff.md",

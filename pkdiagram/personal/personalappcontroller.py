@@ -1,19 +1,19 @@
 import logging
 import pickle
 
-from btcopilot.schema import DiagramData, EventKind, asdict
+from btcopilot.schema import DiagramData, EventKind
 
 from _pkdiagram import CUtil
 from pkdiagram import pepper, util
 from pkdiagram.app import AppConfig, Analytics, Session
 from pkdiagram.models import SceneModel, PeopleModel
+from pkdiagram.models.diagramsaver import DiagramSaver
 from pkdiagram.personal.audio import VoiceRecorder
 from pkdiagram.personal.clustermodel import ClusterModel
 from pkdiagram.personal.diagramloader import DiagramLoader
 from pkdiagram.personal.discussioncontroller import DiscussionController
 from pkdiagram.personal.pdpcontroller import PDPController
 from pkdiagram.personal.sarfgraphmodel import SARFGraphModel
-from pkdiagram.personal.saveguard import SaveGuard
 from pkdiagram.personal.settings import Settings
 from pkdiagram.personal.shakedetector import ShakeDetector
 from pkdiagram.personal.tts import TextToSpeech
@@ -22,7 +22,6 @@ from pkdiagram.pyqt import (
     QApplication,
     QQmlEngine,
     QQuickItem,
-    QUndoStack,
     QUrl,
     pyqtProperty,
     pyqtSignal,
@@ -43,15 +42,13 @@ class PersonalAppController(QObject):
     eventFormDoneEditing = pyqtSignal()
     userProfileChanged = pyqtSignal()
 
-    def __init__(self, undoStack=None, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
 
         self.app = QApplication.instance()
         self._diagram: Diagram | None = None
         self._engine: QQmlEngine | None = None
         self.scene = None
-        self._undoStack = undoStack if undoStack else QUndoStack(self)
-        self._saveGuard = SaveGuard()
 
         self.util = self.app.qmlUtil()  # should be local, not global
 
@@ -68,11 +65,10 @@ class PersonalAppController(QObject):
         self.clusterModel = ClusterModel(self.session, self)
 
         self.discussion = DiscussionController(self.session, self._settings, self)
-        self.pdpController = PDPController(
-            self.session, self._saveGuard, self._undoStack, self
-        )
-        self.pdpController.setDiscussion(self.discussion)
         self.diagramLoader = DiagramLoader(self.session, self.appConfig, self)
+        self.saver = DiagramSaver(self.session, self.diagramLoader.findDiagram)
+        self.pdpController = PDPController(self.session, self.saver, self)
+        self.pdpController.setDiscussion(self.discussion)
         self.tts = TextToSpeech(self._settings, self)
         self.voice = VoiceRecorder(self.session, self)
 
@@ -139,6 +135,7 @@ class PersonalAppController(QObject):
     # Diagram / Scene
 
     def setDiagram(self, diagram: Diagram | None, discussions: list | None = None):
+        self.diagramLoader.setDiagram(diagram)
         self.pdpController.setDiagram(diagram)
         self.discussion.setDiagram(diagram, discussions if discussions else [])
         self._diagram = diagram
@@ -192,60 +189,14 @@ class PersonalAppController(QObject):
         if not self._diagram or not self.scene:
             return
 
-        # Snapshot baseline for the merge: Personal's Scene view at the
-        # last successful save (or, on first save, what was loaded at
-        # open). NOT the canonical server state, NOT the post-merge bytes
-        # — those may contain other-client items Personal's Scene never
-        # loaded, which would get interpreted as deletes on the next save.
-        # Plan: doc/plans/2026-05-01--mvp-merge-fix/README.md
-        snapshotBytes = (
-            getattr(self._diagram, "_lastSavedSnapshot", None) or self._diagram.data
+        def mutate(diagramData: DiagramData) -> DiagramData:
+            diagramData.clusters = self.clusterModel.clusters
+            diagramData.clusterCacheKey = self.clusterModel.cacheKey
+            return diagramData
+
+        self.saver.save(
+            self._diagram.id, pickle.dumps(self.scene.data()), mutate=mutate
         )
-        openSnapshot = pickle.loads(snapshotBytes) if snapshotBytes else {}
-
-        # Capture Scene state NOW (caller-side) so we can stash it as the
-        # next-save snapshot after Diagram.save returns success.
-        currentSceneBytes = pickle.dumps(asdict(self.scene.diagramData()))
-
-        def _do():
-            def applyChange(diagramData: DiagramData):
-                sceneDiagramData = self.scene.diagramData()
-                # Scene collections — snapshot-diff merge. For each field,
-                # take server's copy unless the user actually edited the
-                # item (snapshot vs local differ), preventing a stale
-                # snapshot from clobbering concurrent edits.
-                for fname in DiagramData.SCENE_COLLECTION_FIELDS:
-                    snapshot_field = openSnapshot.get(fname, [])
-                    local_field = getattr(sceneDiagramData, fname)
-                    setattr(
-                        diagramData,
-                        fname,
-                        DiagramData.apply_local_changes(
-                            getattr(diagramData, fname),
-                            snapshot_field,
-                            local_field,
-                        ),
-                    )
-                diagramData.version = sceneDiagramData.version
-                diagramData.versionCompat = sceneDiagramData.versionCompat
-                diagramData.name = sceneDiagramData.name
-                diagramData.lastItemId = max(
-                    diagramData.lastItemId, sceneDiagramData.lastItemId
-                )
-                diagramData.clusters = self.clusterModel.clusters
-                diagramData.clusterCacheKey = self.clusterModel.cacheKey
-                return diagramData
-
-            success = self._diagram.save(
-                self.session.server(), applyChange, lambda d: True, useJson=True
-            )
-            if success:
-                # Capture Personal's Scene view as the merge baseline for
-                # the next save. NOT the post-merge bytes (other-client
-                # items would leak in and get treated as deletes later).
-                self._diagram._lastSavedSnapshot = currentSceneBytes
-
-        self._saveGuard(_do)
 
     def _onPDPCommitted(self):
         self.clusterModel.detect()

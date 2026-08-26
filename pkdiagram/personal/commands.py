@@ -1,36 +1,44 @@
-import enum
-from copy import deepcopy
-
 from pkdiagram.pyqt import QUndoCommand
-from btcopilot.schema import DiagramData
 
 
-class PDPAction(enum.Enum):
-    Accept = "accept"
-    Reject = "reject"
+class AcceptPDPItems(QUndoCommand):
+    """One undo step for accepting staged items (FD-336 D5): the server row and
+    the Scene move together, so undo brings back both the cards and the items.
 
+    The accept has already run when the command is pushed, so the first redo
+    Qt issues from push() is a no-op.
+    """
 
-class HandlePDPItem(QUndoCommand):
-    def __init__(
-        self, action: PDPAction, controller, item_id: int, prev_diagramData: DiagramData
-    ):
-        super().__init__()
-        self.action = action
+    def __init__(self, controller, itemIds: list[int], prev: dict, post: dict):
+        super().__init__(f"Accept {len(itemIds)} extracted item(s)")
         self.controller = controller
-        self.item_id = item_id
-        self.prev_diagramData = deepcopy(prev_diagramData)
-        self.setText(f"Accept PDP Item {item_id}")
-        self._initial_run = True
+        self.itemIds = itemIds
+        self.prev = prev
+        self.post = post
+        self._pushed = False
 
     def redo(self):
-        if self._initial_run:
-            self._initial_run = False
+        if not self._pushed:
+            self._pushed = True
+            self._markClean()
             return
-        if self.action == PDPAction.Accept:
-            self.controller._doAcceptPDPItem(self.item_id)
-        else:
-            self.controller._doRejectPDPItem(self.item_id)
+        result = self.controller._acceptIds(self.itemIds)
+        if result:
+            self.prev, self.post = result
+            self._markClean()
 
     def undo(self):
-        self.controller._diagram.setDiagramData(self.prev_diagramData)
-        self.controller.pdpChanged.emit()
+        if self.controller._revertTo(self.prev):
+            self._markClean()
+
+    def _markClean(self):
+        """The save wrote the whole Scene, so the document has nothing unsaved
+        left (D4). The stack moves its index only after redo/undo returns, so
+        the clean point can't be set until it has."""
+        stack = self.controller.scene.stack()
+
+        def settled(index):
+            stack.indexChanged.disconnect(settled)
+            stack.setClean()
+
+        stack.indexChanged.connect(settled)

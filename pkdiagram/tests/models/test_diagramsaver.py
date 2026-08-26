@@ -264,7 +264,7 @@ def test_saver_preserves_server_pdp_and_clusters(create_model):
     )
     model.syncDiagramFromServer(diagram_id)
 
-    saver = DiagramSaver(model.session, model)
+    saver = DiagramSaver(model.session, model.findDiagram)
     scene = Scene(items=Person(name="Bob"))
     assert saver.save(diagram_id, pickle.dumps(scene.data())) == True
 

@@ -813,6 +813,16 @@ def update_data(data):
                 elif value is not None and not isinstance(value, str):
                     event_chunk["relationship"] = str(value)
 
+    if UP_TO(data, "2.1.23b3"):
+        # People committed from an extraction before FD-336 carried the
+        # schema's snake_case last name, which the Scene never read, and a
+        # last-name-only person carried no name at all — a blank symbol.
+        for person_chunk in data.get("people", []):
+            if "last_name" in person_chunk:
+                person_chunk["lastName"] = person_chunk.pop("last_name")
+            if not person_chunk.get("name") and person_chunk.get("lastName"):
+                person_chunk["name"] = person_chunk.pop("lastName")
+
     ## Add more version fixes here
     # if UP_TO(data, ....)
 

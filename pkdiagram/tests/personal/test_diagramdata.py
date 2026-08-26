@@ -77,7 +77,7 @@ def test_diagram_save_json_format(test_user, flask_app):
     def stillValidAfterRefresh(diagramData: DiagramData):
         return True
 
-    success = fe_diagram.save(server, applyChange, stillValidAfterRefresh, useJson=True)
+    success = fe_diagram.save(server, applyChange, stillValidAfterRefresh)
 
     assert success is True
     assert fe_diagram.version == initial_version + 1

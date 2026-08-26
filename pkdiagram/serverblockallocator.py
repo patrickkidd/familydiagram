@@ -60,6 +60,10 @@ class ServerBlockAllocator:
         body = pickle.loads(response.body)
         self._next = body["start"]
         self._end = body["end"]
+        # The saver clamps the row's lastItemId to at least this, so a save
+        # that merges an older server watermark can't hand out ids already
+        # reserved here.
+        self._diagram.blockEnd = self._end
         # Server's lastItemId advanced and version bumped by the reservation.
         # Pull the new version into the Diagram so the next save expects it
         # and avoids a needless 409 on its first attempt.

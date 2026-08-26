@@ -68,7 +68,7 @@ class ServerFileManagerModel(FileManagerModel):
         self._userId = None
         self.prefs = QApplication.instance().prefs()
         self.session = None
-        self.saver = DiagramSaver(None, self)
+        self.saver = DiagramSaver(None, self.findDiagram)
         self.dataPath = dataPath
         if dataPath is None:
             localRoot = util.appDataDir()
