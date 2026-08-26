@@ -485,14 +485,15 @@
   },
   "validate": {
    "agent_track": {
-    "status": "active",
-    "at": "2026-08-26T18:10:00",
+    "status": "complete",
+    "at": "2026-08-26T20:50:00",
     "token": null,
-    "note": "no referee implementation in this project (config gap carried from FD-338); closure is evidence-based per criterion"
+    "note": "no referee implementation in this project (config gap carried from FD-338); closure is evidence-based per criterion",
+    "evidence_summary": "familydiagram full suite 1242 passed / 17 skipped (4 pre-existing hang files excluded: F-003/F-006 + test_AccountDialog); btcopilot full suite 935 passed / 37 skipped; real-app journeys J1-J6 6/6; harness tests 17+8+11+9(+1 xfail pending merge); every agent criterion C1-C10b, H1-H5 carries real-system evidence"
    },
    "human_track": {
-    "status": "active",
-    "at": "2026-08-26T18:10:00",
+    "status": "handed-off",
+    "at": "2026-08-26T20:50:00",
     "script": "doc/workstreams/FD-336/fd-336-human-script.md",
     "handoff": "doc/workstreams/FD-336/fd-336-handoff.md"
    }
@@ -748,7 +749,7 @@
    "gate": "validate",
    "entered": "2026-08-26T18:35:00",
    "exited": null,
-   "note": "agent track: all agent criteria C1-C10b, H1-H5 evidence-backed on the real system (journeys J1-J6, harness tests); human track: script handed off"
+   "note": "agent track: all agent criteria C1-C10b, H1-H5 evidence-backed on the real system (journeys J1-J6, harness tests); human track: script handed off | agent track complete 2026-08-26T20:50; human track handed off"
   }
  ],
  "worker_model_policy": {
@@ -756,5 +757,5 @@
   "design_planning_review": "fable (coordinator + critics, FMEA, adversarial test design, diff review, verification judgment)",
   "implementation_and_test_authoring": "opus (model override on every builder/test-author agent, driven by fable-written briefs)"
  },
- "parked_on": "nothing"
+ "parked_on": "human track: C2h, C6h, C8h, C10h, H5h via doc/workstreams/FD-336/fd-336-human-script.md; Jira hand-off comment awaits a yes"
 }
