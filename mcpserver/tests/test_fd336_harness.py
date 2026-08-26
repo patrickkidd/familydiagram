@@ -7,13 +7,17 @@ These drive the real launcher and real child processes — nothing here is faked
     uv run pytest mcpserver/tests/test_fd336_harness.py
 """
 
+import glob
 import hashlib
 import json
 import os
 import pickle
+import shutil
 import signal
 import subprocess
 import sys
+import tempfile
+import threading
 import time
 import wsgiref.handlers
 from datetime import datetime
@@ -30,6 +34,7 @@ from btcopilot.testing.fixtures import HUGE_PEOPLE, Case
 from btcopilot.testing.llmstub import coach_reply
 from mcpserver.checkouts import Checkouts, Repo, Source
 from mcpserver.mcp_server import (
+    DEFAULT_USER,
     LoginState,
     TestInstance,
     close_all_instances,
@@ -37,6 +42,8 @@ from mcpserver.mcp_server import (
     launch_app,
     seed_server_data,
 )
+from pkdiagram.mcpbridge.inspector import AppLoginState
+import pkdiagram.util as util
 from mcpserver.sandbox import Db, Llm, MANIFEST_PREFIX, READY_PREFIX
 
 pytestmark = pytest.mark.sandbox
@@ -50,6 +57,8 @@ FD_WORKTREE = ROOT / "familydiagram" / ".claude" / "worktrees" / TICKET
 BTCOPILOT_WORKTREE = ROOT / "btcopilot" / ".claude" / "worktrees" / TICKET
 LAUNCHER = FD_WORKTREE / "mcpserver" / "ephemeral_server.py"
 
+SANDBOX_TMP = str(Path(tempfile.gettempdir()) / "fd_sandbox_*")
+
 BACKEND_TIMEOUT = 90
 APP_TIMEOUT = 60
 HTTP_TIMEOUT = 20
@@ -59,9 +68,16 @@ REAP_TIMEOUT = 20
 HOSTILE_PROFILE = "hostile"
 FULL_PROFILE = "family+hostile"
 HOSTILE_OWNER = "hostile@test"
+FAMILY_PROFILE = "family"
+FAMILY_OWNER = "family@test"
+NAMED_ACCOUNT = "named@test"
 SHARED_USER = "harness@example.com"
 SEED_PASSWORD = "test"
 STUB_PREFIX = coach_reply("").strip()
+
+# This is a beta build, and session.py filters a beta build's features down to the
+# beta code alone — a professional licence on its own still opens a licence prompt.
+REQUIRED_LICENCE = btcopilot.LICENSE_BETA
 
 # Every degenerate shape oracle H3 requires the mocked seed to exemplify.
 REQUIRED_CASES = [
@@ -117,6 +133,13 @@ def _env_without_credentials() -> dict:
     return env
 
 
+def _drain(pipe, sink: list) -> None:
+    """Flask logs every request; an undrained pipe eventually blocks the launcher
+    mid-write so it can never run its own cleanup."""
+    thread = threading.Thread(target=lambda: sink.extend(pipe), daemon=True)
+    thread.start()
+
+
 def _start_backend(*flags, env=None):
     """Run the launcher and read its protocol lines. --port is never passed: the
     contract is that it picks a free one and reports the choice.
@@ -130,34 +153,44 @@ def _start_backend(*flags, env=None):
         stderr=subprocess.PIPE,
         text=True,
     )
+    errors: list = []
+    _drain(process.stderr, errors)
     port = None
     deadline = time.time() + BACKEND_TIMEOUT
     while time.time() < deadline:
         line = process.stdout.readline()
         if not line:
-            stderr = process.stderr.read()
             process.wait(timeout=5)
             raise AssertionError(
-                f"launcher exited before MANIFEST (rc={process.returncode}):\n{stderr[-2000:]}"
+                f"launcher exited before MANIFEST (rc={process.returncode}):\n"
+                + "".join(errors[-40:])
             )
         if line.startswith(READY_PREFIX):
             port = int(line[len(READY_PREFIX) :])
         elif line.startswith(MANIFEST_PREFIX):
             manifest = json.loads(line[len(MANIFEST_PREFIX) :])
             assert port == manifest["port"], "READY port disagrees with the manifest"
+            _drain(process.stdout, [])
             return process, manifest
     _stop(process)
-    raise AssertionError(f"launcher never reported ready within {BACKEND_TIMEOUT}s")
+    raise AssertionError(
+        f"launcher never reported ready within {BACKEND_TIMEOUT}s:\n" + "".join(errors[-40:])
+    )
 
 
 def _stop(process) -> None:
-    if process and process.poll() is None:
-        process.terminate()
-        try:
-            process.wait(timeout=15)
-        except subprocess.TimeoutExpired:
-            process.kill()
-            process.wait(timeout=5)
+    """SIGTERM only, then verify: the launcher's own shutdown is what drops its
+    database and removes its temp dir, so a SIGKILL here would hide a cleanup bug
+    in the thing under test."""
+    if not process or process.poll() is not None:
+        return
+    process.terminate()
+    try:
+        process.wait(timeout=30)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait(timeout=5)
+        raise AssertionError("launcher ignored SIGTERM for 30s and had to be killed")
 
 
 def _health(url: str) -> dict:
@@ -396,6 +429,31 @@ def test_seed_manifest_names_every_hostile_case_and_serves_the_huge_diagram():
 # ---------------------------------------------------------------------------
 
 
+def test_an_abandoned_sandbox_leaves_no_temp_dir():
+    """H4: cleans up after itself. The temp dir is created in Sandbox.__init__ but
+    removed only in shutdown(), so every path that constructs one without reaching a
+    clean shutdown — a failed start, a rejected argument, an aborted launch — leaves
+    a directory behind for good. Run as a subprocess so the process exit is real."""
+    before = set(glob.glob(SANDBOX_TMP))
+    subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            f"import sys; sys.path.insert(0, {str(FD_WORKTREE)!r}); "
+            f"from mcpserver.sandbox import Sandbox; Sandbox(ticket={TICKET!r})",
+        ],
+        env=_env_without_worktrees(),
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=60,
+    )
+    leaked = set(glob.glob(SANDBOX_TMP)) - before
+    for directory in leaked:
+        shutil.rmtree(directory, ignore_errors=True)
+    assert not leaked, f"a sandbox that never started left {len(leaked)} temp dir(s) behind"
+
+
 def test_llm_stub_answers_locally_and_holds_no_credential():
     """H3/H4: llm=stub serves a chat turn with no provider involved, and the
     sandbox holds none of the credentials that would let it reach one.
@@ -414,7 +472,7 @@ def test_llm_stub_answers_locally_and_holds_no_credential():
         health = _health(url)
         assert health["llm"] == Llm.Stub.value, "the serving process did not install the stub"
 
-        assert health["llm_keys"] is False, (
+        assert health["credentials_present"] is False, (
             f"a stubbed sandbox inherited a live credential from {len(BLANKED)} watched names"
         )
 
@@ -451,7 +509,9 @@ def test_llm_real_without_a_key_fails_instead_of_faking_a_reply():
         health = _health(url)
         assert health["llm"] == Llm.Real.value, "the serving process still has the stub installed"
 
-        assert health["llm_keys"] is False, "a credential leaked in; this is not the no-key path"
+        assert health["credentials_present"] is False, (
+            "a credential leaked in; this is not the no-key path"
+        )
 
         user = _login(url, HOSTILE_OWNER)
         response = _request(
@@ -492,6 +552,129 @@ def test_launch_against_a_dead_server_fails_loudly():
         assert ok is False, f"launch reported success against a dead server: {message}"
 
         assert time.time() - started < APP_TIMEOUT, "failure took longer than the launch timeout"
+    finally:
+        instance.close(force=True)
+
+
+# ---------------------------------------------------------------------------
+# H4 — the apps come up usable, licensed on this machine
+# ---------------------------------------------------------------------------
+
+
+def _codes_licensed_here(url: str, username: str) -> set:
+    """Mirror pkdiagram.app.session: a licence counts only when one of its
+    activations names a machine whose code is this app's own hardware uuid. Rows
+    that skip that are licensed on paper and unlicensed in the app — F-009."""
+    user = _login(url, username)
+    return {
+        licence["policy"]["code"]
+        for licence in user["licenses"]
+        if licence["active"]
+        and any(
+            activation["machine"]["code"] == util.HARDWARE_UUID
+            for activation in licence["activations"]
+        )
+    }
+
+
+def _assert_pro_opened_usable(instance: TestInstance, expected_user: str) -> None:
+    assert instance.manifest["user"] == expected_user, (
+        f"launcher signed in {instance.manifest['user']}, expected {expected_user}"
+    )
+
+    codes = _codes_licensed_here(instance.manifest["url"], expected_user)
+    assert REQUIRED_LICENCE in codes, (
+        f"{expected_user} holds {sorted(codes)} on this machine; a beta build honours "
+        f"only {REQUIRED_LICENCE}, so Pro would open to a licence prompt"
+    )
+
+    state = instance.bridge.send_command({"command": "get_app_state"})["state"]
+    assert state["loginState"] == AppLoginState.LoggedIn.value, state
+
+    blocking = [d["title"] or d["className"] for d in state["visibleDialogs"]]
+    assert not blocking, f"Pro opened with a dialog in the way: {blocking}"
+
+
+def test_pro_launches_licensed_on_a_seed_profile():
+    """H4/F-009: no account named, so the seed's own first user signs in and the
+    launcher reports which — Pro must open logged in and licensed, not to a prompt."""
+    instance = TestInstance.create(ticket=TICKET)
+    try:
+        ok, message = instance.launch(
+            headless=True,
+            seed=FAMILY_PROFILE,
+            llm=Llm.Stub.value,
+            login_state=LoginState.LoggedIn,
+            timeout=APP_TIMEOUT,
+        )
+        assert ok, message
+
+        _assert_pro_opened_usable(instance, FAMILY_OWNER)
+    finally:
+        instance.close(force=True)
+
+
+def test_pro_launches_licensed_for_a_named_account():
+    """H4/F-009: naming an account narrows who signs in, never what is seeded, and
+    the named account is the one that must hold this machine's licence."""
+    instance = TestInstance.create(ticket=TICKET)
+    try:
+        ok, message = instance.launch(
+            headless=True,
+            seed=FAMILY_PROFILE,
+            username=NAMED_ACCOUNT,
+            llm=Llm.Stub.value,
+            login_state=LoginState.LoggedIn,
+            timeout=APP_TIMEOUT,
+        )
+        assert ok, message
+
+        _assert_pro_opened_usable(instance, NAMED_ACCOUNT)
+    finally:
+        instance.close(force=True)
+
+
+def test_pro_launches_licensed_with_no_seed():
+    """H4/F-009: the bare default — no seed, no account — still has to produce a
+    usable Pro app rather than one that opens to a licence prompt."""
+    instance = TestInstance.create(ticket=TICKET)
+    try:
+        ok, message = instance.launch(
+            headless=True,
+            llm=Llm.Stub.value,
+            login_state=LoginState.LoggedIn,
+            timeout=APP_TIMEOUT,
+        )
+        assert ok, message
+
+        _assert_pro_opened_usable(instance, DEFAULT_USER)
+    finally:
+        instance.close(force=True)
+
+
+def test_only_the_login_account_holds_this_machine_licence():
+    """H4/F-009: machine codes are globally unique, so the login account has to be
+    seeded first — a later account cannot be given this machine and must not appear
+    to be. This is the invariant the launcher's own licence check defends."""
+    instance = TestInstance.create(ticket=TICKET)
+    try:
+        ok, message = instance.start_backend(seed=FAMILY_PROFILE)
+        assert ok, message
+
+        url = instance.manifest["url"]
+        assert REQUIRED_LICENCE in _codes_licensed_here(url, FAMILY_OWNER)
+
+        latecomer = requests.post(
+            f"{url}/test/seed",
+            json={"users": [{"username": NAMED_ACCOUNT}], "hardware_uuid": util.HARDWARE_UUID},
+            timeout=HTTP_TIMEOUT,
+        ).json()
+        assert latecomer["hardware_uuid"] != util.HARDWARE_UUID, (
+            "the backend handed this machine's code to a second account; the first "
+            "account's licence would stop counting"
+        )
+
+        assert not _codes_licensed_here(url, NAMED_ACCOUNT)
     finally:
         instance.close(force=True)
 
