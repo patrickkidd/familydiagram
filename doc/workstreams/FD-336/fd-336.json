@@ -576,11 +576,11 @@
    "severity": "major",
    "repro": "send a statement from the Personal app; backend receives alias opus-4.6",
    "validation_status": "agent-verified",
-   "status": "open",
+   "status": "fixed",
    "found_in_track": "agent",
    "criterion": null,
-   "regression_test": "pkdiagram/tests/personal (settings/discussion) \u2014 pending",
-   "fix": "implM2: menu lists Opus 5 first as default; stored opus-4.6 migrated once; explicit later choice sticks"
+   "regression_test": "pkdiagram/tests/personal/test_discussioncontroller.py (6 tests)",
+   "fix": "familydiagram c6fea68: Opus 5 first/default in the Coaching Style menu; stored opus-4.6 migrated once; explicit choice persists"
   },
   {
    "id": "F-015",
