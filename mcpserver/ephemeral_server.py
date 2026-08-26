@@ -1,238 +1,86 @@
-"""
-Ephemeral btcopilot server for isolated e2e testing.
+"""Launch one sandbox backend and hold it open until killed.
 
-Spawned as a subprocess by the MCP test server. Provides a fully isolated
-Flask + SQLite instance that can be seeded with test data on demand.
+    uv run --directory <workspace> python familydiagram/mcpserver/ephemeral_server.py \
+        --ticket FD-336 --db sqlite --seed family --broker redis --llm stub
 
-Usage:
-    uv run --directory /path/to/theapp python -u \
-        familydiagram/mcpserver/ephemeral_server.py \
-        --port 5555 --db-dir /tmp/fd_test_xyz/db
+Prints `READY:<port>` and `MANIFEST:<json>` on stdout once the server answers its
+health check and any seed has been applied; anything short of that is an error
+exit, never a silent success. The port is chosen here — callers read it, they
+never assume it. See familydiagram/doc/SANDBOX.md.
 """
 
 import argparse
+import atexit
+import json
 import logging
-import os
-import pickle
 import signal
 import sys
+from pathlib import Path
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from mcpserver.sandbox import (
+    Broker,
+    Db,
+    Llm,
+    MANIFEST_PREFIX,
+    NO_SEED,
+    Prompts,
+    READY_PREFIX,
+    Sandbox,
 )
-logger = logging.getLogger("ephemeral-server")
 
 
-def _disable_heavy_extensions():
-    """Noop extensions that aren't needed for e2e testing."""
-    import btcopilot.extensions as ext
-
-    ext.init_logging = lambda app: None
-    ext.init_excepthook = lambda app: None
-    ext.init_celery = lambda app: None
-    ext.init_datadog = lambda app: None
-    ext.init_stripe = lambda app: None
-    ext.init_chroma = lambda app: None
-    ext.init_mail = lambda app: None
-
-
-def _mock_passwords():
-    """Replace bcrypt password hashing with fast mock."""
-    from btcopilot.pro.models import User
-
-    def _set(self, plaintext):
-        self.password = f"mock_hash:{plaintext}"
-        self.reset_password_code = None
-
-    def _check(self, plaintext):
-        return self.password == f"mock_hash:{plaintext}"
-
-    User.set_password = _set
-    User.check_password = _check
-
-
-def _register_test_routes(app):
-    """Register test-only endpoints for data seeding and health checks."""
-    from flask import jsonify, request
-
-    import btcopilot
-    from btcopilot.extensions import db
-    from btcopilot.pro.models import (
-        Activation,
-        Diagram,
-        License,
-        Machine,
-        Policy,
-        User,
+def parse_args(argv=None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Sandbox btcopilot backend")
+    parser.add_argument("--ticket", help="FD-NNN; selects each repo's worktree")
+    parser.add_argument("--port", type=int, help="default: a free port")
+    parser.add_argument(
+        "--db",
+        default=Db.Sqlite.value,
+        help=f"{Db.Sqlite.value} | {Db.Sqlite.value}:<dir> | {Db.Prod.value} | <database uri>",
     )
-
-    @app.route("/test/seed", methods=["POST"])
-    def test_seed():
-        data = request.get_json()
-        result = {"success": True, "users": [], "diagrams": []}
-
-        new_user_ids = []
-        for ud in data.get("users", []):
-            user = User.query.filter_by(username=ud["username"]).first()
-            if user is None:
-                user = User(
-                    username=ud["username"],
-                    first_name=ud.get("first_name", "Test"),
-                    last_name=ud.get("last_name", "User"),
-                    status=ud.get("status", "confirmed"),
-                )
-                if ud.get("password"):
-                    user.set_password(ud["password"])
-                db.session.add(user)
-                db.session.flush()
-                user.set_free_diagram(pickle.dumps({}))
-                db.session.flush()
-                new_user_ids.append(user.id)
-            result["users"].append({
-                "id": user.id,
-                "username": user.username,
-                "free_diagram_id": user.free_diagram_id,
-            })
-
-        for dd in data.get("diagrams", []):
-            diagram = Diagram(
-                user_id=dd["user_id"],
-                data=pickle.dumps(dd.get("data", {})),
-            )
-            db.session.add(diagram)
-            db.session.flush()
-            result["diagrams"].append({"id": diagram.id, "user_id": diagram.user_id})
-
-        # License + machine seeding only for newly created users.
-        for user_info in result["users"]:
-            uid = user_info["id"]
-            if uid not in new_user_ids:
-                continue
-            hw_uuid = data.get("hardware_uuid", "test-hardware-uuid")
-            machine = Machine(user_id=uid, name="Test Machine", code=hw_uuid)
-            db.session.add(machine)
-            db.session.flush()
-            for code, product in [
-                (btcopilot.LICENSE_PROFESSIONAL_MONTHLY, btcopilot.LICENSE_PROFESSIONAL),
-                (btcopilot.LICENSE_BETA, btcopilot.LICENSE_BETA),
-            ]:
-                policy = Policy(
-                    code=code,
-                    product=product,
-                    name=f"Test {product}",
-                    interval="month",
-                    amount=0,
-                    maxActivations=10,
-                    active=True,
-                    public=True,
-                )
-                db.session.add(policy)
-                db.session.flush()
-                lic = License(user_id=uid, policy=policy)
-                db.session.add(lic)
-                db.session.flush()
-                activation = Activation(license_id=lic.id, machine_id=machine.id)
-                db.session.add(activation)
-                db.session.flush()
-
-        db.session.commit()
-        return jsonify(result)
-
-    @app.route("/test/diagrams/<int:diagram_id>", methods=["GET"])
-    def test_read_diagram(diagram_id):
-        """Return raw pickle bytes. Use pickle.loads() on the response content."""
-        diagram = Diagram.query.get(diagram_id)
-        if not diagram:
-            return jsonify({"success": False, "error": "Not found"}), 404
-        from flask import Response
-
-        return Response(diagram.data or b"", mimetype="application/octet-stream")
-
-    @app.route("/test/diagrams/<int:diagram_id>", methods=["PUT"])
-    def test_update_diagram(diagram_id):
-        """Accept raw pickle bytes as request body. Bumps version so that
-        any client with a stale snapshot will hit a 409 on its next save —
-        exactly as if another real client had written."""
-        diagram = Diagram.query.get(diagram_id)
-        if not diagram:
-            return jsonify({"success": False, "error": "Not found"}), 404
-        diagram.data = request.data
-        diagram.version = (diagram.version or 0) + 1
-        db.session.commit()
-        return jsonify({"success": True, "version": diagram.version})
-
-    @app.route("/test/diagrams/seed_pickle", methods=["POST"])
-    def test_seed_pickle():
-        """Seed a diagram from raw pickle bytes (preserves Qt types).
-        Send pickle bytes as request body with Content-Type: application/octet-stream.
-        Query params: user_id (required), name (optional).
-        """
-        user_id = request.args.get("user_id", type=int)
-        name = request.args.get("name", "")
-        if not user_id:
-            return jsonify({"success": False, "error": "user_id required"}), 400
-        diagram = Diagram(user_id=user_id, data=request.data, name=name)
-        db.session.add(diagram)
-        db.session.flush()
-        db.session.commit()
-        return jsonify({"success": True, "id": diagram.id})
-
-    @app.route("/test/reset", methods=["POST"])
-    def test_reset():
-        db.drop_all()
-        db.create_all()
-        return jsonify({"success": True})
-
-    @app.route("/test/health", methods=["GET"])
-    def test_health():
-        return jsonify({"success": True, "status": "ready"})
+    parser.add_argument(
+        "--seed", default=NO_SEED, help=f"profile name | <json file> | {NO_SEED}"
+    )
+    parser.add_argument(
+        "--broker", default=Broker.Memory.value, choices=[b.value for b in Broker]
+    )
+    parser.add_argument("--llm", default=Llm.Stub.value, choices=[l.value for l in Llm])
+    parser.add_argument(
+        "--prompts",
+        default=Prompts.Auto.value,
+        help=f"{Prompts.Auto.value} | {Prompts.Off.value} | <path to private_prompts.py>",
+    )
+    parser.add_argument("--auto-auth-user", help="email logged in without a password")
+    return parser.parse_args(argv)
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Ephemeral btcopilot server")
-    parser.add_argument("--port", type=int, required=True)
-    parser.add_argument("--db-dir", type=str, required=True)
-    args = parser.parse_args()
+def main(argv=None) -> None:
+    args = parse_args(argv)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
+    sandbox = Sandbox(
+        ticket=args.ticket,
+        port=args.port,
+        db=args.db,
+        seed=args.seed,
+        broker=args.broker,
+        llm=args.llm,
+        prompts=args.prompts,
+        auto_auth_user=args.auto_auth_user,
+    )
+    atexit.register(sandbox.shutdown)
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+    signal.signal(signal.SIGINT, lambda *_: sys.exit(0))
 
-    _disable_heavy_extensions()
-    _mock_passwords()
-
-    from btcopilot.app import create_app
-    from btcopilot.extensions import db
-
-    db_path = os.path.join(args.db_dir, "test.db")
-
-    config = {
-        "TESTING": True,
-        "CONFIG": "development",
-        "SECRET_KEY": "ephemeral-test-key",
-        "SQLALCHEMY_DATABASE_URI": f"sqlite:///{db_path}",
-        "SQLALCHEMY_TRACK_MODIFICATIONS": False,
-        "STRIPE_ENABLED": False,
-        "SCHEDULER_API_ENABLED": False,
-        "FD_DIR": args.db_dir,
-        "WTF_CSRF_CHECK_DEFAULT": False,
-        "CELERY_BROKER_URL": "memory://",
-        "CELERY_RESULT_BACKEND": "cache+memory://",
-    }
-
-    app = create_app(config=config)
-    _register_test_routes(app)
-
-    with app.app_context():
-        db.create_all()
-
-    # Signal readiness to parent process
-    print(f"READY:{args.port}", flush=True)
-
-    def handle_sigterm(sig, frame):
-        logger.info("Received SIGTERM, shutting down")
-        sys.exit(0)
-
-    signal.signal(signal.SIGTERM, handle_sigterm)
-
-    app.run(host="127.0.0.1", port=args.port, debug=False, use_reloader=False, threaded=True)
+    print(sandbox.checkouts.describe(), file=sys.stderr, flush=True)
+    manifest = sandbox.start()
+    print(f"{READY_PREFIX}{sandbox.port}", flush=True)
+    print(f"{MANIFEST_PREFIX}{json.dumps(manifest)}", flush=True)
+    sandbox.wait()
 
 
 if __name__ == "__main__":

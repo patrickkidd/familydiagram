@@ -226,10 +226,11 @@ def test_bytes_identical_legacy_row(create_model):
     assert not set(LEGACY_KEYS) & set(pickle.loads(_row_bytes(diagram_id)))
 
 
-def test_baseline_survives_diagram_cache_swap(create_model):
-    """C7: the poll replaces the cached Diagram object between saves. A
-    baseline stored on that object is lost, and the next save reads another
-    client's person as a deletion."""
+def test_baseline_survives_diagram_cache_refresh(create_model):
+    """C7/F-008: the poll refreshes the cached Diagram in place between saves,
+    so the Scene, the id allocator and the saver all keep tracking the row. The
+    baseline stays on the saver, so the next save reads another client's person
+    as an addition rather than a deletion."""
     model = create_model()
     diagram_id = model.index(0, 0).data(model.IDRole)
 
@@ -243,7 +244,8 @@ def test_baseline_survives_diagram_cache_swap(create_model):
         diagram_id, people=ours + [{"id": 9001, "name": "Theirs", "kind": "Person"}]
     )
     model.syncDiagramFromServer(diagram_id)
-    assert model.findDiagram(diagram_id) is not cached
+    assert model.findDiagram(diagram_id) is cached
+    assert "Theirs" in [p.get("name") for p in pickle.loads(cached.data)["people"]]
 
     model.setData(model.index(0, 0), sceneBytes, role=model.DiagramDataRole)
     names = [p.get("name") for p in pickle.loads(_row_bytes(diagram_id))["people"]]

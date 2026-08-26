@@ -6,6 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | Domain | Doc |
 |--------|-----|
+| **The sandbox — the only way to run a ticket's backend + Pro + Personal together. Read before writing any test that needs a running app or server.** | [doc/SANDBOX.md](doc/SANDBOX.md) |
 | UI constants, colors, spacing | [doc/UI_STYLE_SPEC.md](doc/UI_STYLE_SPEC.md) |
 | Test migration guide (post-Event-flattening) | [doc/TESTS_TODO.md](doc/TESTS_TODO.md) |
 | Bugs and feature requests (Patrick's scratchpad — read-only for Claude) | [doc/TODO.md](doc/TODO.md) |
@@ -132,25 +133,16 @@ Position fields: `itemPos` (current format) or `nonLayerPos` (older format) — 
 
 ## MCP Testing with familydiagram-testing Server
 
+**The sandbox is documented in one place: [doc/SANDBOX.md](doc/SANDBOX.md)** — the one
+command, the MCP tools, seed profiles including the deliberate non-happy-path ones,
+production data, which checkout runs, timeouts and troubleshooting. Do not write a
+per-ticket sandbox script; a ticket-named copy is a defect.
+
 **MANDATORY**: Before writing any Claude-driven manual test plan for the Personal app (using MCP bridge/simulator tools to exercise the UI — distinct from human manual testing and from pytest unit/integration tests), read [adrs/0002-ai-manual-testing-strategy-personal-app.md](adrs/0002-ai-manual-testing-strategy-personal-app.md) for the approved tool layers and their constraints.
 
 **Documentation routing**: For where decisions, plans, ADRs, and bugs belong, see top-level CLAUDE.md "Documentation Routing" section. Frontend/app ADRs go in `familydiagram/adrs/`. Frontend/app plans go in `familydiagram/doc/plans/`.
 
-### Multi-Instance Architecture
-
-Each `launch_app()` call creates an isolated **TestInstance** with:
-- Its own dynamic bridge port (no more hardcoded 9876)
-- Optional ephemeral btcopilot server (Flask + SQLite, fully sandboxed)
-- Sandboxed filesystem (temp dir, auto-cleaned)
-- UUID-based `instance_id` returned from `launch_app()`
-
-**Multiple apps run simultaneously** — Pro and Personal can run side by side, each pointing at the same or different backend. All tools accept `instance_id` (defaults to most recent).
-
-**Shared ephemeral server**: Launch Pro with `ephemeral_server=True`, then launch Personal with `server_url=f"http://127.0.0.1:{pro.server_port}"`. Both apps share one DB. Use `seed_server_data()` or the `/test/seed` endpoint to create the user and diagrams the test requires.
-
 **iOS Simulator**: `launch_app_in_simulator()` boots a simulator, installs the pre-built iOS app, and connects via the bridge (auto-starts on port 9876 in simulator builds).
-
-**Cleanup**: `close_all_instances()` tears down everything. Orphan prevention via atexit, signal handlers, and ppid watchdog.
 
 ### Bridge Coordination Tools (added 2026-04-30)
 
@@ -167,7 +159,7 @@ These bridge commands make multi-instance tests deterministic without `time.slee
 
 ### Critical Rules
 
-1. **Wait for full startup**: Personal app needs 5-6 seconds after launch for QML initialization. Pro app is faster.
+1. **Startup is already waited for**: `launch_app` returns only once the bridge is connected and the Qt main thread is idle, and fails if that never happens. No sleeps.
 
 2. **Verify app type after launch**: Check `get_app_state()` returns the expected `appType` ("pro" or "personal").
 
@@ -184,7 +176,6 @@ These bridge commands make multi-instance tests deterministic without `time.slee
 
 ### Common Mistakes to Avoid
 
-- **Insufficient wait time**: Personal app needs more startup time than Pro app due to QML engine initialization
 - **Forgetting cleanup**: Always call `close_all_instances()` or `close_app()` when done
 - **Using keyboard shortcuts for saves in multi-instance tests**: Use `save_diagram` instead — it blocks and reports conflicts
 

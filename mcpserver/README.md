@@ -4,12 +4,7 @@ An MCP (Model Context Protocol) server that enables Claude Code to perform end-t
 
 ## Table of Contents
 
-- [TL;DR - Registering the MCP Server with Claude Code](#tldr---registering-the-mcpserver-with-claude-code)
-  - [Option A: Copy config to your workspace root](#option-a-copy-config-to-your-workspace-root)
-  - [Option B: Start Claude Code from familydiagram/](#option-b-start-claude-code-from-familydiagram)
-  - [Verify Registration](#verify-registration)
-  - [Configuring Permissions](#configuring-permissions-optional-but-recommended)
-  - [Using the Tools](#using-the-tools)
+- [Running it](#running-it) — registration, backends, seeds: [../doc/SANDBOX.md](../doc/SANDBOX.md)
 - [Coding Guide: Setting objectName for Testability](#coding-guide-setting-objectname-for-testability)
   - [The Namespace](#the-namespace)
   - [QWidgets](#qwidgets-pythonc)
@@ -32,104 +27,17 @@ An MCP (Model Context Protocol) server that enables Claude Code to perform end-t
 - [Extending the MCP Server](#extending-the-mcpserver)
 - [Fixing Bugs](#fixing-bugs)
 - [Dependencies](#dependencies)
-- [File Structure](#file-structure)
 - [Comparison with chrome-devtools-mcp](#comparison-with-chrome-devtools-mcp)
 - [Future Improvements](#future-improvements)
 
 ---
 
-## TL;DR - Registering the MCP Server with Claude Code
+## Running it
 
-Claude Code reads MCP configuration from `.mcp.json` in the **working directory where CC was started**. Two options:
-
-### Option A: Copy config to your workspace root
-
-If you run Claude Code from a parent directory (e.g., `theapp-2/`), copy the config there:
-
-```bash
-# From theapp-2/
-cp familydiagram/.mcp.json .
-# Edit paths to be relative from theapp-2:
-```
-
-Then update `.mcp.json` to use correct relative paths:
-```json
-{
-  "mcpServers": {
-    "familydiagram-testing": {
-      "type": "stdio",
-      "command": "uv",
-      "args": ["run", "--directory", "familydiagram/mcpserver", "python", "mcp_server.py"],
-      "env": {
-        "PYTHONPATH": "familydiagram"
-      }
-    }
-  }
-}
-```
-
-### Option B: Start Claude Code from familydiagram/
-
-```bash
-cd familydiagram
-claude  # .mcp.json in this directory will be read
-```
-
-### Verify Registration
-
-After restarting Claude Code, run `/mcp` to see registered servers. You should see `familydiagram-testing` listed.
-
-### Configuring Permissions (Optional but Recommended)
-
-To avoid repeated permission prompts, add the familydiagram-testing server to your project's allowed tools. Edit `.claude/settings.local.json` in your project root:
-
-```json
-{
-  "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "permissions": {
-    "allow": [
-      "mcp__familydiagram-testing__launch_app",
-      "mcp__familydiagram-testing__close_app",
-      "mcp__familydiagram-testing__get_app_status",
-      "mcp__familydiagram-testing__find_element",
-      "mcp__familydiagram-testing__list_elements",
-      "mcp__familydiagram-testing__get_element_property",
-      "mcp__familydiagram-testing__set_element_property",
-      "mcp__familydiagram-testing__click_element",
-      "mcp__familydiagram-testing__double_click_element",
-      "mcp__familydiagram-testing__type_into_element",
-      "mcp__familydiagram-testing__press_key_on_element",
-      "mcp__familydiagram-testing__focus_element",
-      "mcp__familydiagram-testing__click_scene_item",
-      "mcp__familydiagram-testing__get_scene_items",
-      "mcp__familydiagram-testing__get_windows",
-      "mcp__familydiagram-testing__activate_window",
-      "mcp__familydiagram-testing__take_screenshot",
-      "mcp__familydiagram-testing__list_screenshots",
-      "mcp__familydiagram-testing__compare_screenshots",
-      "mcp__familydiagram-testing__wait",
-      "mcp__familydiagram-testing__get_app_output",
-      "mcp__familydiagram-testing__report_testing_limitation"
-    ]
-  },
-  "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": [
-    "familydiagram-testing"
-  ]
-}
-```
-
-**Pattern explanation:**
-- List each tool individually - wildcard patterns (`*`) are not supported
-- Format: `mcp__<server-name>__<tool-name>`
-- This prevents repeated permission prompts when using the tools
-- Update this list when new tools are added to the MCP server
-
-**Settings file locations:**
-- **Global**: `~/.claude/settings.json` - applies to all projects
-- **Project**: `<project-root>/.claude/settings.local.json` - applies only to this project (recommended)
-
-### Using the Tools
+How to register this server, stand up a backend, seed data, choose which checkout
+runs, and drive Pro and Personal together: **[../doc/SANDBOX.md](../doc/SANDBOX.md)**.
+That is the only launch recipe; this file documents the tools and the objectName
+conventions they depend on.
 
 Once registered, tell Claude Code:
 
@@ -137,21 +45,6 @@ Once registered, tell Claude Code:
 Use the familydiagram-testing MCP tools to test the app. Launch it, find elements
 by objectName, interact with them, and take screenshots to verify the UI.
 ```
-
-Key tools:
-
-| Action | Tool |
-|--------|------|
-| Start the app | `launch_app()` |
-| Find a widget/QML item | `find_element(object_name="myButton")` |
-| Click an element | `click_element(object_name="myButton")` |
-| Type into a field | `type_into_element(object_name="nameField", text="John")` |
-| Take a screenshot | `take_screenshot(name="test_state")` - Captures only the app window with timestamp prefix |
-| Get console output | `get_app_output(stream="both")` - Read stdout/stderr for debugging |
-| Report limitation | `report_testing_limitation(feature="...", reason="...")` - Document missing controls |
-| Stop the app | `close_app()` |
-
----
 
 ## Coding Guide: Setting objectName for Testability
 
@@ -373,7 +266,7 @@ The goal is autonomous end-to-end testing where Claude Code can:
 │  │  - Bridge client for element access                          │   │
 │  └─────────────────────────────────────────────────────────────┘   │
 │                              │                                       │
-│                         TCP (port 9876)                              │
+│                         TCP (dynamic port)                              │
 │                              ▼                                       │
 │  ┌─────────────────────────────────────────────────────────────┐   │
 │  │              Qt Test Bridge (pkdiagram/testbridge/)          │   │
@@ -402,7 +295,7 @@ The goal is autonomous end-to-end testing where Claude Code can:
    - Receives screenshots and element data from Qt bridge
    - Speaks MCP protocol to Claude Code
 
-2. **Qt Test Bridge (in-app)** - Located in `pkdiagram/tests/mcpbridge/`
+2. **Qt Test Bridge (in-app)** - Located in `pkdiagram/mcpbridge/`
    - Has direct access to Qt object tree
    - Can find elements by `objectName` (stable, not coordinate-dependent)
    - Can read/write Qt properties
@@ -579,22 +472,7 @@ if not find_result["success"]:
 
 ## Configuration
 
-### MCP Configuration (`.mcp.json`)
-
-```json
-{
-  "mcpServers": {
-    "familydiagram-testing": {
-      "type": "stdio",
-      "command": "uv",
-      "args": ["run", "--directory", "mcpserver", "python", "mcp_server.py"],
-      "env": {
-        "PYTHONPATH": "."
-      }
-    }
-  }
-}
-```
+MCP registration and the sandbox's own flags: [../doc/SANDBOX.md](../doc/SANDBOX.md).
 
 ### App Command Line Flags
 
@@ -696,7 +574,7 @@ def getProperty(self, objectName, propertyName):
 #### "Bridge not connected"
 - The app wasn't launched with `--test-server`
 - The MCP server's `launch_app()` should add this flag automatically
-- Check that port 9876 isn't in use
+- Check the bridge port reported by `launch_app` (dynamic; 9876 only in iOS simulator builds)
 
 #### "Element not found"
 - The `objectName` doesn't match exactly (case-sensitive)
@@ -709,7 +587,7 @@ def getProperty(self, objectName, propertyName):
 
 ### Debugging
 
-1. **Enable bridge logging** in `pkdiagram/tests/mcpbridge/server.py`:
+1. **Enable bridge logging** in `pkdiagram/mcpbridge/server.py`:
 ```python
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -717,7 +595,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 2. **Test bridge directly** via netcat:
 ```bash
-echo '{"command": "list", "data": {}}' | nc localhost 9876
+echo '{"command": "list", "data": {}}' | nc localhost <bridge_port>
 ```
 
 3. **Check MCP server logs**: The server prints to stderr which Claude Code captures
@@ -737,7 +615,7 @@ uv run python main.py --test-server
 python -c "
 import socket, json
 s = socket.socket()
-s.connect(('localhost', 9876))
+s.connect(('localhost', BRIDGE_PORT))  # from launch_app's bridge_port
 s.send(json.dumps({'command': 'list', 'data': {}}).encode() + b'\n')
 print(s.recv(4096).decode())
 "
@@ -747,39 +625,9 @@ print(s.recv(4096).decode())
 
 ## Dependencies
 
-### MCP Server (`mcpserver/pyproject.toml`)
-- `mcp>=1.0.0` - Model Context Protocol SDK
-- `Pillow>=10.0.0` - Image processing
-
-### Qt Test Bridge (part of main app)
-- Uses PyQt5 from main application
-- No additional dependencies
-
----
-
-## File Structure
-
-```
-familydiagram/
-├── .mcp.json                      # Claude Code MCP configuration
-├── mcpserver/
-│   ├── mcp_server.py              # Main MCP server (FastMCP)
-│   ├── pyproject.toml             # MCP server dependencies
-│   └── README.md                  # This file
-├── pkdiagram/
-│   ├── main.py                    # App entry (--test-server flag)
-│   ├── mainwindow/
-│   │   └── welcome.py             # Welcome dialog with okButton objectName
-│   └── tests/
-│       └── mcpbridge/             # MCP test bridge (only loaded with --test-server)
-│           ├── __init__.py
-│           ├── inspector.py       # QtInspector - finds elements, takes screenshots
-│           └── server.py          # TCP server - JSON protocol
-└── screenshots/                   # Screenshot storage (gitignored)
-    └── testing_limitations.json  # Logged testing limitations
-```
-
----
+- `mcp` and `Pillow`, from the workspace venv — this directory has no pyproject of
+  its own.
+- The Qt test bridge uses the app's own PyQt5.
 
 ## Comparison with chrome-devtools-mcp
 

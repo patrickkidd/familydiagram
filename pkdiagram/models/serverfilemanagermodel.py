@@ -29,6 +29,20 @@ from .diagramsaver import DiagramSaver
 log = logging.getLogger(__name__)
 
 
+# Owned by this client, never by the row: the reserved id block belongs to the
+# process that reserved it, so a server payload must not clear it.
+CLIENT_FIELDS = ("blockEnd",)
+
+# Copied onto the cached Diagram from a server payload. Derived from the
+# dataclass so a field added to Diagram is refreshed rather than silently
+# going stale.
+SERVER_FIELDS = tuple(
+    f.name
+    for f in dataclasses.fields(Diagram)
+    if f.name != "id" and f.name not in CLIENT_FIELDS
+)
+
+
 class ServerFileManagerModel(FileManagerModel):
     """
     Provide access to files on the server.
@@ -296,9 +310,7 @@ class ServerFileManagerModel(FileManagerModel):
             if len(bdata) == 0:
                 log.info("Zero-length data from server")
                 return
-            serverDiagram = Diagram(**pickle.loads(response.body))
-            self._addOrUpdateDiagram(serverDiagram)
-            return serverDiagram
+            return self._addOrUpdateDiagram(Diagram(**pickle.loads(response.body)))
 
     ## Helpers
 
@@ -333,34 +345,56 @@ class ServerFileManagerModel(FileManagerModel):
         if self.session.isLoggedIn():
             return self.findDiagram(self.session.user.free_diagram_id)
 
+    def _refreshFromServer(self, cached, serverDiagram) -> bool:
+        """Copy the server's fields onto the cached instance, leaving this
+        client's own fields alone. Returns whether anything was copied."""
+        if serverDiagram.version < cached.version:
+            return False
+        if (
+            serverDiagram.version == cached.version
+            and QDateTime(serverDiagram.saved_at()) <= QDateTime(cached.saved_at())
+        ):
+            return False
+        for name in SERVER_FIELDS:
+            setattr(cached, name, getattr(serverDiagram, name))
+        return True
+
     def _addOrUpdateDiagram(self, newDiagram, _batch=False):
-        """Add or update a diagram and update the underlying FileManagerModel."""
+        """Add or update a diagram and update the underlying FileManagerModel.
+
+        The model owns exactly one Diagram instance per id. The open Scene, the
+        id allocator and the saver all hold that instance, so a payload for an
+        id already cached refreshes it in place; replacing it would strand them
+        on a copy that no longer tracks the row.
+        """
+
+        diagram = self.diagramCache.get(newDiagram.id)
+        if diagram:
+            changed = self._refreshFromServer(diagram, newDiagram)
+        else:
+            diagram = newDiagram
+            self.diagramCache[diagram.id] = diagram
+            changed = False
 
         ## FileManagerModel
-        if newDiagram.isFreeDiagram():
+        if diagram.isFreeDiagram():
             name = "Free Diagram"
-        elif (
-            newDiagram.use_real_names and not newDiagram.require_password_for_real_names
-        ):
-            name = newDiagram.name
-        # elif newDiagram.alias:
-        #     name = '[%s]' % newDiagram.alias
-        elif newDiagram.name:
-            name = newDiagram.name
+        elif diagram.use_real_names and not diagram.require_password_for_real_names:
+            name = diagram.name
+        # elif diagram.alias:
+        #     name = '[%s]' % diagram.alias
+        elif diagram.name:
+            name = diagram.name
         else:
             name = "<not set>"
 
-        if newDiagram.updated_at:
-            modified = newDiagram.updated_at.timestamp()
-        else:
-            modified = newDiagram.created_at.timestamp()
         self.addFileEntry(
-            self.localPathForID(newDiagram.id),
+            self.localPathForID(diagram.id),
             name=name,
             status=CUtil.FileIsCurrent,
-            id=newDiagram.id,
-            owner=newDiagram.user.username,
-            modified=modified,
+            id=diagram.id,
+            owner=diagram.user.username,
+            modified=diagram.saved_at().timestamp(),
             shown=True,
             _batch=_batch,
         )
@@ -368,35 +402,18 @@ class ServerFileManagerModel(FileManagerModel):
         ## ServerFileManagerModel
 
         # Ensure encrypted fd file exists on disk
-        packagePath = os.path.join(
-            self.dataPath, f"{newDiagram.id}{util.DOT_EXTENSION}"
-        )
+        packagePath = os.path.join(self.dataPath, f"{diagram.id}{util.DOT_EXTENSION}")
         picklePath = os.path.join(packagePath, "diagram.pickle")
         os.makedirs(packagePath, exist_ok=True)
-        util.writeWithHash(picklePath, newDiagram.data)
+        util.writeWithHash(picklePath, diagram.data)
 
-        # Update diagram and emit
-        existingDiagram = self.diagramCache.get(newDiagram.id)
-        if existingDiagram:
-            newMTime = QDateTime(
-                newDiagram.updated_at
-                if newDiagram.updated_at
-                else newDiagram.created_at
+        if changed and not _batch:
+            row = self.rowForDiagramId(diagram.id)
+            self.dataChanged.emit(
+                self.index(row, 0), self.index(row, 0), [self.DiagramDataRole]
             )
-            existingMTime = QDateTime(
-                existingDiagram.updated_at
-                if existingDiagram.updated_at
-                else existingDiagram.created_at
-            )
-            if newMTime > existingMTime:
-                self.diagramCache[newDiagram.id] = newDiagram
-                if not _batch:
-                    row = self.rowForDiagramId(newDiagram.id)
-                    self.dataChanged.emit(
-                        self.index(row, 0), self.index(row, 0), [self.DiagramDataRole]
-                    )
-        else:
-            self.diagramCache[newDiagram.id] = newDiagram
+
+        return diagram
 
     def _deleteLocalFileByID(self, id):
         fpath = self.localPathForID(id)

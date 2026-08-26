@@ -1,5 +1,7 @@
 # E2E Test Harness Plan
 
+> **Historical.** The harness it describes was replaced in FD-336. The current sandbox — and the only launch recipe — is [doc/SANDBOX.md](../SANDBOX.md).
+
 Status: Complete as of 2026-04-12
 
 ## Context
