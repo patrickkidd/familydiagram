@@ -35,9 +35,14 @@ class DiscussionController(QObject):
 
     AVAILABLE_MODELS = [
         {
-            "id": "opus-4.6",
+            "id": "opus-5",
             "name": "Premium",
             "description": "Deeper observations and more nuanced coaching. Makes connections between family patterns. Takes a moment longer to respond.",
+        },
+        {
+            "id": "opus-4.6",
+            "name": "Premium (Previous)",
+            "description": "The premium coach from before the latest upgrade, for anyone who prefers how it responded.",
         },
         {
             "id": "gemini-2.5-flash",
@@ -45,7 +50,10 @@ class DiscussionController(QObject):
             "description": "Quick, focused responses. Efficient at collecting family facts and keeping the conversation moving.",
         },
     ]
-    DEFAULT_MODEL = "opus-4.6"
+    DEFAULT_MODEL = "opus-5"
+    PREV_DEFAULT_MODEL = "opus-4.6"
+    MODEL_KEY = "responseModel"
+    MODEL_MIGRATED_KEY = "responseModelMigrated"
 
     def __init__(self, session: Session, settings: Settings, parent=None):
         super().__init__(parent)
@@ -60,6 +68,19 @@ class DiscussionController(QObject):
         self._currentDiscussion: Discussion | None = None
         self._dirty: bool = False  # conversation past last accepted extraction
         self._sentSinceExtract: bool = False
+        self._migrateResponseModel()
+
+    def _migrateResponseModel(self):
+        """A stored value equal to the old default was the old default rather
+        than a choice for almost everyone, so move it to the new default once."""
+        if self._settings.value(self.MODEL_MIGRATED_KEY, False):
+            return
+        stored = self._settings.value(self.MODEL_KEY)
+        if not stored:
+            return
+        if stored == self.PREV_DEFAULT_MODEL:
+            self._settings.setValue(self.MODEL_KEY, self.DEFAULT_MODEL)
+        self._settings.setValue(self.MODEL_MIGRATED_KEY, True)
 
     def setDiagram(self, diagram: Diagram | None, discussions: list[Discussion]):
         self._diagram = diagram
@@ -89,7 +110,7 @@ class DiscussionController(QObject):
     @pyqtProperty(str, notify=responseModelChanged)
     def responseModel(self):
         return (
-            self._settings.value("responseModel", self.DEFAULT_MODEL)
+            self._settings.value(self.MODEL_KEY, self.DEFAULT_MODEL)
             or self.DEFAULT_MODEL
         )
 
@@ -97,7 +118,9 @@ class DiscussionController(QObject):
     def setResponseModel(self, modelId: str):
         if modelId == self.responseModel:
             return
-        self._settings.setValue("responseModel", modelId)
+        self._settings.setValue(self.MODEL_KEY, modelId)
+        # A chosen value needs no migration, now or on any later launch.
+        self._settings.setValue(self.MODEL_MIGRATED_KEY, True)
         self.responseModelChanged.emit()
 
     # Discussions
