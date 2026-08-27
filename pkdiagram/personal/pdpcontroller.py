@@ -345,6 +345,14 @@ class PDPController(QObject):
             step += 1
 
     def _addCommittedItemsToScene(self, committedItems: dict):
+        _log.debug(
+            f"committing to scene: {len(committedItems['people'])} people, "
+            f"{len(committedItems['pair_bonds'])} pair bonds, "
+            f"{len(committedItems['events'])} events\n"
+            f"  people:     {committedItems['people']}\n"
+            f"  pair_bonds: {committedItems['pair_bonds']}\n"
+            f"  events:     {committedItems['events']}"
+        )
         if (
             not committedItems["people"]
             and not committedItems["events"]
@@ -364,6 +372,11 @@ class PDPController(QObject):
 
         for chunk in committedItems["pair_bonds"]:
             item = Marriage()
+            _log.debug(
+                f"constructing Marriage {chunk['id']}: "
+                f"person_a={chunk.get('person_a')} person_b={chunk.get('person_b')} "
+                f"married={chunk.get('married')} chunk={chunk}"
+            )
             item.id = chunk["id"]
             localMap[item.id] = item
             itemChunks.append((item, chunk))
@@ -407,6 +420,10 @@ class PDPController(QObject):
         self.scene.setBatchAddingRemovingItems(True)
         try:
             for item, chunk in itemChunks:
+                _log.debug(
+                    f"scene.addItem {type(item).__name__} {item.id}: "
+                    f"{getattr(item, 'name', lambda: None)() if callable(getattr(item, 'name', None)) else ''}"
+                )
                 self.scene.addItem(item)
         finally:
             self.scene.isInitializing = False
@@ -762,12 +779,21 @@ class PDPController(QObject):
         diagram = self._diagram
         # Baseline for "chat since this extract": a later full accept is clean
         # only if no statement was sent after this extract.
+        _log.debug(
+            f"extract requested for discussion {discussion.id} on diagram {diagram.id}"
+        )
         self._discussion.markExtracted()
         self._setExtracting(True)
         self.extractStarted.emit()
 
         def onSuccess(data):
             self._setExtracting(False)
+            _log.debug(
+                f"extract returned: people={data.get('people_count')} "
+                f"events={data.get('events_count')} "
+                f"pairBonds={data.get('pair_bonds_count')} "
+                f"pdp={data.get('pdp')}"
+            )
             if not self._isCurrent(diagram):
                 return
             self._pendingExtractedThroughOrder = data.get(
@@ -787,6 +813,7 @@ class PDPController(QObject):
 
         def onError():
             self._setExtracting(False)
+            _log.debug(f"extract failed: {reply.errorString()}")
             if not self._isCurrent(diagram):
                 return
             self.extractFailed.emit(reply.errorString())

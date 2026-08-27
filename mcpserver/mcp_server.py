@@ -445,6 +445,10 @@ class SandboxManager:
 # =============================================================================
 
 
+#: Where a launched app's output is kept, so it outlives the launching process.
+APP_LOG_ENV = "FD_APP_LOG"
+
+
 class TestInstance:
     """
     Manages a single test instance: app process + optional ephemeral server.
@@ -668,11 +672,22 @@ class TestInstance:
         return True, "Backend healthy"
 
     def _drain(self, pipe, lines: List[str]) -> None:
-        """Keep a child's pipe empty so its writes never block."""
+        """Keep a child's pipe empty so its writes never block, and keep a copy
+        on disk: an in-memory tail dies with this process, and a journey is
+        troubleshot after the fact, from what the run actually logged."""
+        path = os.environ.get(APP_LOG_ENV)
 
         def run():
-            for raw in pipe:
-                lines.append(raw.decode(errors="replace").rstrip("\n"))
+            sink = open(path, "a", buffering=1) if path else None
+            try:
+                for raw in pipe:
+                    line = raw.decode(errors="replace").rstrip("\n")
+                    lines.append(line)
+                    if sink:
+                        sink.write(line + "\n")
+            finally:
+                if sink:
+                    sink.close()
 
         thread = threading.Thread(target=run, daemon=True)
         thread.start()

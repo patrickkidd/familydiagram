@@ -185,6 +185,7 @@ class DiscussionController(QObject):
         )
 
     def _setCurrentDiscussion(self, discussion_id: int):
+        _log.debug(f"opening discussion {discussion_id}")
         self._currentDiscussion = next(
             x for x in self._discussions if x.id == discussion_id
         )
@@ -252,6 +253,11 @@ class DiscussionController(QObject):
             discussion = self._currentDiscussion
 
             def onSuccess(data):
+                _log.debug(
+                    f"chat reply for discussion {discussion.id}: "
+                    f"{len(data.get('statements', []))} statement(s) stored, "
+                    f"reply={data['statement'][:200]!r}"
+                )
                 if not self._isCurrent(diagram):
                     return
                 discussion.addStatements(data["statements"])
@@ -271,6 +277,11 @@ class DiscussionController(QObject):
                 success=onSuccess,
                 headers=JSON_HEADERS,
                 from_root=True,
+            )
+            _log.debug(
+                f"chat send to discussion {self._currentDiscussion.id} on diagram "
+                f"{diagram.id if diagram else None} with model {self.responseModel}: "
+                f"{statement!r}"
             )
             self.session.track(f"personal.Engine.sendStatement: {statement}")
             # A new statement is always past the cursor -> dirty. No model
