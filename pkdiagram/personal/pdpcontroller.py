@@ -63,6 +63,7 @@ class PDPController(QObject):
     journalImportFailed = pyqtSignal(str, arguments=["error"])
 
     extractStarted = pyqtSignal()
+    extractingChanged = pyqtSignal()
     extractCompleted = pyqtSignal(QVariant, arguments=["summary"])
     extractFailed = pyqtSignal(str, arguments=["error"])
     rebuildProgress = pyqtSignal(int, str, arguments=["percent", "message"])
@@ -101,6 +102,7 @@ class PDPController(QObject):
             self.cancelRebuild()
         self._diagram = diagram
         self._pendingExtractedThroughOrder = None
+        self._extracting = False
         self.pdpChanged.emit()
 
     def setScene(self, scene: Scene | None):
@@ -733,6 +735,18 @@ class PDPController(QObject):
 
     ## Extract Full
 
+    @pyqtProperty(bool, notify=extractingChanged)
+    def extracting(self) -> bool:
+        """An extraction is in flight. The server admits one at a time, so a
+        second request is refused; the button must not offer one."""
+        return self._extracting
+
+    def _setExtracting(self, on: bool):
+        if on == self._extracting:
+            return
+        self._extracting = on
+        self.extractingChanged.emit()
+
     @pyqtSlot()
     def extractFull(self):
         if self.gate and not self.gate():
@@ -749,9 +763,11 @@ class PDPController(QObject):
         # Baseline for "chat since this extract": a later full accept is clean
         # only if no statement was sent after this extract.
         self._discussion.markExtracted()
+        self._setExtracting(True)
         self.extractStarted.emit()
 
         def onSuccess(data):
+            self._setExtracting(False)
             if not self._isCurrent(diagram):
                 return
             self._pendingExtractedThroughOrder = data.get(
@@ -770,6 +786,7 @@ class PDPController(QObject):
             )
 
         def onError():
+            self._setExtracting(False)
             if not self._isCurrent(diagram):
                 return
             self.extractFailed.emit(reply.errorString())
