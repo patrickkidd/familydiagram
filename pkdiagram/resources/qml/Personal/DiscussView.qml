@@ -42,8 +42,6 @@ Page {
         anchors.fill: parent
     }
 
-    property bool initSelectedDiscussion: false
-
     // Voice recording states: "idle", "recording", "transcribing"
     property string voiceState: "idle"
     // Timestamp when recording started (for minimum duration check)
@@ -77,35 +75,30 @@ Page {
         }
     }
 
+    // The chat is loaded, not accumulated: a view created after the case was
+    // opened has already missed the signal that carried the conversation.
+    Component.onCompleted: root.loadChat()
+
+    function loadChat() {
+        chatModel.clear()
+        for (var i = 0; i < discussion.statements.length; i++) {
+            var statement = discussion.statements[i]
+            var speakerType = statement.speaker.type
+            chatModel.append({ "text": statement.text, "speakerType": speakerType })
+        }
+        statementsList.delayedScrollToBottom()
+    }
+
     Connections {
         target: discussion
-        function onDiscussionsChanged() {
-            if (!initSelectedDiscussion) {
-                initSelectedDiscussion = true
-                var lastDiscussion = discussion.discussions[discussion.discussions.length-1]
-                if(lastDiscussion !== undefined) {
-                    discussion.setCurrentDiscussion(lastDiscussion.id)
-                }
-            }
-        }
         function onStatementsChanged() {
-            chatModel.clear()
-            for (var i = 0; i < discussion.statements.length; i++) {
-                var statement = discussion.statements[i]
-                var speakerType = statement.speaker.type
-                chatModel.append({ "text": statement.text, "speakerType": speakerType })
-            }
-            statementsList.delayedScrollToBottom()
+            root.loadChat()
         }
         function onRequestSent(text) {
             chatModel.append({ "text": text, "speakerType": 'subject' })
             statementsList.delayedScrollToBottom()
         }
         function onResponseReceived(text) {
-            chatModel.append({
-                "text": text,
-                "speakerType": 'expert'
-            })
             statementsList.delayedScrollToBottom()
             if (tts.autoReadAloud) {
                 tts.say(text, chatModel.count - 1)
@@ -205,6 +198,7 @@ Page {
 
         ListView {
             id: statementsList
+            objectName: "statementsList"
             visible: model.count > 0
             Layout.fillWidth: true
             Layout.fillHeight: true

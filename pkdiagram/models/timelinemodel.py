@@ -311,6 +311,12 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
     def onSearchChanged(self):
         self._refreshRows()
 
+    def onFinishedBatchAddingRemovingItems(self):
+        """A batch add/remove suppresses the per-event signals, so the rows
+        collected one at a time would miss everything a load, an undo, or a
+        committed extraction brought in."""
+        self._refreshRows()
+
     def onEventAdded(self, event):
         self._ensureEvent(event)
 
@@ -452,6 +458,9 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
             self._refreshRows()
         if attr == "scene":
             if self._scene:
+                self._scene.finishedBatchAddingRemovingItems.disconnect(
+                    self.onFinishedBatchAddingRemovingItems
+                )
                 self._scene.eventAdded[Event].disconnect(self.onEventAdded)
                 self._scene.eventChanged[Property].disconnect(self.onEventChanged)
                 self._scene.eventRemoved[Event].disconnect(self.onEventRemoved)
@@ -462,6 +471,9 @@ class TimelineModel(QAbstractTableModel, ModelHelper):
         super().set(attr, value)
         if attr == "scene":
             if self._scene:
+                self._scene.finishedBatchAddingRemovingItems.connect(
+                    self.onFinishedBatchAddingRemovingItems
+                )
                 self._scene.eventAdded[Event].connect(self.onEventAdded)
                 self._scene.eventChanged[Property].connect(self.onEventChanged)
                 self._scene.eventRemoved[Event].connect(self.onEventRemoved)

@@ -581,6 +581,7 @@ Page {
                 model: discussion ? discussion.discussions : []
 
                 Rectangle {
+                    objectName: "discussionItem_" + modelData.id
                     width: discussionDropdown.width - 16
                     height: 44
                     radius: 8

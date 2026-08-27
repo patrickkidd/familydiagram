@@ -89,8 +89,14 @@ class DiscussionController(QObject):
         self._dirty = False
         self._sentSinceExtract = False
         self.discussionsChanged.emit()
-        self.statementsChanged.emit()
-        self.currentDiscussionChanged.emit()
+        # A case is opened on the discussion it was left on. Deciding that in
+        # the view loses it whenever the discussions arrive before the view
+        # exists, which is the ordinary case for the first case opened.
+        if discussions:
+            self._setCurrentDiscussion(discussions[-1].id)
+        else:
+            self.statementsChanged.emit()
+            self.currentDiscussionChanged.emit()
 
     def _isCurrent(self, diagram: Diagram | None) -> bool:
         return self._diagram is diagram
@@ -244,6 +250,10 @@ class DiscussionController(QObject):
             def onSuccess(data):
                 if not self._isCurrent(diagram):
                     return
+                discussion = self._currentDiscussion
+                if discussion:
+                    discussion.addStatements(data["statements"])
+                    self.statementsChanged.emit()
                 self.responseReceived.emit(data["statement"])
 
             args = {

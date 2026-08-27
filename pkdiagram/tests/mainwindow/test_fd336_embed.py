@@ -21,7 +21,11 @@ from PyQt5.QtTextToSpeech import QTextToSpeech
 
 import btcopilot
 from btcopilot.extensions import db
-from btcopilot.personal.models import Discussion as StoredDiscussion
+from btcopilot.personal.models import (
+    Discussion as StoredDiscussion,
+    Speaker,
+    SpeakerType,
+)
 from btcopilot.pro.models import Diagram
 from btcopilot.schema import PDP, asdict
 
@@ -111,9 +115,23 @@ def _resource(discussion_id, action):
     )
 
 
-def _body(action):
+def _body(action, speakers=(1, 2)):
     if action == "send":
-        return json.dumps({"statement": "hello back"})
+        subject_id, expert_id = speakers
+        return json.dumps(
+            {
+                "statement": "hello back",
+                "statements": [
+                    {"id": 1, "text": "hi", "speaker_id": subject_id, "order": 1},
+                    {
+                        "id": 2,
+                        "text": "hello back",
+                        "speaker_id": expert_id,
+                        "order": 2,
+                    },
+                ],
+            }
+        )
     return json.dumps(
         {
             "pdp": asdict(PDP()),
@@ -130,17 +148,25 @@ def ownedCase(test_activation, test_user, test_user_diagrams, create_ac_mw):
     """Pro with one of the user's own server cases open and a discussion
     selected — the state every save-before-chat case starts from."""
     diagram_id = _ownedId(test_user, test_user_diagrams)
-    discussion = StoredDiscussion(user_id=test_user.id, diagram_id=diagram_id)
+    discussion = StoredDiscussion(
+        user_id=test_user.id,
+        diagram_id=diagram_id,
+        speakers=[
+            Speaker(name="Subject", type=SpeakerType.Subject),
+            Speaker(name="Coach", type=SpeakerType.Expert),
+        ],
+    )
     db.session.add(discussion)
     db.session.commit()
     discussion_id = discussion.id
+    subject_id, expert_id = (x.id for x in discussion.speakers)
 
     ac, mw = _mainWindow(create_ac_mw)
     _open(mw, diagram_id)
     assert util.waitForCondition(lambda: mw.proPersonal().discussion.discussions != [])
     mw.proPersonal().discussion.setCurrentDiscussion(discussion_id)
 
-    return mw, diagram_id, discussion_id
+    return mw, diagram_id, discussion_id, subject_id, expert_id
 
 
 def test_coach_reads_pro_scene_and_session_without_reloading_the_case(
@@ -221,11 +247,11 @@ def test_cancelling_the_save_prompt_sends_nothing(
 ):
     """C8: declining the save must leave the case untouched — the coach reads
     the persisted row, so sending anyway would coach against stale facts."""
-    mw, diagram_id, discussion_id = ownedCase
+    mw, diagram_id, discussion_id, subject_id, expert_id = ownedCase
     mw.scene.addItem(Person(name="Unsaved"), undo=True)
     version = Diagram.query.get(diagram_id).version
 
-    with server_response(_resource(discussion_id, action), body=_body(action)):
+    with server_response(_resource(discussion_id, action), body=_body(action, (subject_id, expert_id))):
         with _requests() as calls:
             qtbot.clickCancelAfter(lambda: _chat(mw, action))
     assert ("POST", _resource(discussion_id, action)) not in calls
@@ -238,10 +264,10 @@ def test_saving_at_the_prompt_persists_before_sending(
 ):
     """C8: the save must land first — a send that overtakes it reaches the
     server before the facts it is supposed to be about."""
-    mw, diagram_id, discussion_id = ownedCase
+    mw, diagram_id, discussion_id, subject_id, expert_id = ownedCase
     mw.scene.addItem(Person(name="Unsaved"), undo=True)
 
-    with server_response(_resource(discussion_id, action), body=_body(action)):
+    with server_response(_resource(discussion_id, action), body=_body(action, (subject_id, expert_id))):
         with _requests() as calls:
             qtbot.clickButtonAfter(lambda: _chat(mw, action), QMessageBox.Save)
             assert util.waitForCondition(
@@ -258,10 +284,10 @@ def test_saving_at_the_prompt_persists_before_sending(
 def test_saved_work_is_sent_without_a_prompt(ownedCase, server_response, action):
     """C8: prompting on every turn of a saved case would make the coach
     unusable."""
-    mw, diagram_id, discussion_id = ownedCase
+    mw, diagram_id, discussion_id, subject_id, expert_id = ownedCase
     assert mw.scene.stack().isClean() == True
 
-    with server_response(_resource(discussion_id, action), body=_body(action)):
+    with server_response(_resource(discussion_id, action), body=_body(action, (subject_id, expert_id))):
         with _modals() as raised, _requests() as calls:
             _chat(mw, action)
             assert util.waitForCondition(

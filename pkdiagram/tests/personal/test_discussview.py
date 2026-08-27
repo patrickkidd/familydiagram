@@ -150,9 +150,16 @@ def test_refresh_diagram(
 
 
 @pytest.fixture
-def statements():
-    expert = Speaker(id=1, person_id=9, name="Expert", type=SpeakerType.Expert)
-    subject = Speaker(id=2, person_id=8, name="Subject", type=SpeakerType.Subject)
+def speakers():
+    return [
+        Speaker(id=1, person_id=9, name="Expert", type=SpeakerType.Expert),
+        Speaker(id=2, person_id=8, name="Subject", type=SpeakerType.Subject),
+    ]
+
+
+@pytest.fixture
+def statements(speakers):
+    expert, subject = speakers
     return [
         Statement(id=1, text="hello 1", speaker=expert),
         Statement(id=2, text="hello 2", speaker=subject),
@@ -162,9 +169,15 @@ def statements():
 
 
 @pytest.fixture
-def discussions(statements):
+def discussions(statements, speakers):
     return [
-        Discussion(id=1, diagram_id=123, summary="my dog flew away", user_id=123),
+        Discussion(
+            id=1,
+            diagram_id=123,
+            summary="my dog flew away",
+            user_id=123,
+            speakers=speakers,
+        ),
         Discussion(
             id=2,
             diagram_id=123,
@@ -260,21 +273,33 @@ def test_ask(qtbot, view, personalApp, discussions):
         assert _sendStatement.call_count == 1
         assert _sendStatement.call_args[0][0] == MESSAGE
 
-    personalApp.discussion.responseReceived.emit(RESPONSE.statement)
-    delegates = waitForListViewDelegates(statementsList, 2)
-    assert textEdit.property("text") == ""
-    assert aiBubbleAdded.wait() == True
-    assert aiBubbleAdded.callArgs[0][0].property("responseText") == RESPONSE.statement
-    assert noChatLabel.property("visible") == False
-    assert delegates[0].property("dSpeakerType") == SpeakerType.Subject.value
-    assert delegates[1].property("dSpeakerType") == SpeakerType.Expert.value
+        # The turn the server stored, which is what the chat is rebuilt from.
+        discussions[0].addStatements(
+            [
+                {"id": 5, "text": MESSAGE, "speaker_id": 2, "order": 1},
+                {"id": 6, "text": RESPONSE.statement, "speaker_id": 1, "order": 2},
+            ]
+        )
+        personalApp.discussion.statementsChanged.emit()
+        personalApp.discussion.responseReceived.emit(RESPONSE.statement)
+        delegates = waitForListViewDelegates(statementsList, 2)
+        assert textEdit.property("text") == ""
+        assert aiBubbleAdded.wait() == True
+        assert aiBubbleAdded.callArgs[0][0].property("responseText") == RESPONSE.statement
+        assert noChatLabel.property("visible") == False
+        assert delegates[0].property("dSpeakerType") == SpeakerType.Subject.value
+        assert delegates[1].property("dSpeakerType") == SpeakerType.Expert.value
 
 
 @pytest.mark.chat_flow
 def test_ask_full_stack(test_user, view, personalApp, chat_flow, flask_app):
 
     from btcopilot.personal.models import Discussion, Speaker, Statement, SpeakerType
-    from pkdiagram.personal.models import Discussion as MobileDiscussion
+    from pkdiagram.personal.models import (
+        Discussion as MobileDiscussion,
+        Speaker as MobileSpeaker,
+        SpeakerType as MobileSpeakerType,
+    )
 
     expert = Speaker(id=1, person_id=9, name="Expert", type=SpeakerType.Expert)
     subject = Speaker(id=2, person_id=8, name="Subject", type=SpeakerType.Subject)
@@ -310,6 +335,14 @@ def test_ask_full_stack(test_user, view, personalApp, chat_flow, flask_app):
     db.session.add_all(discussions)
     db.session.commit()
 
+    # A discussion the server made always knows which speaker is the person
+    # and which is the coach; a statement it stores is attributed to one of
+    # them, and the client resolves the sender by that id.
+    discussions[0].speakers = [expert, subject]
+    discussions[0].chat_user_speaker_id = subject.id
+    discussions[0].chat_ai_speaker_id = expert.id
+    db.session.commit()
+
     MESSAGE = "hello there"
 
     qml = QmlHelper(view)
@@ -325,6 +358,14 @@ def test_ask_full_stack(test_user, view, personalApp, chat_flow, flask_app):
             diagram_id=test_user.free_diagram_id,
             summary="my dog flew away",
             user_id=123,
+            speakers=[
+                MobileSpeaker(
+                    id=1, person_id=9, name="Expert", type=MobileSpeakerType.Expert
+                ),
+                MobileSpeaker(
+                    id=2, person_id=8, name="Subject", type=MobileSpeakerType.Subject
+                ),
+            ],
         ),
     ):
         personalApp.discussion.statementsChanged.emit()

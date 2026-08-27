@@ -1656,6 +1656,31 @@ class QtInspector:
         else:
             return {"success": False, "error": f"Unknown component: {component}"}
 
+    def closeDiagram(self) -> Dict[str, Any]:
+        """Close the open case, leaving Pro with no document — what a person
+        does before opening a different one."""
+        mainWindow = self._findMainWindow()
+        if mainWindow is None:
+            return {"success": False, "error": "MainWindow not found"}
+        mainWindow.closeDocument(animated=False)
+        return {"success": True}
+
+    def getTimeline(self) -> Dict[str, Any]:
+        """The timeline as the case drawer shows it: what a person reads to see
+        that a committed extraction reached the document."""
+        mainWindow = self._findMainWindow()
+        if mainWindow is None:
+            return {"success": False, "error": "MainWindow not found"}
+        model = mainWindow.documentView.timelineModel
+        rows = model.rowCount()
+        return {
+            "success": True,
+            "rowCount": rows,
+            "descriptions": [
+                model.eventForRow(row).description() for row in range(rows)
+            ],
+        }
+
     def devLogin(self, username: Optional[str] = None) -> Dict[str, Any]:
         controller = self._findPersonalAppController()
         if controller is None:
@@ -1817,6 +1842,11 @@ class QtInspector:
             result["model"]["messageCount"] = (
                 len(session.messages) if session.messages else 0
             )
+
+        discussion = controller.discussion
+        result["model"]["discussionIds"] = [x.id for x in discussion.discussions]
+        result["model"]["currentDiscussionId"] = discussion.currentDiscussionId
+        result["model"]["statements"] = [x.text for x in discussion.statements]
 
         # QML UI state
         if rootItem:

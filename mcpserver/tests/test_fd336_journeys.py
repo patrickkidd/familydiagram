@@ -23,6 +23,7 @@ import requests
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+from btcopilot.schema import EventKind
 from btcopilot.testing.fixtures import Case
 
 from mcpserver.mcp_server import (
@@ -58,6 +59,7 @@ FD_FIXTURE = Path(__file__).parent.parent.parent / "pkdiagram" / "tests" / "data
 # already on the diagram. (It ignores any word its own prompts use.)
 CONNIE, DELPHINE = "Connie", "Delphine"
 STATEMENT = f"We saw {CONNIE} and {DELPHINE} at the funeral."
+SHIFT = "Moved to the coast"
 MAIN_WINDOW = "MainWindow"
 DIRTY_MARKER = " *"
 
@@ -491,3 +493,225 @@ def test_j6_committed_people_carry_a_visible_label(journey):
     assert "Okonkwo" in labels, f"last-name-only person has no label: {labels}"
 
     assert "Ruth Bader" in labels, f"last name dropped at commit: {labels}"
+
+
+# ---------------------------------------------------------------------------
+# Discussion lifecycle — the thread the chat is actually written into
+# ---------------------------------------------------------------------------
+
+
+def _discuss(instance: TestInstance) -> dict:
+    return _cmd(instance, "get_personal_state", component="discuss")["model"]
+
+
+def _shown(instance: TestInstance) -> int:
+    """Lines the person can see in the chat, which is the only account of the
+    conversation they have — the model behind it is loaded, not live."""
+    return _value(instance, "statementsList", "count")
+
+
+def _serverDiscussions(instance: TestInstance, diagram_id: int) -> list[dict]:
+    url = instance.manifest["url"]
+    user = _login(url, instance.manifest["user"])
+    response = _request(user, "GET", url, f"/personal/diagrams/{diagram_id}/discussions")
+    assert response.status_code == 200, response.text[:300]
+    return response.json()
+
+
+def _send(instance: TestInstance, diagram_id: int, text: str) -> list[dict]:
+    """Send one statement and wait for the coach's answer to be stored, since
+    the reply is what proves the statement reached a discussion at all."""
+    before = sum(len(x["statements"]) for x in _serverDiscussions(instance, diagram_id))
+    _type(instance, "chatTextEdit", text)
+    _cmd(instance, "click", objectName="chatSendButton")
+    _until(
+        lambda: sum(
+            len(x["statements"]) for x in _serverDiscussions(instance, diagram_id)
+        )
+        >= before + 2,
+        f"the coach to answer {text!r}",
+    )
+    return _serverDiscussions(instance, diagram_id)
+
+
+def _openDiscussionMenu(instance: TestInstance):
+    _cmd(instance, "click", objectName="discussionHeaderDropdown")
+
+
+def test_j7_first_statement_opens_a_discussion_and_the_next_stays_in_it(journey):
+    """A case nobody has talked about yet has no discussion to send to. The
+    first statement has to open one, and the second has to land in that same
+    one rather than starting a thread per message."""
+    pro = journey(user=HOSTILE_USER)
+    diagram_id = _seed(pro, HOSTILE_PROFILE)[Case.EmptyDiagram.value]["diagram_id"]
+    _openChat(pro, diagram_id)
+    assert _discuss(pro)["discussionIds"] == [], "a case nobody has used has a thread"
+
+    assert _serverDiscussions(pro, diagram_id) == []
+
+    discussions = _send(pro, diagram_id, STATEMENT)
+    assert len(discussions) == 1, f"the first statement made {len(discussions)} threads"
+
+    assert len(discussions[0]["statements"]) == 2, discussions[0]["statements"]
+
+    opened = discussions[0]["id"]
+    assert _discuss(pro)["currentDiscussionId"] == opened, _discuss(pro)
+
+    discussions = _send(pro, diagram_id, "Delphine is Connie's mother.")
+    assert len(discussions) == 1, f"the second statement forked a thread: {discussions}"
+
+    assert len(discussions[0]["statements"]) == 4, discussions[0]["statements"]
+
+    assert _shown(pro) == 4, f"the chat shows {_shown(pro)} of 4 lines"
+
+
+def test_j8_a_new_discussion_takes_the_chat_and_the_old_one_keeps_its_own(journey):
+    """Starting a new discussion has to move the chat onto it without touching
+    what was said before: the earlier thread keeps its statements and is still
+    readable when the person switches back to it."""
+    pro = journey()
+    diagram_id = _seed(pro, FAMILY_PROFILE)[Case.FamilyCase.value]["diagram_id"]
+    _openChat(pro, diagram_id)
+    seeded = _serverDiscussions(pro, diagram_id)
+    assert len(seeded) == 2, f"the family case seeds two discussions: {seeded}"
+
+    first, second = seeded[0], seeded[1]
+    _until(
+        lambda: _discuss(pro)["currentDiscussionId"] == second["id"],
+        "the most recent discussion to open",
+    )
+    assert _shown(pro) == len(second["statements"]), _shown(pro)
+
+    _openDiscussionMenu(pro)
+    _cmd(pro, "click", objectName=f"discussionItem_{first['id']}")
+    assert _discuss(pro)["currentDiscussionId"] == first["id"]
+
+    assert _shown(pro) == len(first["statements"]), _shown(pro)
+
+    _openDiscussionMenu(pro)
+    _cmd(pro, "click", objectName="newDiscussionItem")
+    _until(
+        lambda: len(_discuss(pro)["discussionIds"]) == 3,
+        "the new discussion to be created",
+    )
+    opened = _discuss(pro)["currentDiscussionId"]
+    assert opened not in (first["id"], second["id"]), "the new discussion is not new"
+
+    assert _shown(pro) == 0, f"a new discussion opened with {_shown(pro)} lines in it"
+
+    _send(pro, diagram_id, STATEMENT)
+    stored = {x["id"]: x["statements"] for x in _serverDiscussions(pro, diagram_id)}
+    assert len(stored[opened]) == 2, f"the statement missed the new thread: {stored}"
+
+    assert len(stored[first["id"]]) == len(first["statements"]), "the old thread changed"
+
+    _openDiscussionMenu(pro)
+    _cmd(pro, "click", objectName=f"discussionItem_{first['id']}")
+    assert _shown(pro) == len(first["statements"]), "the old thread lost its statements"
+
+    _openDiscussionMenu(pro)
+    _cmd(pro, "click", objectName=f"discussionItem_{opened}")
+    assert _shown(pro) == 2, f"the new thread shows {_shown(pro)} of its 2 lines"
+
+
+def test_j9_reopening_a_case_reopens_the_discussion_it_was_left_on(journey):
+    """The chat belongs to the case. Opening another case has to present that
+    case's own discussion, and coming back has to bring back the first one and
+    what was said in it — not a blank chat that sends the next statement into a
+    brand new thread."""
+    pro = journey(user=HOSTILE_USER)
+    cases = _seed(pro, HOSTILE_PROFILE)
+    diagram_id = cases[Case.EmptyDiagram.value]["diagram_id"]
+    other_id = cases[Case.LastNameOnly.value]["diagram_id"]
+
+    _openChat(pro, diagram_id)
+    opened = _send(pro, diagram_id, STATEMENT)[0]["id"]
+
+    other = _serverDiscussions(pro, other_id)
+    assert other, "the other case is only evidence if it has a discussion of its own"
+
+    _cmd(pro, "open_server_diagram", diagramId=other_id)
+    _until(
+        lambda: _discuss(pro)["currentDiscussionId"] == other[-1]["id"],
+        "the other case to open its own discussion",
+    )
+    assert _shown(pro) == len(other[-1]["statements"]), _shown(pro)
+
+    _cmd(pro, "open_server_diagram", diagramId=diagram_id)
+    _until(
+        lambda: _discuss(pro)["currentDiscussionId"] == opened,
+        "the case to reopen the discussion it was left on",
+    )
+    assert _shown(pro) == 2, f"the reopened discussion shows {_shown(pro)} of 2 lines"
+
+    _send(pro, diagram_id, "Delphine is Connie's mother.")
+    discussions = _serverDiscussions(pro, diagram_id)
+    assert len(discussions) == 1, f"reopening the case forked a thread: {discussions}"
+
+
+def _timeline(instance: TestInstance) -> dict:
+    return _cmd(instance, "get_timeline")
+
+
+def test_j10_committing_an_extraction_updates_the_canvas_and_the_timeline(journey):
+    """A commit has to reach the document the person is looking at, without a
+    restart: the people appear on the canvas and the dated facts appear on the
+    timeline beside it."""
+    pro = journey()
+    diagram_id = _seed(pro, FAMILY_PROFILE)[Case.FamilyCase.value]["diagram_id"]
+    _openChat(pro, diagram_id)
+    before = _timeline(pro)["rowCount"]
+
+    _cmd(
+        pro,
+        "inject_pdp_data",
+        data={
+            "people": [{"id": -1, "name": CONNIE}, {"id": -2, "name": DELPHINE}],
+            "events": [
+                {
+                    "id": -3,
+                    "kind": EventKind.Shift.value,
+                    "person": -1,
+                    "description": SHIFT,
+                    "dateTime": "2019-04-02",
+                }
+            ],
+            "pair_bonds": [],
+        },
+    )
+    _acceptAll(pro)
+
+    assert {CONNIE, DELPHINE} <= set(_people(pro)), _people(pro)
+
+    timeline = _timeline(pro)
+    assert timeline["rowCount"] > before, f"the timeline did not grow: {timeline}"
+
+    assert SHIFT in timeline["descriptions"], timeline["descriptions"]
+
+
+def test_j11_closing_a_case_and_opening_another_shows_the_other_ones_discussions(
+    journey,
+):
+    """Discussions belong to the case, not the window: closing one and opening
+    another must show the second case's own chat, never the first's."""
+    pro = journey(user=HOSTILE_USER)
+    cases = _seed(pro, HOSTILE_PROFILE)
+    diagram_id = cases[Case.EmptyDiagram.value]["diagram_id"]
+    other_id = cases[Case.LastNameOnly.value]["diagram_id"]
+
+    _openChat(pro, diagram_id)
+    opened = _send(pro, diagram_id, STATEMENT)[0]["id"]
+
+    _cmd(pro, "close_diagram")
+
+    other = _serverDiscussions(pro, other_id)
+    assert other, "the other case is only evidence if it has a discussion of its own"
+
+    _openChat(pro, other_id)
+    _until(
+        lambda: _discuss(pro)["currentDiscussionId"] == other[-1]["id"],
+        "the reopened case to show its own discussion",
+    )
+    assert _discuss(pro)["currentDiscussionId"] != opened
+
+    assert _shown(pro) == len(other[-1]["statements"]), _shown(pro)

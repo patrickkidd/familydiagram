@@ -101,6 +101,8 @@ class TestBridgeServer(QObject):
             # File operations
             "open_file": self._handleOpenFile,
             "open_server_diagram": self._handleOpenServerDiagram,
+            "close_diagram": self._handleCloseDiagram,
+            "get_timeline": self._handleGetTimeline,
             # Screenshots
             "take_screenshot": self._handleTakeScreenshot,
             # Personal app state
@@ -561,6 +563,12 @@ class TestBridgeServer(QObject):
         if not diagramId:
             return {"success": False, "error": "Missing 'diagramId'"}
         return self._inspector.openServerDiagram(diagramId)
+
+    def _handleCloseDiagram(self, command: Dict) -> Dict:
+        return self._inspector.closeDiagram()
+
+    def _handleGetTimeline(self, command: Dict) -> Dict:
+        return self._inspector.getTimeline()
 
     def _handleTakeScreenshot(self, command: Dict) -> Dict:
         """Handle take_screenshot command."""
