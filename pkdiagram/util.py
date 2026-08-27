@@ -270,6 +270,9 @@ def init_logging():
 ##
 
 
+# The embedded chat is beta-only until it ships.
+IS_BETA = version.IS_BETA
+
 EXTENSION = "fd"
 DOT_EXTENSION = "." + EXTENSION
 OPEN_FILE_TYPES = "Family Diagrams (%s)" % ",".join(["*." + i for i in [EXTENSION]])

@@ -109,3 +109,17 @@ def test_case_the_coach_cannot_open_says_why(chatTab):
     ]
     assert proPersonal.disabledReason in texts
 
+
+
+
+# [Oracle: R-0048]
+def test_a_release_build_offers_no_chat_tab(chatTab):
+    """Beta-only until it ships: a release build must not show the tab at all,
+    not even disabled with a reason."""
+    from pkdiagram import util
+
+    w, _ = chatTab()
+    chat = w.findItem("chatTabButton")
+    assert chat is not None, "no Chat tab to gate"
+
+    assert chat.property("visible") == util.IS_BETA

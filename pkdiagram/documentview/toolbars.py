@@ -20,7 +20,7 @@ from pkdiagram.pyqt import (
     QMenu,
     QWidgetAction,
 )
-from pkdiagram import util
+from pkdiagram import util, version
 from pkdiagram.widgets import (
     PixmapPushButton,
     PixmapToolButton,
@@ -896,6 +896,9 @@ class RightToolBar(ToolBar):
                 objectName="chatButton",
                 pixmap="callout.png",
                 action=self.ui.actionShow_Chat,
+                # Beta-only: a release build must not offer the embedded chat
+                # at all, not even disabled with a reason.
+                visible=lambda: version.IS_BETA,
             ),
             PushButton(
                 objectName="settingsButton",

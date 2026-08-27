@@ -128,7 +128,13 @@ PK.Drawer {
         Layout.fillWidth: true
         PK.TabButton { text: "Timeline" }
         PK.TabButton { text: "Settings" }
-        PK.TabButton { text: "Chat" }
+        PK.TabButton {
+            objectName: "chatTabButton"
+            text: "Chat"
+            // Beta-only until it ships: a release build offers no chat at all.
+            visible: util.IS_BETA
+            width: util.IS_BETA ? implicitWidth : 0
+        }
         PK.TabButton { text: "Triangles" }
         /* onCurrentIndexChanged: { */
         /*     hackTimer.running = false // cancel hack to avoid canceling out change from QmlDrawer.setCurrentTab() */
