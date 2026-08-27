@@ -538,6 +538,7 @@ def _openDiscussionMenu(instance: TestInstance):
     _cmd(instance, "click", objectName="discussionHeaderDropdown")
 
 
+# [Oracle: R-0001, R-0005]
 def test_j7_first_statement_opens_a_discussion_and_the_next_stays_in_it(journey):
     """A case nobody has talked about yet has no discussion to send to. The
     first statement has to open one, and the second has to land in that same
@@ -565,6 +566,7 @@ def test_j7_first_statement_opens_a_discussion_and_the_next_stays_in_it(journey)
     assert _shown(pro) == 4, f"the chat shows {_shown(pro)} of 4 lines"
 
 
+# [Oracle: R-0002, R-0005]
 def test_j8_a_new_discussion_takes_the_chat_and_the_old_one_keeps_its_own(journey):
     """Starting a new discussion has to move the chat onto it without touching
     what was said before: the earlier thread keeps its statements and is still
@@ -614,6 +616,7 @@ def test_j8_a_new_discussion_takes_the_chat_and_the_old_one_keeps_its_own(journe
     assert _shown(pro) == 2, f"the new thread shows {_shown(pro)} of its 2 lines"
 
 
+# [Oracle: R-0005]
 def test_j9_reopening_a_case_reopens_the_discussion_it_was_left_on(journey):
     """The chat belongs to the case. Opening another case has to present that
     case's own discussion, and coming back has to bring back the first one and
@@ -653,6 +656,7 @@ def _timeline(instance: TestInstance) -> dict:
     return _cmd(instance, "get_timeline")
 
 
+# [Oracle: R-0003]
 def test_j10_committing_an_extraction_updates_the_canvas_and_the_timeline(journey):
     """A commit has to reach the document the person is looking at, without a
     restart: the people appear on the canvas and the dated facts appear on the
@@ -689,6 +693,7 @@ def test_j10_committing_an_extraction_updates_the_canvas_and_the_timeline(journe
     assert SHIFT in timeline["descriptions"], timeline["descriptions"]
 
 
+# [Oracle: R-0004]
 def test_j11_closing_a_case_and_opening_another_shows_the_other_ones_discussions(
     journey,
 ):
