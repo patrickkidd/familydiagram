@@ -5,7 +5,7 @@ The failure this guards against is drift, not a crash — a second sandbox scrip
 a second set of launch instructions, a hardcoded port coming back — so it reads
 files and starts nothing.
 
-    uv run pytest mcpserver/tests/test_fd336_one_harness.py
+    uv run pytest mcpserver/tests/test_one_harness.py
 """
 
 import json

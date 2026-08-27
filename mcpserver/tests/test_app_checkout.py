@@ -11,7 +11,7 @@ Every assertion here comes from the launched process — the environment it was
 actually given, or the running app's own sys.modules — never from the launcher's
 report of what it intended.
 
-    uv run pytest mcpserver/tests/test_fd336_app_checkout.py
+    uv run pytest mcpserver/tests/test_app_checkout.py
 """
 
 import json

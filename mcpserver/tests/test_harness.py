@@ -4,7 +4,7 @@ doc/workstreams/oracles/FD-336/2026-08-26--1-fd-336-harness.oracle.md
 
 These drive the real launcher and real child processes — nothing here is faked.
 
-    uv run pytest mcpserver/tests/test_fd336_harness.py
+    uv run pytest mcpserver/tests/test_harness.py
 """
 
 import glob

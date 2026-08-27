@@ -896,8 +896,8 @@ class RightToolBar(ToolBar):
                 objectName="chatButton",
                 pixmap="callout.png",
                 action=self.ui.actionShow_Chat,
-                # Beta-only: a release build must not offer the embedded chat
-                # at all, not even disabled with a reason.
+                # Beta-only. Built either way, because the document view and
+                # controller reference it by name; hidden in a release build.
                 visible=lambda: version.IS_BETA,
             ),
             PushButton(

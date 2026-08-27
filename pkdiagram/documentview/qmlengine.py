@@ -1,5 +1,5 @@
 from pkdiagram.pyqt import QQmlEngine, QQmlError, QApplication, QItemSelectionModel
-from pkdiagram import util
+from pkdiagram import util, version
 from pkdiagram.models import (
     SceneModel,
     SearchModel,

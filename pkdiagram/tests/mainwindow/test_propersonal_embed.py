@@ -35,7 +35,7 @@ from pkdiagram.personal.shakedetector import ShakeDetector
 from pkdiagram.pyqt import QMessageBox
 from pkdiagram.qnam import QNAM
 from pkdiagram.scene import Person
-from pkdiagram.tests.personal.test_fd336_lifecycle import _findInstances
+from pkdiagram.tests.personal.test_lifecycle import _findInstances
 
 
 pytestmark = [
@@ -332,3 +332,24 @@ def test_pro_starts_without_personal_peripherals_or_preferences(
     )
     assert mw.findChildren(ShakeDetector) == []
     assert [key for key in PERSONAL_PREFS_KEYS if prefs.contains(key)] == []
+
+
+
+# [Oracle: R-0048]
+def test_every_way_into_the_chat_is_beta_only(
+    test_activation, test_user, test_user_diagrams, create_ac_mw
+):
+    """Three ways in — the case-drawer tab, the right-toolbar button and the
+    View menu's Ctrl+4 — and a release build must close all of them. Gating the
+    button alone would leave the shortcut firing, which is how this was first
+    left half done."""
+    from pkdiagram import version
+
+    ac, mw = _mainWindow(create_ac_mw)
+    assert mw.ui.actionShow_Chat.isVisible() == version.IS_BETA
+
+    # A hidden action still fires its shortcut; only a disabled one does not.
+    assert mw.ui.actionShow_Chat.isEnabled() == version.IS_BETA
+
+    button = mw.documentView.view.rightToolBar.chatButton
+    assert button.visible() == version.IS_BETA, "the button is offered only in beta"

@@ -23,7 +23,7 @@ from pkdiagram.pyqt import (
     QMessageBox,
     QRect,
 )
-from pkdiagram import util
+from pkdiagram import util, version
 from pkdiagram.scene import (
     Scene,
     Person,
@@ -1084,6 +1084,11 @@ def test_uploadButton(qtbot, dv: DocumentView):
     assert uploadToServer.callCount == 1
 
 
+@pytest.mark.skipif(
+    not version.IS_BETA,
+    reason="the chat is beta-only; a release build has no button to click. The "
+    "entry points themselves are covered by test_propersonal_embed.py.",
+)
 def test_show_chat(qtbot, dv: DocumentView):
     qtbot.mouseClick(dv.view.rightToolBar.chatButton, Qt.LeftButton)
     assert dv.caseProps.currentTab() == RightDrawerView.Chat.value

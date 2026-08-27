@@ -6,7 +6,7 @@ Each test names the ticket criterion it is evidence for. Nothing here is
 faked: real Qt processes, a real backend on its own database, the deterministic
 LLM stand-in in place of a paid model.
 
-    uv run pytest mcpserver/tests/test_fd336_journeys.py -k j1
+    uv run pytest mcpserver/tests/test_journeys.py -k j1
 """
 
 import contextlib
@@ -33,7 +33,7 @@ from mcpserver.mcp_server import (
     close_all_instances,
 )
 from mcpserver.sandbox import Llm
-from mcpserver.tests.test_fd336_harness import _alive, _descendants, _login, _request
+from mcpserver.tests.test_harness import _alive, _descendants, _login, _request
 
 from pkdiagram.mcpbridge.inspector import DialogButton
 from pkdiagram.personal.propersonal import ProPersonal

@@ -338,7 +338,7 @@ default suite. Name the path to run it:
 ```
 uv run pytest mcpserver/tests/test_checkouts.py        # fast, no processes
 uv run pytest mcpserver/tests/test_sandbox.py          # fast, no processes
-uv run pytest mcpserver/tests/test_fd336_harness.py    # real backends and apps
+uv run pytest mcpserver/tests/test_harness.py    # real backends and apps
 uv run pytest mcpserver/tests/test_concurrent_save.py  # launches two real apps
 ```
 
