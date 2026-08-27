@@ -905,17 +905,24 @@ class TestInstance:
             # want stopped is its child. Signalling the group reaches whatever
             # the app spawns, including after teardown has begun, and reaches
             # nothing outside it.
+            # A sandbox app outlives the process that launched it, so draining
+            # its pipes in here captures nothing past our own exit -- which is
+            # why a crash left no trace. Hand the child the file directly.
+            app_log = env.get(APP_LOG_ENV)
+            sink = open(app_log, "a", buffering=1) if app_log else None
+            self._log_sink = sink
             self.process = subprocess.Popen(
                 cmd,
                 cwd=str(self.project_root),
                 env=env,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stdout=sink or subprocess.PIPE,
+                stderr=subprocess.STDOUT if sink else subprocess.PIPE,
                 start_new_session=True,
             )
             self.start_time = time.time()
-            self._drain(self.process.stdout, self._stdout_lines)
-            self._drain(self.process.stderr, self._stderr_lines)
+            if not sink:
+                self._drain(self.process.stdout, self._stdout_lines)
+                self._drain(self.process.stderr, self._stderr_lines)
 
             time.sleep(2)
 
