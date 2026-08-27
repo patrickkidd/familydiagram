@@ -47,11 +47,11 @@ PK.Drawer {
         var index = 0
         if(tab == 'timeline')
             index = 0
-        else if(tab == 'settings')
+        else if(tab == 'triangles')
             index = 1
         else if(tab == 'chat')
             index = 2
-        else if(tab == 'triangles')
+        else if(tab == 'settings')
             index = 3
         tabBar.setCurrentIndex(index)
     }
@@ -59,9 +59,9 @@ PK.Drawer {
     function currentTab() {
         return {
             0: 'timeline',
-            1: 'settings',
+            1: 'triangles',
             2: 'chat',
-            3: 'triangles'
+            3: 'settings'
         }[tabBar.currentIndex]
     }
     
@@ -127,15 +127,11 @@ PK.Drawer {
         currentIndex: stack.currentIndex
         Layout.fillWidth: true
         PK.TabButton { text: "Timeline" }
-        PK.TabButton { text: "Settings" }
-        PK.TabButton {
-            objectName: "chatTabButton"
-            text: "Chat"
-            // Beta-only until it ships: a release build offers no chat at all.
-            visible: util.IS_BETA
-            width: util.IS_BETA ? implicitWidth : 0
-        }
         PK.TabButton { text: "Triangles" }
+        // Beta-only until it ships. Same widget and sizing as its neighbours:
+        // a bespoke width here reads as a different control.
+        PK.TabButton { objectName: "chatTabButton"; text: "Chat"; visible: util.IS_BETA }
+        PK.TabButton { text: "Settings" }
         /* onCurrentIndexChanged: { */
         /*     hackTimer.running = false // cancel hack to avoid canceling out change from QmlDrawer.setCurrentTab() */
         /* } */
@@ -184,6 +180,42 @@ PK.Drawer {
             }
         }
         
+        PK.TriangleView {
+            id: triangleView
+            model: TriangleModel {
+                id: triangleModel
+                scene: sceneModel.scene
+            }
+            onInspectEvent: function(eventId) {
+                root.inspectEventById(eventId)
+            }
+        }
+        Item {
+            id: chatView
+            objectName: 'chatView'
+
+            Loader {
+                id: chatLoader
+                objectName: 'chatLoader'
+                anchors.fill: parent
+                active: proPersonal ? proPersonal.enabled : false
+                sourceComponent: Personal.PersonalContainer {
+                    embedded: true
+                }
+            }
+
+            PK.Text {
+                objectName: 'chatDisabledReason'
+                anchors.centerIn: parent
+                width: parent.width - root.margin * 2
+                visible: !chatLoader.active
+                text: proPersonal ? proPersonal.disabledReason : ""
+                color: util.QML_INACTIVE_TEXT_COLOR
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignHCenter
+            }
+        }
+
         Flickable {
 
             id: settingsView
@@ -744,42 +776,6 @@ PK.Drawer {
             }
         }
 
-        Item {
-            id: chatView
-            objectName: 'chatView'
-
-            Loader {
-                id: chatLoader
-                objectName: 'chatLoader'
-                anchors.fill: parent
-                active: proPersonal ? proPersonal.enabled : false
-                sourceComponent: Personal.PersonalContainer {
-                    embedded: true
-                }
-            }
-
-            PK.Text {
-                objectName: 'chatDisabledReason'
-                anchors.centerIn: parent
-                width: parent.width - root.margin * 2
-                visible: !chatLoader.active
-                text: proPersonal ? proPersonal.disabledReason : ""
-                color: util.QML_INACTIVE_TEXT_COLOR
-                wrapMode: Text.WordWrap
-                horizontalAlignment: Text.AlignHCenter
-            }
-        }
-
-        PK.TriangleView {
-            id: triangleView
-            model: TriangleModel {
-                id: triangleModel
-                scene: sceneModel.scene
-            }
-            onInspectEvent: function(eventId) {
-                root.inspectEventById(eventId)
-            }
-        }
     }
 }
 

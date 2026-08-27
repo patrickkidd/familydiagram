@@ -181,8 +181,11 @@ class DocumentController(QObject):
         self.ui.actionShow_Chat.toggled[bool].connect(self.dv.showChat)
         # Beta-only: a release build offers no way in at all. Hidden alone
         # would leave Ctrl+4 live, so the action is disabled too.
+        # Beta-only: a release build offers no way in at all. Hidden alone
+        # would leave Ctrl+4 live, so the action is disabled too.
         self.ui.actionShow_Chat.setVisible(version.IS_BETA)
         self.ui.actionShow_Chat.setEnabled(version.IS_BETA)
+
         self.ui.actionShow_Triangles.toggled[bool].connect(self.dv.showTriangles)
         #
         self.ui.actionZoom_In.triggered.connect(self.view.zoomIn)

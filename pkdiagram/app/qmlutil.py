@@ -161,7 +161,9 @@ class QmlUtil(QObject, QObjectHelper):
         globalContext=util.__dict__,
     )
 
-    @pyqtProperty(bool, constant=True)
+    IS_BETAChanged = pyqtSignal()
+
+    @pyqtProperty(bool, notify=IS_BETAChanged)
     def IS_BETA(self) -> bool:
         """Read from version itself. A module-level copy would be a snapshot
         taken at import and would disagree with version the moment anything

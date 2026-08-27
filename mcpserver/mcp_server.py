@@ -886,7 +886,10 @@ class TestInstance:
             env.update(sandbox_env)
             if headless:
                 env["QT_QPA_PLATFORM"] = "offscreen"
-            env["QT_QUICK_BACKEND"] = "software"
+                # The software renderer is for the offscreen tier. Forcing it
+                # on a visible launch degrades what Patrick is looking at --
+                # dark-mode colours among it -- so it stays with headless.
+                env["QT_QUICK_BACKEND"] = "software"
             # The app imports btcopilot too (schema, signing), so it gets that
             # checkout as well.
             env["PYTHONPATH"] = self.checkouts.pythonpath(
