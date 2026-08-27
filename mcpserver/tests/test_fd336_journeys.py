@@ -519,9 +519,11 @@ def _serverDiscussions(instance: TestInstance, diagram_id: int) -> list[dict]:
 
 
 def _send(instance: TestInstance, diagram_id: int, text: str) -> list[dict]:
-    """Send one statement and wait for the coach's answer to be stored, since
-    the reply is what proves the statement reached a discussion at all."""
+    """Send one statement and wait for the coach's answer to be both stored and
+    on screen. Waiting on the server alone would let the test act while the
+    person is still looking at a chat the answer has not reached."""
     before = sum(len(x["statements"]) for x in _serverDiscussions(instance, diagram_id))
+    shown = _shown(instance)
     _type(instance, "chatTextEdit", text)
     _cmd(instance, "click", objectName="chatSendButton")
     _until(
@@ -531,11 +533,35 @@ def _send(instance: TestInstance, diagram_id: int, text: str) -> list[dict]:
         >= before + 2,
         f"the coach to answer {text!r}",
     )
+    _until(
+        lambda: _shown(instance) >= shown + 2,
+        f"the chat to show the exchange for {text!r}",
+    )
     return _serverDiscussions(instance, diagram_id)
 
 
 def _openDiscussionMenu(instance: TestInstance):
+    """Open the menu and wait for it to finish animating: a click landing on a
+    half-open dropdown hits whatever is still underneath it."""
+    if _value(instance, "discussionDropdownRect", "opacity") == 1:
+        return
     _cmd(instance, "click", objectName="discussionHeaderDropdown")
+    _until(
+        lambda: _value(instance, "discussionDropdownRect", "opacity") == 1,
+        "the discussion menu to open",
+    )
+
+
+def _selectDiscussion(instance: TestInstance, discussion_id: int):
+    """Pick a discussion from the menu and wait for it to be the open one. The
+    menu animates, so reading the chat straight after the click reads the
+    thread being left."""
+    _openDiscussionMenu(instance)
+    _cmd(instance, "click", objectName=f"discussionItem_{discussion_id}")
+    _until(
+        lambda: _discuss(instance)["currentDiscussionId"] == discussion_id,
+        f"discussion {discussion_id} to open",
+    )
 
 
 # [Oracle: R-0001, R-0005]
@@ -584,10 +610,7 @@ def test_j8_a_new_discussion_takes_the_chat_and_the_old_one_keeps_its_own(journe
     )
     assert _shown(pro) == len(second["statements"]), _shown(pro)
 
-    _openDiscussionMenu(pro)
-    _cmd(pro, "click", objectName=f"discussionItem_{first['id']}")
-    assert _discuss(pro)["currentDiscussionId"] == first["id"]
-
+    _selectDiscussion(pro, first["id"])
     assert _shown(pro) == len(first["statements"]), _shown(pro)
 
     _openDiscussionMenu(pro)
@@ -607,12 +630,10 @@ def test_j8_a_new_discussion_takes_the_chat_and_the_old_one_keeps_its_own(journe
 
     assert len(stored[first["id"]]) == len(first["statements"]), "the old thread changed"
 
-    _openDiscussionMenu(pro)
-    _cmd(pro, "click", objectName=f"discussionItem_{first['id']}")
+    _selectDiscussion(pro, first["id"])
     assert _shown(pro) == len(first["statements"]), "the old thread lost its statements"
 
-    _openDiscussionMenu(pro)
-    _cmd(pro, "click", objectName=f"discussionItem_{opened}")
+    _selectDiscussion(pro, opened)
     assert _shown(pro) == 2, f"the new thread shows {_shown(pro)} of its 2 lines"
 
 

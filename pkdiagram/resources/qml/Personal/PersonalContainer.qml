@@ -514,6 +514,7 @@ Page {
     // Discussion dropdown
     Rectangle {
         id: discussionDropdownRect
+        objectName: "discussionDropdownRect"
         anchors.top: header.bottom
         anchors.topMargin: 8
         anchors.horizontalCenter: parent.horizontalCenter

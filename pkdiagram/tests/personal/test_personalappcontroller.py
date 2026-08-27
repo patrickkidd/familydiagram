@@ -107,14 +107,17 @@ def test_sendStatement(
         if not success:
             stack.enter_context(server_error())
         personalApp.discussion.sendStatement("test message")
-    assert requestSent.callCount == 1
-    if success:
-        assert responseReceived.wait()
-        assert responseReceived.callArgs[0][0] == RESPONSE.statement
-        assert serverError.callCount == 0
-    else:
-        assert serverError.wait()
-        assert responseReceived.callCount == 0
+        assert requestSent.callCount == 1
+
+        # The answer is announced only while its own discussion is still the
+        # open one, so the wait has to happen with it still current.
+        if success:
+            assert responseReceived.wait()
+            assert responseReceived.callArgs[0][0] == RESPONSE.statement
+            assert serverError.callCount == 0
+        else:
+            assert serverError.wait()
+            assert responseReceived.callCount == 0
     assert serverDown.callCount == 0
 
 

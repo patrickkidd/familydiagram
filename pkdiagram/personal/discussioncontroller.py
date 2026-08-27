@@ -246,15 +246,18 @@ class DiscussionController(QObject):
                 return
 
             diagram = self._diagram
+            # The turn belongs to the discussion it was sent from. A person who
+            # switches threads while the coach is thinking must not have the
+            # answer filed under the one they switched to.
+            discussion = self._currentDiscussion
 
             def onSuccess(data):
                 if not self._isCurrent(diagram):
                     return
-                discussion = self._currentDiscussion
-                if discussion:
-                    discussion.addStatements(data["statements"])
+                discussion.addStatements(data["statements"])
+                if self._currentDiscussion is discussion:
                     self.statementsChanged.emit()
-                self.responseReceived.emit(data["statement"])
+                    self.responseReceived.emit(data["statement"])
 
             args = {
                 "statement": statement,
