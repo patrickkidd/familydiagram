@@ -787,6 +787,7 @@ Page {
     Personal.LoadingOverlay {
         id: extractOverlay
         objectName: "extractOverlay"
+        fallbackParent: root
         text: "Detecting data..."
         onCancelClicked: pdpController.cancelRebuild()
     }

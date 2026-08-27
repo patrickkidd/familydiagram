@@ -870,6 +870,7 @@ Page {
     }
 
     Personal.LoadingOverlay {
+        fallbackParent: root
         id: importOverlay
         objectName: "importOverlay"
         text: "Importing notes..."

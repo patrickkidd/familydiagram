@@ -376,3 +376,23 @@ def test_ask_full_stack(test_user, view, personalApp, chat_flow, flask_app):
     assert delegates[0].property("dSpeakerType") == SpeakerType.Subject.value
     assert delegates[1].property("dText") == chat_flow["response"]
     assert delegates[1].property("dSpeakerType") == SpeakerType.Expert.value
+
+
+
+# [Oracle: R-0044]
+def test_an_extraction_in_progress_is_on_screen(view, personalApp):
+    """Asserting the overlay says visible is not enough: parented to a null
+    ApplicationWindow overlay it says visible and renders nowhere, which is
+    exactly how the progress indicator went missing."""
+    overlay = next(
+        c for c in view.rootObject().findChildren(object)
+        if c.objectName() == "extractOverlay"
+    )
+    assert overlay.property("visible") == False
+
+    personalApp.pdpController.extractStarted.emit()
+    assert overlay.property("visible") == True
+
+    assert overlay.parentItem() is not None, "the overlay is attached to nothing"
+
+    assert overlay.property("width") > 0 and overlay.property("height") > 0

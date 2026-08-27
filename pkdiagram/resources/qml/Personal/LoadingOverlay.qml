@@ -13,7 +13,13 @@ Rectangle {
     property bool cancellable: false
     signal cancelClicked()
 
-    parent: Overlay.overlay
+    // Embedded in Pro (and in any view loaded into a QQuickWidget) there is no
+    // ApplicationWindow, so Overlay.overlay is null and an overlay parented to
+    // it renders nowhere however visible it says it is. Fall back to the view
+    // that declared it.
+    property Item fallbackParent: null
+
+    parent: Overlay.overlay ? Overlay.overlay : fallbackParent
     anchors.fill: parent
     visible: false
     color: util.QML_HEADER_BG
