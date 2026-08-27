@@ -500,7 +500,8 @@
     "status": "handed-off",
     "at": "2026-08-26T20:50:00",
     "script": "doc/workstreams/FD-336/fd-336-human-script.md",
-    "handoff": "doc/workstreams/FD-336/fd-336-handoff.md"
+    "handoff": "doc/workstreams/FD-336/fd-336-handoff.md",
+    "walk_status": "NOT STARTED as of 2026-08-26 13:20 AKDT: the sandbox was launched twice for Patrick (first launch ran origin code \u2014 F-015, fixed; second launch verified on worktree code); no observations recorded for C2h/C6h/C8h/C10h/H5h; sandbox torn down at hand-off"
    }
   },
   "merge": {
@@ -791,6 +792,12 @@
    "entered": "2026-08-26T18:35:00",
    "exited": null,
    "note": "agent track: all agent criteria C1-C10b, H1-H5 evidence-backed on the real system (journeys J1-J6, harness tests); human track: script handed off | agent track complete 2026-08-26T20:50; human track handed off"
+  },
+  {
+   "gate": "validate",
+   "entered": "2026-08-26T21:20:00",
+   "exited": null,
+   "note": "session hand-off: agent track complete; human walk not started; handoff doc written outside the worktrees"
   }
  ],
  "worker_model_policy": {
@@ -798,7 +805,7 @@
   "design_planning_review": "fable (coordinator + critics, FMEA, adversarial test design, diff review, verification judgment)",
   "implementation_and_test_authoring": "opus (model override on every builder/test-author agent, driven by fable-written briefs)"
  },
- "parked_on": "human track: Patrick's walkthrough on the live FD-336 sandbox (C2h, C6h, C8h, C10h, H5h); Jira hand-off comment awaits a yes",
+ "parked_on": "HANDED OFF 2026-08-26: human walkthrough not yet performed; see /Users/patrick/.claude/research/2026-08-26--fd-336-handoff.md",
  "model_policy": {
   "decided_by": "Patrick 2026-08-26 (chat): premium chat always uses the latest Opus at equal price; otherwise compare pricing and cost projections",
   "applied": "claude-opus-5 default (btcopilot eace19f); opus-4.6 selectable",
