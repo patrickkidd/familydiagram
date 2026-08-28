@@ -52,6 +52,7 @@ from pkdiagram.pyqt import (
     Qt,
     QObject,
     QWidget,
+    QAction,
     QApplication,
     QQuickItem,
     QQuickWidget,
@@ -359,6 +360,15 @@ class QtInspector:
             widget = window.findChild(QWidget, objectName)
             if widget is not None:
                 return widget
+        return None
+
+    def _findAction(self, objectName: str):
+        """Find a QAction by objectName. Menu items and their shortcuts are a
+        way into a feature like any other, so they have to be inspectable."""
+        for window in self._app.topLevelWidgets():
+            action = window.findChild(QAction, objectName)
+            if action is not None:
+                return action
         return None
 
     def _findQmlItem(self, objectName: str) -> Optional[QQuickItem]:
@@ -721,6 +731,18 @@ class QtInspector:
         if widget is not None:
             value = widget.property(propertyName)
             return {"success": True, "value": self._convertValue(value)}
+
+        action = self._findAction(objectName)
+        if action is not None:
+            if propertyName == "visible":
+                return {"success": True, "value": action.isVisible()}
+            if propertyName == "enabled":
+                return {"success": True, "value": action.isEnabled()}
+            if propertyName == "shortcut":
+                return {"success": True, "value": action.shortcut().toString()}
+            if propertyName == "text":
+                return {"success": True, "value": action.text()}
+            return {"success": True, "value": self._convertValue(action.property(propertyName))}
 
         item = self._findQmlItem(objectName)
         if item is not None:
