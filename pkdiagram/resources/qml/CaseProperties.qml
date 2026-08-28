@@ -44,25 +44,16 @@ PK.Drawer {
     }
 
     function setCurrentTab(tab) {
-        var index = 0
-        if(tab == 'timeline')
-            index = 0
-        else if(tab == 'settings')
-            index = 1
-        else if(tab == 'chat')
-            index = 2
-        else if(tab == 'triangles')
-            index = 3
-        tabBar.setCurrentIndex(index)
+        for(var i = 0; i < tabs.length; i++) {
+            if(tabs[i].name == tab) {
+                tabBar.setCurrentIndex(i)
+                return
+            }
+        }
     }
 
     function currentTab() {
-        return {
-            0: 'timeline',
-            1: 'settings',
-            2: 'chat',
-            3: 'triangles'
-        }[tabBar.currentIndex]
+        return tabs[tabBar.currentIndex].name
     }
     
     function onInspect() {
@@ -121,20 +112,31 @@ PK.Drawer {
         }
     }
 
+    // The tabs this build offers, and the stack page each one shows. A tab the
+    // build does not offer is not built at all -- a hidden TabButton still
+    // takes its turn in the bar's layout and its index, which is what left the
+    // release build's tabs misaligned.
+    readonly property var allTabs: [
+        { name: 'timeline', label: "Timeline", page: 0, betaOnly: false },
+        { name: 'settings', label: "Settings", page: 1, betaOnly: false },
+        { name: 'chat', label: "Chat", page: 2, betaOnly: true },
+        { name: 'triangles', label: "Triangles", page: 3, betaOnly: false },
+    ]
+    readonly property var tabs: allTabs.filter(function(tab) {
+        return !tab.betaOnly || util.IS_BETA
+    })
+
     footer: PK.TabBar {
         id: tabBar
         objectName: 'tabBar'
-        currentIndex: stack.currentIndex
         Layout.fillWidth: true
-        PK.TabButton { text: "Timeline" }
-        PK.TabButton { text: "Settings" }
-        // Beta-only until it ships. Same widget and sizing as its neighbours:
-        // a bespoke width here reads as a different control.
-        PK.TabButton { objectName: "chatTabButton"; text: "Chat"; visible: util.IS_BETA }
-        PK.TabButton { text: "Triangles" }
-        /* onCurrentIndexChanged: { */
-        /*     hackTimer.running = false // cancel hack to avoid canceling out change from QmlDrawer.setCurrentTab() */
-        /* } */
+        Repeater {
+            model: root.tabs
+            PK.TabButton {
+                objectName: modelData.name + "TabButton"
+                text: modelData.label
+            }
+        }
     }
 
     Rectangle {
@@ -146,7 +148,8 @@ PK.Drawer {
         id: stack
         objectName: 'stack'
         anchors.fill: parent
-        currentIndex: tabBar.currentIndex
+        // The bar is the source of truth; the page it shows is looked up.
+        currentIndex: root.tabs[tabBar.currentIndex].page
         // hack to avoid "implicitWidth must be greater than zero" warning when timeline is shown but not yet sized to parent QWidget
         /* Timer { */
         /*     id: hackTimer */

@@ -390,3 +390,34 @@ def test_a_beta_build_offers_the_chat(
     assert offered["action enabled"] == True
 
     assert offered["toolbar button"] == True
+
+
+# [Oracle: R-0048]
+@pytest.mark.beta
+def test_clicking_a_tab_selects_its_toolbar_button_and_action(
+    test_activation, test_user, test_user_diagrams, create_ac_mw
+):
+    """A tab clicked in the drawer is as much a selection as the toolbar
+    button, so exactly one button and one action end up checked."""
+    diagram_id = _ownedId(test_user, test_user_diagrams)
+    ac, mw = _mainWindow(create_ac_mw)
+    _open(mw, diagram_id)
+    toolBar = mw.documentView.view.rightToolBar
+
+    # The drawer is open on the timeline, as the toolbar just put it.
+    mw.documentView.showTimeline(True)
+    assert util.waitForCondition(lambda: mw.ui.actionShow_Timeline.isChecked())
+
+    mw.documentView.caseProps.setCurrentTab("chat")
+    assert util.waitForCondition(lambda: toolBar.chatButton.isChecked())
+
+    assert mw.ui.actionShow_Timeline.isChecked() == False
+
+    assert toolBar.settingsButton.isChecked() == False
+
+    assert toolBar.trianglesButton.isChecked() == False
+
+    mw.documentView.caseProps.setCurrentTab("triangles")
+    assert util.waitForCondition(lambda: toolBar.trianglesButton.isChecked())
+
+    assert toolBar.chatButton.isChecked() == False

@@ -62,7 +62,7 @@ version.IS_BETA = False
 version.IS_ALPHA_BETA = False
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def betaBuild(request):
     """Whether the app under test is a beta build.
 

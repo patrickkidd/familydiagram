@@ -114,18 +114,17 @@ def test_case_the_coach_cannot_open_says_why(chatTab):
 
 # [Oracle: R-0048]
 def test_a_release_build_offers_no_chat_tab(chatTab):
-    """Beta-only until it ships: a release build must not show the tab at all,
-    not even disabled with a reason."""
-    from pkdiagram import version
-
+    """Beta-only until it ships. The tab is not built at all rather than built
+    and hidden -- a hidden TabButton still takes its turn in the bar's layout."""
     w, _ = chatTab()
-    chat = w.findItem("chatTabButton")
-    assert chat is not None, "no Chat tab to gate"
-
-    assert chat.property("visible") == version.IS_BETA
+    tabBar = w.findItem("tabBar")
+    buttons = tabBar.property("contentItem").property("contentItem").childItems()
+    labels = [x.property("text") for x in buttons[: tabBar.property("count")]]
+    assert "Chat" not in labels, f"the release build still builds a Chat tab: {labels}"
 
 
 # [Oracle: R-0005]
+@pytest.mark.beta
 def test_the_embedded_chat_actually_renders_its_controls(chatTab):
     """The tab hosting the component is not the same as the chat being usable:
     a throw during the view's construction leaves the tab present and blank."""
@@ -139,6 +138,7 @@ def test_the_embedded_chat_actually_renders_its_controls(chatTab):
 
 
 # [Oracle: R-0055]
+@pytest.mark.beta
 def test_the_tab_never_renders_blank(chatTab):
     """Three separate causes have all surfaced as an empty Chat tab. Whatever
     the state, it either loads the coach or says why -- never nothing."""

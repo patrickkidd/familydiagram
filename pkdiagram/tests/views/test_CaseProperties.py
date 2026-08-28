@@ -276,17 +276,41 @@ def test_variablesBox_enabled(test_activation, create_cp, is_read_only, qmlEngin
     assert cp.itemProp("variablesBox", "enabled") == (not is_read_only)
 
 
-def test_tabs(create_cp):
-    cp = create_cp()
+def _tabLabels(cp):
     tabBar = cp.findItem("tabBar")
     tabButtons = tabBar.property("contentItem").property("contentItem").childItems()
-    labels = [x.property("text") for x in tabButtons[: tabBar.property("count")]]
-    assert labels == ["Timeline", "Settings", "Chat", "Triangles"]
+    return [x.property("text") for x in tabButtons[: tabBar.property("count")]]
+
+
+def test_tabs(create_cp):
+    """A release build does not build the Chat tab at all, so the bar carries
+    one fewer button rather than a hidden one holding its place."""
+    cp = create_cp()
+    assert _tabLabels(cp) == ["Timeline", "Settings", "Triangles"]
+
+    # Each tab still shows its own page, whatever its position in the bar.
+    cp.setCurrentTab(RightDrawerView.Triangles.value)
+    assert cp.currentTab() == RightDrawerView.Triangles.value
+
+    assert cp.itemProp("stack", "currentIndex") == 3
+
+    cp.setCurrentTab(RightDrawerView.Settings.value)
+    assert cp.currentTab() == RightDrawerView.Settings.value
+
+    assert cp.itemProp("stack", "currentIndex") == 1
+
+    # A tab this build does not offer is simply not selectable.
+    cp.setCurrentTab(RightDrawerView.Chat.value)
+    assert cp.currentTab() == RightDrawerView.Settings.value
+
+
+# [Oracle: R-0048]
+@pytest.mark.beta
+def test_tabs_include_chat_in_a_beta_build(create_cp):
+    cp = create_cp()
+    assert _tabLabels(cp) == ["Timeline", "Settings", "Chat", "Triangles"]
 
     cp.setCurrentTab(RightDrawerView.Chat.value)
     assert cp.currentTab() == RightDrawerView.Chat.value
-    assert cp.itemProp("stack", "currentIndex") == 2
 
-    cp.setCurrentTab(RightDrawerView.Triangles.value)
-    assert cp.currentTab() == RightDrawerView.Triangles.value
-    assert cp.itemProp("stack", "currentIndex") == 3
+    assert cp.itemProp("stack", "currentIndex") == 2

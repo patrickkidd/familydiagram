@@ -549,6 +549,10 @@ class DocumentView(QWidget):
 
     def onCasePropsTabChanged(self):
         self.updateSceneStopOnAllEvents()
+        # A tab clicked in the drawer is as much a selection as the toolbar
+        # button, so the button and its action follow it.
+        if self.currentDrawer is self.caseProps:
+            self.setCurrentDrawer(self.caseProps, tab=self.caseProps.currentTab())
 
     def onCasePropsInspectEventNotes(self, row: int):
         event = self.timelineModel.eventForRow(row)
