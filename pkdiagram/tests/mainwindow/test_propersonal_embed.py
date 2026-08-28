@@ -374,7 +374,19 @@ def test_a_release_build_hides_the_chat_entirely(
     }
 
 
-# NB: the mirror of the test above -- a beta build offering all three entry
-# points -- hangs when MainWindow is constructed with IS_BETA True, the same
-# hang as test_show_chat in test_documentview.py. Unresolved; see that test's
-# xfail reason. Left out rather than left hanging in the suite.
+# [Oracle: R-0048]
+@pytest.mark.beta
+def test_a_beta_build_offers_the_chat(
+    test_activation, test_user, test_user_diagrams, create_ac_mw
+):
+    """The mirror of the release case. A beta build honours beta licences and
+    strips every other one, so this needs the beta licence its marker grants --
+    without it the launch has no active features and blocks on the "Beta
+    License Required" modal."""
+    ac, mw = _mainWindow(create_ac_mw)
+    offered = _chatEntryPoints(mw)
+    assert offered["action visible"] == True
+
+    assert offered["action enabled"] == True
+
+    assert offered["toolbar button"] == True

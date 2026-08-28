@@ -1093,13 +1093,6 @@ def test_uploadButton(qtbot, dv: DocumentView):
 
 
 @pytest.mark.beta
-@pytest.mark.xfail(
-    reason="Regressed while gating the chat on IS_BETA: the button is visible "
-    "and the flag is mocked, but the click no longer opens the case drawer "
-    "(caseProps.qml stays None). Not the toolbar predicate and not the action "
-    "gating -- both were bisected out and it still fails. Unresolved.",
-    strict=False,
-)
 def test_show_chat(qtbot, dv: DocumentView):
     """The chat is beta-only, so this runs as a beta build."""
     qtbot.mouseClick(dv.view.rightToolBar.chatButton, Qt.LeftButton)
