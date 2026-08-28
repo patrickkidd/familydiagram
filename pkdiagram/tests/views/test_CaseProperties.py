@@ -282,6 +282,7 @@ def _tabLabels(cp):
     return [x.property("text") for x in tabButtons[: tabBar.property("count")]]
 
 
+# [Oracle: R-0059]
 def test_tabs(create_cp):
     """A release build does not build the Chat tab at all, so the bar carries
     one fewer button rather than a hidden one holding its place."""
@@ -305,7 +306,7 @@ def test_tabs(create_cp):
     assert cp.currentTab() == RightDrawerView.Settings.value
 
 
-# [Oracle: R-0048]
+# [Oracle: R-0048, R-0059]
 @pytest.mark.beta
 def test_tabs_include_chat_in_a_beta_build(create_cp):
     cp = create_cp()
