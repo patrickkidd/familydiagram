@@ -33,11 +33,17 @@ class SARFGraphModel(QObject):
             self._scene.eventAdded.disconnect(self._onSceneChanged)
             self._scene.eventRemoved.disconnect(self._onSceneChanged)
             self._scene.eventChanged.disconnect(self._onSceneChanged)
+            self._scene.finishedBatchAddingRemovingItems.disconnect(
+                self._onSceneChanged
+            )
         self._scene = value
         if self._scene:
             self._scene.eventAdded.connect(self._onSceneChanged)
             self._scene.eventRemoved.connect(self._onSceneChanged)
             self._scene.eventChanged.connect(self._onSceneChanged)
+            # A batch add suppresses the per-item signals above and never
+            # replays them, so a commit or a load would leave this stale.
+            self._scene.finishedBatchAddingRemovingItems.connect(self._onSceneChanged)
         self.refresh()
 
     def _onSceneChanged(self, *args):

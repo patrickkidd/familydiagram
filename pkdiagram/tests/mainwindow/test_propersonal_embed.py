@@ -27,14 +27,15 @@ from btcopilot.personal.models import (
     SpeakerType,
 )
 from btcopilot.pro.models import Diagram
-from btcopilot.schema import PDP, asdict
+from btcopilot.schema import PDP, EventKind, asdict
 
 from pkdiagram import util
 from pkdiagram.app import Session
 from pkdiagram.personal.shakedetector import ShakeDetector
 from pkdiagram.pyqt import QMessageBox
 from pkdiagram.qnam import QNAM
-from pkdiagram.scene import Person
+from pkdiagram.pyqt import QDate, QDateTime
+from pkdiagram.scene import Event, Person
 from pkdiagram.tests.personal.test_lifecycle import _findInstances
 
 
@@ -421,3 +422,41 @@ def test_clicking_a_tab_selects_its_toolbar_button_and_action(
     assert util.waitForCondition(lambda: toolBar.trianglesButton.isChecked())
 
     assert toolBar.chatButton.isChecked() == False
+
+
+def _shift(person, year):
+    return Event(
+        kind=EventKind.Shift,
+        person=person,
+        dateTime=QDateTime(QDate(year, 5, 15)),
+    )
+
+
+# [Oracle: R-0061]
+@pytest.mark.beta
+@pytest.mark.parametrize("batched", [False, True])
+def test_a_pro_edit_reaches_the_embedded_personal_views(
+    test_activation, test_user, test_user_diagrams, create_ac_mw, batched
+):
+    """The ticket's promise: the embedded views read Pro's Scene, so an edit
+    made in Pro shows up in them. Its failure mode is silent -- two views
+    quietly disagreeing -- and a batch is the case that breaks, because it
+    suppresses the per-item scene signals and never replays them, which is how
+    a commit and a file load both arrive."""
+    diagram_id = _ownedId(test_user, test_user_diagrams)
+    ac, mw = _mainWindow(create_ac_mw)
+    _open(mw, diagram_id)
+    graph = mw.proPersonal().sarfGraphModel
+    assert graph.scene is mw.scene, "the embedded views are not on Pro's Scene"
+
+    person = Person(name="Connie")
+    event = _shift(person, 1990)
+    if batched:
+        mw.scene.addItems(person, event, batch=True)
+    else:
+        mw.scene.addItem(person)
+        mw.scene.addItem(event)
+
+    assert [x["year"] for x in graph.events] == [1990]
+
+    assert graph.events[0]["who"] == "Connie"
