@@ -66,15 +66,9 @@ _log = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def dv(request, test_session, test_activation, qtbot, scene):
-    """The suite runs as a release build. A test marked `beta` is testing a
-    beta-only feature, so the flag is set before anything reads it -- the
-    toolbar and the drawer's tabs both bind to it at construction."""
-    beta = patch.object(version, "IS_BETA", True)
-    if request.node.get_closest_marker("beta"):
-        beta.start()
-        request.addfinalizer(beta.stop)
-
+def dv(request, test_session, test_activation, qtbot, scene, betaBuild):
+    """betaBuild sets the build before anything reads it -- the toolbar and the
+    drawer's tabs both bind to it at construction."""
     # A mainwindow that only has the ui elements and actions required for DocumentView and View.
     mw = QMainWindow()
     mw.ui = Ui_MainWindow()
