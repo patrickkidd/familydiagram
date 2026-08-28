@@ -6,8 +6,15 @@ including widgets, QML items, and QGraphicsView scene items.
 """
 
 import logging
+import sys
 from enum import Enum
+from pathlib import Path
 from typing import Optional, Dict, Any, List, Union
+
+# The repos whose checkout a launcher chooses, and the app therefore has to be
+# asked about: the launcher only sets an environment, the app is the one that
+# knows which copy actually answered the import.
+IMPORTED_REPOS = ("pkdiagram", "btcopilot")
 
 
 class AppState(str, Enum):
@@ -21,6 +28,14 @@ class AppLoginState(str, Enum):
     AccountDialogVisible = "account_dialog_visible"
     NotLoggedIn = "not_logged_in"
     LoggedIn = "logged_in"
+
+
+class DialogButton(str, Enum):
+    Save = "save"
+    Cancel = "cancel"
+    Ok = "ok"
+    Yes = "yes"
+    No = "no"
 
 
 class AppView(str, Enum):
@@ -37,6 +52,7 @@ from pkdiagram.pyqt import (
     Qt,
     QObject,
     QWidget,
+    QAction,
     QApplication,
     QQuickItem,
     QQuickWidget,
@@ -75,17 +91,27 @@ class QtInspector:
     # App State (High-level semantic state)
     # -------------------------------------------------------------------------
 
+    def getModules(self) -> Dict[str, Any]:
+        """Where this running app imported each repo from.
+
+        Reads sys.modules only, so it is thread-safe and answers while the main
+        thread is busy — and it answers with what the interpreter resolved, not
+        with what the launcher hoped it had arranged.
+        """
+        checkouts = {}
+        for name in IMPORTED_REPOS:
+            module = sys.modules.get(name)
+            file = getattr(module, "__file__", None) if module else None
+            checkouts[name] = str(Path(file).resolve().parent.parent) if file else None
+        return {"success": True, "checkouts": checkouts, "executable": sys.executable}
+
     def getAppState(self) -> Dict[str, Any]:
         """
         Get high-level semantic app state for MCP testing.
         Fails fast on unexpected states - this is a dev tool, not production code.
         """
         # Try Pro app first (MainWindow widget)
-        mainWindow = None
-        for window in self._app.topLevelWidgets():
-            if type(window).__name__ == "MainWindow":
-                mainWindow = window
-                break
+        mainWindow = self._findMainWindow()
 
         if mainWindow is not None:
             return self._getProAppState(mainWindow)
@@ -334,6 +360,15 @@ class QtInspector:
             widget = window.findChild(QWidget, objectName)
             if widget is not None:
                 return widget
+        return None
+
+    def _findAction(self, objectName: str):
+        """Find a QAction by objectName. Menu items and their shortcuts are a
+        way into a feature like any other, so they have to be inspectable."""
+        for window in self._app.topLevelWidgets():
+            action = window.findChild(QAction, objectName)
+            if action is not None:
+                return action
         return None
 
     def _findQmlItem(self, objectName: str) -> Optional[QQuickItem]:
@@ -696,6 +731,18 @@ class QtInspector:
         if widget is not None:
             value = widget.property(propertyName)
             return {"success": True, "value": self._convertValue(value)}
+
+        action = self._findAction(objectName)
+        if action is not None:
+            if propertyName == "visible":
+                return {"success": True, "value": action.isVisible()}
+            if propertyName == "enabled":
+                return {"success": True, "value": action.isEnabled()}
+            if propertyName == "shortcut":
+                return {"success": True, "value": action.shortcut().toString()}
+            if propertyName == "text":
+                return {"success": True, "value": action.text()}
+            return {"success": True, "value": self._convertValue(action.property(propertyName))}
 
         item = self._findQmlItem(objectName)
         if item is not None:
@@ -1197,7 +1244,10 @@ class QtInspector:
                 continue
             from pkdiagram.scene.person import Person
             person = Person()
-            scene.addItems(person)
+            # Undoable, like the user's own add: without a command on the stack
+            # the document never goes dirty and no journey can reach the
+            # unsaved-edit paths.
+            scene.addItems(person, undo=True)
             return {"success": True, "id": person.id}
         return {"success": False, "error": "No scene found"}
 
@@ -1340,11 +1390,7 @@ class QtInspector:
 
         try:
             # Find MainWindow
-            mainWindow = None
-            for window in self._app.topLevelWidgets():
-                if type(window).__name__ == "MainWindow":
-                    mainWindow = window
-                    break
+            mainWindow = self._findMainWindow()
 
             if mainWindow is None:
                 return {"success": False, "error": "MainWindow not found"}
@@ -1397,11 +1443,7 @@ class QtInspector:
                 return self._openPersonalDiagram(controller, diagramId)
 
             # Pro app path — synchronous
-            mainWindow = None
-            for window in self._app.topLevelWidgets():
-                if type(window).__name__ == "MainWindow":
-                    mainWindow = window
-                    break
+            mainWindow = self._findMainWindow()
             if mainWindow is None:
                 return {"success": False, "error": "MainWindow not found (Pro or Personal)"}
 
@@ -1440,26 +1482,34 @@ class QtInspector:
         loaded = {"ok": False, "error": None}
         loop = QEventLoop()
 
-        def onLoaded():
-            if controller._diagram and controller._diagram.id == diagramId:
+        def onLoaded(diagram, scene, discussions):
+            # diagramLoaded, not diagramChanged: the loader announces the new
+            # diagram before the controller has adopted it, so a load is only
+            # done once this fires — and it carries what was loaded, including
+            # the free diagram the loader falls back to.
+            if diagram and diagram.id == diagramId:
                 loaded["ok"] = True
-                loop.quit()
+            else:
+                loaded["error"] = (
+                    f"Loaded diagram {diagram.id if diagram else None}, not {diagramId}"
+                )
+            loop.quit()
 
         def onError(msg=""):
             loaded["error"] = f"Failed to load diagram {diagramId}: {msg}"
             loop.quit()
 
         controller.appConfig.set("lastDiagramId", diagramId)
-        controller.diagramChanged.connect(onLoaded)
-        controller.serverError.connect(onError)
-        controller.serverDown.connect(onError)
+        controller.diagramLoader.diagramLoaded.connect(onLoaded)
+        controller.diagramLoader.serverError.connect(onError)
+        controller.diagramLoader.serverDown.connect(onError)
         try:
-            controller._refreshDiagram()
+            controller.diagramLoader.refreshDiagram()
             loop.exec_()
         finally:
-            controller.diagramChanged.disconnect(onLoaded)
-            controller.serverError.disconnect(onError)
-            controller.serverDown.disconnect(onError)
+            controller.diagramLoader.diagramLoaded.disconnect(onLoaded)
+            controller.diagramLoader.serverError.disconnect(onError)
+            controller.diagramLoader.serverDown.disconnect(onError)
 
         if loaded["ok"]:
             return {"success": True, "message": f"Opened personal diagram {diagramId}", "diagramId": diagramId}
@@ -1474,6 +1524,35 @@ class QtInspector:
                 self._app.processEvents()
                 return {"success": True}
         return {"success": False, "error": f"Window not found: {objectName}"}
+
+    def dismissDialog(self, button: str) -> Dict[str, Any]:
+        """Press a button on the modal message box that is up.
+
+        A modal blocks the main thread inside the command that raised it, so
+        keys are the only other way in and they only ever reach the default
+        button — anything but the default needs this."""
+        standard = {
+            DialogButton.Save: QMessageBox.Save,
+            DialogButton.Cancel: QMessageBox.Cancel,
+            DialogButton.Ok: QMessageBox.Ok,
+            DialogButton.Yes: QMessageBox.Yes,
+            DialogButton.No: QMessageBox.No,
+        }[DialogButton(button)]
+
+        for widget in self._app.topLevelWidgets():
+            if not isinstance(widget, QMessageBox) or not widget.isVisible():
+                continue
+            target = widget.button(standard)
+            if target is None:
+                return {
+                    "success": False,
+                    "error": f"Dialog '{widget.text()}' has no {button} button",
+                }
+            target.click()
+            self._app.processEvents()
+            return {"success": True, "button": button, "text": widget.text()}
+
+        return {"success": False, "error": "No message box is up"}
 
     def takeScreenshot(self, objectName: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -1580,14 +1659,11 @@ class QtInspector:
         Returns:
             Dict with model data and QML UI state for the component
         """
-        # Find PersonalAppController
-        controller = self._findPersonalAppController()
+        controller = self._findPersonalComponents()
         if controller is None:
-            return {"success": False, "error": "PersonalAppController not found"}
+            return {"success": False, "error": "Personal components not found"}
 
-        # Find Personal app window for QML state
-        personalWindow = self._findPersonalAppWindow()
-        rootItem = personalWindow.contentItem() if personalWindow else None
+        rootItem = self._findPersonalRootItem()
 
         if component == "all":
             return self._getPersonalOverview(controller, rootItem)
@@ -1601,6 +1677,31 @@ class QtInspector:
             return self._getPdpState(controller, rootItem)
         else:
             return {"success": False, "error": f"Unknown component: {component}"}
+
+    def closeDiagram(self) -> Dict[str, Any]:
+        """Close the open case, leaving Pro with no document — what a person
+        does before opening a different one."""
+        mainWindow = self._findMainWindow()
+        if mainWindow is None:
+            return {"success": False, "error": "MainWindow not found"}
+        mainWindow.closeDocument(animated=False)
+        return {"success": True}
+
+    def getTimeline(self) -> Dict[str, Any]:
+        """The timeline as the case drawer shows it: what a person reads to see
+        that a committed extraction reached the document."""
+        mainWindow = self._findMainWindow()
+        if mainWindow is None:
+            return {"success": False, "error": "MainWindow not found"}
+        model = mainWindow.documentView.timelineModel
+        rows = model.rowCount()
+        return {
+            "success": True,
+            "rowCount": rows,
+            "descriptions": [
+                model.eventForRow(row).description() for row in range(rows)
+            ],
+        }
 
     def devLogin(self, username: Optional[str] = None) -> Dict[str, Any]:
         controller = self._findPersonalAppController()
@@ -1618,7 +1719,9 @@ class QtInspector:
         }
 
     def _findPersonalAppController(self):
-        """Find the PersonalAppController instance."""
+        """The standalone Personal app's composition root, and only that: Pro's
+        embedded chat must never answer for the document, whose save and open
+        belong to MainWindow (FD-336 D16)."""
         # Try app.personalController attribute (set in main.py)
         controller = getattr(self._app, "personalController", None)
         if controller:
@@ -1632,6 +1735,30 @@ class QtInspector:
                 return child
 
         return None
+
+    def _findMainWindow(self):
+        for window in self._app.topLevelWidgets():
+            if type(window).__name__ == "MainWindow":
+                return window
+        return None
+
+    def _findPersonalComponents(self):
+        """The chat components wherever they are composed: the standalone root,
+        or Pro's embedded one. For inspecting chat state only."""
+        controller = self._findPersonalAppController()
+        if controller:
+            return controller
+        mainWindow = self._findMainWindow()
+        return mainWindow.proPersonal() if mainWindow else None
+
+    def _findPersonalRootItem(self) -> Optional[QQuickItem]:
+        """The QML root hosting the chat: Pro's case drawer, else the
+        standalone window."""
+        mainWindow = self._findMainWindow()
+        if mainWindow is not None:
+            return mainWindow.documentView.caseProps.qml.rootObject()
+        window = self._findPersonalAppWindow()
+        return window.contentItem() if window else None
 
     def _findPdpSheet(self, rootItem: QQuickItem) -> Optional[QQuickItem]:
         """Find pdpSheet via DiscussView (parented to Overlay.overlay, not in standard tree)."""
@@ -1738,6 +1865,11 @@ class QtInspector:
                 len(session.messages) if session.messages else 0
             )
 
+        discussion = controller.discussion
+        result["model"]["discussionIds"] = [x.id for x in discussion.discussions]
+        result["model"]["currentDiscussionId"] = discussion.currentDiscussionId
+        result["model"]["statements"] = [x.text for x in discussion.statements]
+
         # QML UI state
         if rootItem:
             discussView = self._findQmlItemInChildren(rootItem, "discussView")
@@ -1813,9 +1945,9 @@ class QtInspector:
             from_dict,
         )
 
-        controller = self._findPersonalAppController()
+        controller = self._findPersonalComponents()
         if controller is None:
-            return {"success": False, "error": "PersonalAppController not found"}
+            return {"success": False, "error": "Personal components not found"}
 
         if not controller._diagram:
             return {"success": False, "error": "No diagram loaded"}
@@ -1840,7 +1972,7 @@ class QtInspector:
         diagramData = controller._diagram.getDiagramData()
         diagramData.pdp = pdp
         controller._diagram.setDiagramData(diagramData)
-        controller.pdpChanged.emit()
+        controller.pdpController.pdpChanged.emit()
 
         self._app.processEvents()
 
@@ -1855,11 +1987,10 @@ class QtInspector:
         }
 
     def openPdpSheet(self) -> Dict[str, Any]:
-        personalWindow = self._findPersonalAppWindow()
-        if not personalWindow:
-            return {"success": False, "error": "Personal app window not found"}
+        rootItem = self._findPersonalRootItem()
+        if not rootItem:
+            return {"success": False, "error": "Chat view not found"}
 
-        rootItem = personalWindow.contentItem()
         pdpSheet = self._findPdpSheet(rootItem)
         if not pdpSheet:
             return {"success": False, "error": "pdpSheet not found"}
@@ -2085,11 +2216,7 @@ class QtInspector:
                 return {"success": True, "conflicts": counter.conflicts}
 
             # Pro app path
-            mainWindow = None
-            for window in self._app.topLevelWidgets():
-                if type(window).__name__ == "MainWindow":
-                    mainWindow = window
-                    break
+            mainWindow = self._findMainWindow()
             if mainWindow is None:
                 return {"success": False, "error": "No app found (Pro or Personal)"}
 
@@ -2112,11 +2239,7 @@ class QtInspector:
         Safe to call any time, even while main thread is busy with a load or save.
         """
         is_personal = self._findPersonalAppController() is not None
-        mainWindow = None
-        for window in self._app.topLevelWidgets():
-            if type(window).__name__ == "MainWindow":
-                mainWindow = window
-                break
+        mainWindow = self._findMainWindow()
 
         scene = None
         server_diagram_id = None

@@ -447,14 +447,11 @@ class DocumentView(QWidget):
         elif self.view.rightToolBar.settingsButton.isChecked():
             self.view.rightToolBar.settingsButton.setChecked(False)
 
-        if (
-            drawer is self.caseProps
-            and kwargs.get("tab") == RightDrawerView.Copilot.value
-        ):
-            if not self.view.rightToolBar.copilotButton.isChecked():
-                self.view.rightToolBar.copilotButton.setChecked(True)
-        elif self.view.rightToolBar.copilotButton.isChecked():
-            self.view.rightToolBar.copilotButton.setChecked(False)
+        if drawer is self.caseProps and kwargs.get("tab") == RightDrawerView.Chat.value:
+            if not self.view.rightToolBar.chatButton.isChecked():
+                self.view.rightToolBar.chatButton.setChecked(True)
+        elif self.view.rightToolBar.chatButton.isChecked():
+            self.view.rightToolBar.chatButton.setChecked(False)
 
         if (
             drawer is self.caseProps
@@ -552,6 +549,10 @@ class DocumentView(QWidget):
 
     def onCasePropsTabChanged(self):
         self.updateSceneStopOnAllEvents()
+        # A tab clicked in the drawer is as much a selection as the toolbar
+        # button, so the button and its action follow it.
+        if self.currentDrawer is self.caseProps:
+            self.setCurrentDrawer(self.caseProps, tab=self.caseProps.currentTab())
 
     def onCasePropsInspectEventNotes(self, row: int):
         event = self.timelineModel.eventForRow(row)
@@ -720,9 +721,9 @@ class DocumentView(QWidget):
         else:
             self.setCurrentDrawer(None)
 
-    def showCopilot(self, on=True):
+    def showChat(self, on=True):
         if on:
-            self.setCurrentDrawer(self.caseProps, tab=RightDrawerView.Copilot.value)
+            self.setCurrentDrawer(self.caseProps, tab=RightDrawerView.Chat.value)
         else:
             self.setCurrentDrawer(None)
 

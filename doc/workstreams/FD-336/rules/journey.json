@@ -1,0 +1,95 @@
+{
+  "_comment": "SEED rules installed into <worktree>/doc/workstreams/rules/journey.json on first validate. These are the BASELINE machine-check rules every unit inherits (AC-5, AC-9): journey-001 = script structure guard, journey-skip = standalone-skip-gesture guard, journey-handoff = hand-off-is-a-pointer guard, journey-agent-exhausted = agent-track-exhausted-before-hand-off precondition, journey-no-stuck-escalation = a stalled harness-drivable criterion is an agent-owned blocker (two exits: fix-and-rerun or record a deferred_risk), never a human STOP fork, journey-one-front-door = exactly one human entry-point doc and every convention-scoped sibling referenced from a step of it, journey-act-dry-run = every command-bearing Act step dry-run-executed exit-0 in the real target before hand-off, journey-ticket-subfolder = every recorded per-unit artifact (script, hand-off note, referee token) lives under its bound dir's ticket-named subfolder, never flat (AC-13; no-op for in-flight flat units), journey-test-registry-trace = the human's bar defines the test suite (AC-5a): re-checked as a hand-off precondition — every required registry entry has a defending test and every counted suite test traces to a registry entry (bidirectional; no-op for units not under the convention). Per-unit corrections append/supersede here; the seed is never the whole list. The skill copies this file into the worktree if journey.json is absent, then merges any unit-specific rules already present.",
+  "rules": [
+    {
+      "id": "journey-001",
+      "category": "script-structure",
+      "rule": "The validate HUMAN-track script's STRUCTURE is enforced deterministically by a size budget + content-presence check (AC-9 'BREVITY IS THE SPEC'). Before the script is handed to the human, run the structure guard against it; a non-zero exit means DETERMINISTICALLY REJECT the script and re-prompt the script-writing sub-agent with the printed reasons — never fix it inline, never let a structurally-invalid script reach the human. The guard enforces: a hard SIZE BUDGET (≤60 lines / ≤600 words); presence of at least one copy-paste command; oracle-confirmation bullets near the top (few short bullets, not a prose restatement); a cleanup command after the first command block; format bans (no checkboxes, no status lines). The guard MUST PASS a lean flat-bullet script that omits step-ID headings (A1/B2), Arrange/Act/Assert blocks, a separate OPTIONAL section, a named load-bearing bet, a ground-rules heading, or a persistence check — rejecting those omissions is the old format and is now a defect. Single journey = flat bullet list; sections only for separate journeys. The only thing left to the human is the irreducible question the machine cannot answer: is this the right minimal spot-test.",
+      "check": "python3 ~/.claude/skills/workstream/bin/check_human_script.py {script_path}",
+      "check_artifact": "human_script",
+      "check_kind": "command_exit_zero",
+      "added": "2026-06-08",
+      "supersedes": null
+    },
+    {
+      "id": "journey-skip",
+      "category": "skip-gesture",
+      "rule": "Skipping the validate HUMAN track ('no user surface') is honored ONLY on an EXPLICIT, STANDALONE human gesture whose ONLY subject is the skip (AC-9). It is NEVER inferred, derived, or bundled from an answer to any other question — closure surface, scope, gate choice, anything — even one that logically implies the skip. The agent may PROPOSE the skip but must ask it as its OWN question and record the verbatim question and the human's verbatim direct yes; until that direct yes about the skip is recorded the human track stays LIVE. Before treating the human track as skipped, run this check against the unit's state file; a non-zero exit means the skip is NOT ratified — keep the human track live and produce the script as normal. Never hand-wave the skip on prose memory.",
+      "check": "python3 ~/.claude/skills/workstream/bin/check_skip_gesture.py {state_path}",
+      "check_artifact": "state_file",
+      "check_kind": "command_exit_zero",
+      "added": "2026-06-08",
+      "supersedes": null
+    },
+    {
+      "id": "journey-handoff",
+      "category": "handoff-pointer",
+      "rule": "The chat turn that hands the validate HUMAN-track script to the human is a POINTER, NEVER a re-narration (AC-9). It carries only: the script's location, the single thing the human must judge (is this the right minimal architectural foundation — a.k.a. the load-bearing bet / spine), and the GO/NO-GO ask. It MUST NOT restate the script's own contents — not the steps, not the load-bearing bet's exposition, not the setup block, not the warm-up/edge caveats; those already live in the self-contained script. This is the AC-1 'point, don't dump' rule applied to the message that most tempts duplication. Before sending the hand-off turn, persist its exact text to {handoff_path} and run this check; a non-zero exit means the turn is not a pointer — rewrite it as a pointer (do NOT just trim — though here a TIGHT size budget IS the load-bearing test: a re-narration's per-step substance cannot fit a real pointer no matter how it is compressed), regenerate, and re-check. The check enforces the POSITIVE SHAPE a real pointer always has plus a tight size budget, and does NOT chase a keyword-list re-narration detector (paraphrase defeats any word list — the contract forbids it). It REQUIRES (a) a LOCATOR — a script path/locator the human can open; (b) the JUDGMENT named — an architectural-foundation/load-bearing-bet/spine framing (matched by SHAPE, never a single literal word, so 'is this the right minimal architectural foundation' passes); and (c) an explicit GO/NO-GO ask. It then enforces LITTLE ELSE purely by a tight line/word budget so the bulk of a re-narration (its step sequence + per-step expected outcomes) cannot fit. All keys are DOCUMENTED structural properties of the script format or load-bearing phrases the contract itself names (go/no-go, the architectural judgment) — never a magic phrase, never an LLM judging an LLM. Never hand-wave this on prose memory; the persisted turn + guard are the gate, exactly as the structure guard is the gate for the script itself.",
+      "check": "python3 ~/.claude/skills/workstream/bin/check_handoff_message.py {handoff_path}",
+      "check_artifact": "handoff_message",
+      "check_kind": "command_exit_zero",
+      "added": "2026-06-08",
+      "supersedes": null
+    },
+    {
+      "id": "journey-agent-exhausted",
+      "category": "agent-track-exhausted",
+      "rule": "AGENT TRACK MUST BE EXHAUSTED BEFORE HAND-OFF (AC-9) — the human never does what a harness can. A criterion belongs to the AGENT track iff the project's own harness/test tooling can drive it END-TO-END on the REAL system (real daemon, real UI render, real transport, asserting on real external state) — NOT merely an in-process call. EVERY such harness-drivable criterion must be agent-verified by that real-system harness (or explicitly deferred-as-risk) BEFORE the human script is handed over; an in-process unit pass is NEVER agent-verification of an e2e/real-daemon criterion. A criterion may reach the human ONLY if no harness can drive it to a real-system assertion (genuine human judgment — visual taste, restart-and-relive). This is a HAND-OFF PRECONDITION that runs BEFORE the script is handed to the human (before journey-handoff): run this check against the unit's state file; a non-zero exit means the hand-off is BLOCKED — keep grinding the agent track (or record an explicit deferred-as-risk in deferred_risk[]), never push a harness-assertable step onto the human. The check is a pure function of the per-criterion harness_drivable/track/status/evidence fields (state-schema.md), never prose the writer is asked to honor: every harness-drivable criterion must be on the agent track and agent-verified (with non-empty real-system evidence) or deferred, and every criterion on the human track must be flagged not-harness-drivable.",
+      "check": "python3 ~/.claude/skills/workstream/bin/check_agent_track_exhausted.py {state_path}",
+      "check_artifact": "state_file",
+      "check_kind": "command_exit_zero",
+      "added": "2026-06-08",
+      "supersedes": null
+    },
+    {
+      "id": "journey-no-stuck-escalation",
+      "category": "stuck-escalation",
+      "rule": "A STALLED MACHINE-CHECKABLE CRITERION IS A BLOCKER THE AGENT OWNS, NEVER A HUMAN DECISION FORK (AC-4, AC-9). When a criterion the project's own harness can drive to a real-system assertion (an AGENT-track / harness_drivable criterion) will not pass, the agent has EXACTLY TWO exits, both inside its own lane: (a) fix the obstacle and re-run the real-system harness, or (b) record an explicit deferred_risk[] edge in the human's OWN words. The configured e2e harness on the launch machine is the SOLE proof venue by definition, so there is NO venue/host question to put to the human — asking 'where should I prove this, here or somewhere else?' or otherwise handing a stalled machine proof to the human as a decision is FORBIDDEN, the generic stop-and-ask reflex misfiring. This is mechanically gated, not remembered: BEFORE sending any human-facing STOP turn, run this check against the unit's state file. A non-zero exit means an agent-track (harness_drivable) criterion is still pending with NO deferred_risk edge naming it — the STOP is REJECTED; keep grinding the harness or record the deferred_risk, do NOT escalate. The check is a pure function of the per-criterion harness_drivable/status fields and the deferred_risk[] edges (state-schema.md): every harness_drivable criterion still pending must be covered by a deferred_risk edge (linked by its criterion id, or an agent-track edge naming the id), never prose the writer is asked to honor.",
+      "check": "python3 ~/.claude/skills/workstream/bin/check_no_stuck_escalation.py {state_path}",
+      "check_artifact": "state_file",
+      "check_kind": "command_exit_zero",
+      "added": "2026-06-09",
+      "supersedes": null
+    },
+    {
+      "id": "journey-one-front-door",
+      "category": "one-front-door",
+      "rule": "ONE FRONT DOOR — EXACTLY ONE human entry-point document per unit (AC-9). The human is handed a SINGLE script that is the sole starting point; any rig, harness, support file, or reference material the test needs is REACHED THROUGH that script as numbered Act steps (set up X, then run Y), never surfaced as a sibling document the human must choose among. The skill MUST NOT hand the human a SET of docs and leave them to route. SCOPE OF THE SIBLING CHECK is convention-scoped, not whole-worktree: the guard treats any per-unit human doc following the unit's doc NAMING CONVENTION other than the one entry script and the hand-off note as a candidate sibling, and requires each to be referenced by path from a numbered step of the entry script; it keys on that naming convention, never a fuzzy human-facing judgment. The per-unit human-doc directory and the naming convention (a glob) are PROJECT facts bound in workstream_config.json under human_docs (config.md, AC-13); the entry script and hand-off note paths come from the unit's state file. Before the hand-off, run this check against the unit's state file; a non-zero exit means more than one entry-point was surfaced OR a convention-scoped sibling is not referenced from a step of the one script — REJECT: inline the support material into the one script or point at it from a numbered Act step. The check is a pure function of the state file, the bound convention, and the doc bytes on disk — never an LLM judging an LLM, never a magic phrase.",
+      "check": "python3 ~/.claude/skills/workstream/bin/check_one_front_door.py {state_path}",
+      "check_artifact": "state_file",
+      "check_kind": "command_exit_zero",
+      "added": "2026-06-11",
+      "supersedes": null
+    },
+    {
+      "id": "journey-act-dry-run",
+      "category": "act-dry-run",
+      "rule": "EVERY COMMAND-BEARING ACT STEP IS DRY-RUN-EXECUTED IN THE REAL TARGET BEFORE HAND-OFF — HARD BLOCK (AC-9). The agent itself runs every literal command the script tells the human to type, inside the ACTUAL environment the script provisions (the real rig/container/instance the human will use, not a host-side approximation), and the hand-off is MECHANICALLY BLOCKED until every such command succeeds. Format-valid is NOT runnable: a step referencing a binary not on PATH, a tool never installed in the test environment, or an auth shape the environment does not use, is a defect this guard catches BEFORE the human. SCOPE — COMMAND-BEARING ACT STEPS ONLY: only Act steps carrying a literal command are in the dry-run set; pure surface gestures (a keypress/click at a non-shell surface) are excluded BY CONSTRUCTION (no command to run) and stay covered by the structure guard and genuine human judgment. How the real target is reached is a PROJECT fact (the bound e2e harness / sub-harness in workstream_config.json); the agent runs each command there and RECORDS the result in state.act_step_runs[] (state-schema.md: step_id, kind=command|gesture, command, target, exit_code). Before the hand-off, run this check against the unit's state file; a non-zero exit means a command-bearing step failed, was never run, or was run with no real target — keep fixing the script/rig until every command-bearing step records a real-target exit-0, never hand a broken rig to the human. The check is deterministic over the recorded per-step run results and a cross-check against the script's command-bearing Act steps — never prose the writer is asked to honor, never an LLM re-reading the script. A self-reported 'I verified it works' on adjacent host checks is NEVER a substitute.",
+      "check": "python3 ~/.claude/skills/workstream/bin/check_act_steps_dry_run.py {state_path}",
+      "check_artifact": "state_file",
+      "check_kind": "command_exit_zero",
+      "added": "2026-06-11",
+      "supersedes": null
+    },
+    {
+      "id": "journey-ticket-subfolder",
+      "category": "artifact-namespacing",
+      "rule": "PER-UNIT ARTIFACTS ARE NAMESPACED IN A PER-TICKET SUBFOLDER, NEVER FLAT (AC-13). The human script and the hand-off note authored in this gate, and the referee token written by the agent track, are per-unit artifacts: each must live under its bound dir's ticket-named subfolder (human_docs.dir/<ticket>/ for the script + hand-off note, token_dir/<ticket>/ for the token), not flat in the bound dir alongside other units' files, and the recorded paths (validate.human_track.script, handoff_path, validate.agent_track.token) must point inside that subfolder. The subfolder name is the unit's ticket id (the same token used for the branch and the canonical worktree). The parent dirs stay bound in workstream_config.json (AC-13 genericity: the skill names NO concrete path, only the one-subfolder-per-ticket CONVENTION). SCOPE: units grounded under the convention only (subfolder_namespaced=true in state); in-flight flat units are a no-op pass with no migration. This is mechanically gated: before the hand-off, run this check against the unit state file; a non-zero exit means a recorded per-unit artifact sits flat in its bound dir — write it under <bound-dir>/<ticket>/ and re-check. The check is a pure function of the recorded artifact paths in state and the bound dirs in workstream_config.json — never prose, never an LLM, never a hard-coded path.",
+      "check": "python3 ~/.claude/skills/workstream/bin/check_ticket_subfolder.py {state_path}",
+      "check_artifact": "state_file",
+      "check_kind": "command_exit_zero",
+      "added": "2026-06-18",
+      "supersedes": null
+    },
+    {
+      "id": "journey-test-registry-trace",
+      "category": "test-registry-trace",
+      "rule": "THE HUMAN'S BAR DEFINES THE TEST SUITE — RE-CHECKED AS A HAND-OFF PRECONDITION (AC-5a). The same bidirectional registry-trace invariant the build gate enforces is re-asserted here, before the human script is handed over, because the human track is exactly where new testing complaints arrive and must land as enforced registry entries. Every required registry entry (criteria[] plus the human-complaint entries that findings[] promote in) has a defending test, and every counted suite test (suite_tests[]) cites a real registry entry — NO uncovered bar, NO untraced bloat. When the human reports a defect during the walkthrough, it is appended to the SAME registry as a first-class entry carrying its bound regression test in the same gesture (finding.criterion + finding.regression_test), never an unenforced note. Fine-grained tests authored under a ratified entry by an independent sub-agent are fine; an UNTRACED test is pruned. SCOPE: units carrying test_registry_traced=true in state; a unit without that flag is a NO-OP PASS. This is mechanically gated: before the hand-off (alongside journey-agent-exhausted), run this check against the unit state file; a non-zero exit means an uncovered required entry, a bad-provenance seed, a complaint-entry with no bound regression test, or an untraced counted test — fix the registry/suite, never weaken the bar. The check is a pure function of criteria[], findings[], and suite_tests[] in state — never prose, never an LLM.",
+      "check": "python3 ~/.claude/skills/workstream/bin/check_test_registry_trace.py {state_path}",
+      "check_artifact": "state_file",
+      "check_kind": "command_exit_zero",
+      "added": "2026-06-29",
+      "supersedes": null
+    }
+  ]
+}

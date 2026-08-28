@@ -42,7 +42,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
 
-
 # Add parent directory to path to import pkdiagram modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -59,17 +58,15 @@ from pkdiagram.server_types import (
 )
 import pkdiagram.util as util
 
-
-def _uv_workspace_root(start: Path) -> Path:
-    """Walk up from start to find the directory containing the uv workspace pyproject.toml."""
-    current = start.resolve()
-    while current != current.parent:
-        pyproject = current / "pyproject.toml"
-        if pyproject.exists() and "[tool.uv.workspace]" in pyproject.read_text():
-            return current
-        current = current.parent
-    return start.parent  # fallback
-
+from mcpserver.checkouts import Checkouts, Repo
+from mcpserver.ports import free_port
+from mcpserver.sandbox import (
+    Broker,
+    Db,
+    Llm,
+    MANIFEST_PREFIX,
+    READY_PREFIX,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -84,17 +81,70 @@ mcp = FastMCP("familydiagram-testing")
 # Default port for the Qt test bridge (used as fallback only)
 BRIDGE_PORT = 9876
 
+# How long the sandbox backend may take to report itself ready.
+SERVER_TIMEOUT = 120
+SERVER_PROD_TIMEOUT = 900
+SERVER_STOP_TIMEOUT = 60
+
+# Set once this process has already moved itself to the ticket's checkout.
+REEXEC_ENV = "FD_MCPSERVER_REEXEC"
+
+# The account a sandbox signs in as when no seed profile names one.
+DEFAULT_USER = "test@example.com"
+
 
 # =============================================================================
 # Helpers
 # =============================================================================
 
 
-def _find_free_port() -> int:
-    """Find an available TCP port by binding to port 0."""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("", 0))
-        return s.getsockname()[1]
+def _stop_group(
+    process: Optional[subprocess.Popen], timeout: int, force: bool = True
+) -> bool:
+    """Stop a child and everything it spawned, and nothing else.
+
+    Every child is started in its own session, so its pid is its process group
+    id: signalling the group reaches the real app behind the `uv run` wrapper,
+    and reaches processes it spawned after teardown began, while no process
+    outside that group can be in it. Returns False only when a graceful stop
+    timed out and force was not asked for.
+    """
+    if process is None or process.poll() is not None:
+        return True
+
+    def signal_group(sig):
+        try:
+            os.killpg(process.pid, sig)
+        except ProcessLookupError:
+            pass  # exited between the poll above and here
+
+    def gone() -> bool:
+        try:
+            os.killpg(process.pid, 0)
+            return False
+        except ProcessLookupError:
+            return True
+
+    # Waiting for the whole group, not just the wrapper: the wrapper exits the
+    # moment it is signalled while the process doing the work is still running
+    # its own shutdown — dropping a database, stopping redis. Returning before
+    # that finishes is how a sandbox appears to leak what it is busy cleaning up.
+    signal_group(signal.SIGTERM)
+    deadline = time.time() + timeout
+    try:
+        process.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        pass
+    while time.time() < deadline and not gone():
+        time.sleep(0.1)
+
+    if gone():
+        return True
+    if not force:
+        return False
+    signal_group(signal.SIGKILL)
+    process.wait(timeout=5)
+    return True
 
 
 # -- Orphan prevention --
@@ -248,7 +298,8 @@ class LoginState(str, Enum):
 class SandboxManager:
     """Creates and manages isolated test sandboxes for application test sessions."""
 
-    def __init__(self):
+    def __init__(self, ticket: Optional[str] = None):
+        self.ticket = ticket
         self.sandbox_dir: Optional[Path] = None
         self.prefs_dir: Optional[Path] = None
         self.app_data_dir: Optional[Path] = None
@@ -261,7 +312,15 @@ class SandboxManager:
         Returns env vars dict. Caller must add FD_SERVER_URL_ROOT separately
         (depends on whether ephemeral server is used).
         """
-        self.sandbox_dir = Path(tempfile.mkdtemp(prefix="fd_test_"))
+        # A ticket's sandbox keeps one data directory across launches. A fresh
+        # temp dir per launch meant the app faithfully reopened a file from a
+        # dead sandbox -- a case with no server identity, and a chat with
+        # nothing to attach to (R-0055).
+        if self.ticket:
+            self.sandbox_dir = Path(tempfile.gettempdir()) / f"fd_sandbox_{self.ticket}"
+            self.sandbox_dir.mkdir(parents=True, exist_ok=True)
+        else:
+            self.sandbox_dir = Path(tempfile.mkdtemp(prefix="fd_test_"))
         self.prefs_dir = self.sandbox_dir / "prefs"
         self.app_data_dir = self.sandbox_dir / "appdata"
         self.documents_dir = self.sandbox_dir / "Documents"
@@ -272,7 +331,10 @@ class SandboxManager:
         logger.info(f"Created test sandbox: {self.sandbox_dir}")
 
         return {
-            "QT_QPA_PLATFORMTHEME": "offscreen",
+            # NB: no QT_QPA_PLATFORMTHEME here. The platform theme is what
+            # gives macOS its native menu bar, native file dialogs and system
+            # palette; forcing "offscreen" on a visible launch takes all three
+            # away. The headless tier sets it alongside QT_QPA_PLATFORM.
             "HOME": str(self.sandbox_dir),
             "XDG_DATA_HOME": str(self.app_data_dir),
             "XDG_CONFIG_HOME": str(self.prefs_dir),
@@ -395,6 +457,13 @@ class SandboxManager:
 # =============================================================================
 
 
+#: Where a launched app's output is kept, so it outlives the launching process.
+APP_LOG_ENV = "FD_APP_LOG"
+
+#: Run the app under lldb so a native crash prints its backtrace.
+DEBUGGER_ENV = "FD_APP_DEBUGGER"
+
+
 class TestInstance:
     """
     Manages a single test instance: app process + optional ephemeral server.
@@ -406,12 +475,23 @@ class TestInstance:
     _instances: Dict[str, "TestInstance"] = {}
     _current_id: Optional[str] = None
 
-    def __init__(self, instance_id: str):
+    def __init__(
+        self,
+        instance_id: str,
+        *,
+        ticket: Optional[str] = None,
+        checkouts: Optional[Checkouts] = None,
+    ):
         self.id = instance_id
         self.process: Optional[subprocess.Popen] = None
         self.server_process: Optional[subprocess.Popen] = None
         self.start_time: Optional[float] = None
-        self.project_root = Path(__file__).parent.parent
+        # A caller that already resolved — bin/sandbox prints the checkouts before
+        # it launches anything — hands the answer over rather than having it
+        # resolved a second time, so what was printed is what the app runs.
+        self.checkouts = checkouts or Checkouts.resolve(ticket)
+        self.project_root = self.checkouts.familydiagram.path
+        self.manifest: Dict[str, Any] = {}
         self._screenshot_counter = 0
         self._bridge: Optional[BridgeClient] = None
         self._bridge_port: Optional[int] = None
@@ -422,13 +502,21 @@ class TestInstance:
         self._stderr_lines: List[str] = []
         self._stdout_partial: str = ""
         self._stderr_partial: str = ""
-        self._sandbox = SandboxManager()
+        self._sandbox = SandboxManager(ticket=self.checkouts.ticket)
         self._drain_threads: List[threading.Thread] = []
 
     @classmethod
-    def create(cls) -> "TestInstance":
+    def create(
+        cls,
+        *,
+        ticket: Optional[str] = None,
+        checkouts: Optional[Checkouts] = None,
+    ) -> "TestInstance":
+        """Keyword-only: a positional argument here once landed a caller's own
+        label in the ticket slot, which resolves to no worktree and silently
+        launches the origin clones (F-015)."""
         instance_id = str(uuid.uuid4())[:8]
-        instance = cls(instance_id)
+        instance = cls(instance_id, ticket=ticket, checkouts=checkouts)
         cls._instances[instance_id] = instance
         cls._current_id = instance_id
         return instance
@@ -488,113 +576,147 @@ class TestInstance:
 
     # -- Ephemeral server --
 
-    def _start_ephemeral_server(self, auto_auth_user: str) -> Tuple[bool, str]:
-        self._server_port = _find_free_port()
-        db_dir = str(self._sandbox.sandbox_dir / "db")
-        os.makedirs(db_dir, exist_ok=True)
+    def _start_ephemeral_server(
+        self,
+        auto_auth_user: Optional[str] = None,
+        seed: Optional[str] = None,
+        db: str = Db.Sqlite.value,
+        broker: str = Broker.Memory.value,
+        llm: str = Llm.Stub.value,
+    ) -> Tuple[bool, str]:
+        """Start the sandbox backend. The launcher picks the port and reports it."""
+        db_dir = self._sandbox.sandbox_dir / "db"
+        db_dir.mkdir(parents=True, exist_ok=True)
 
-        workspace_root = _uv_workspace_root(self.project_root)
         cmd = [
             "uv",
             "run",
             "--directory",
-            str(workspace_root),
+            str(self.checkouts.root),
             "python",
             "-u",
             str(self.project_root / "mcpserver" / "ephemeral_server.py"),
-            "--port",
-            str(self._server_port),
-            "--db-dir",
-            db_dir,
+            "--db",
+            f"{Db.Sqlite.value}:{db_dir}" if db == Db.Sqlite.value else db,
+            "--broker",
+            broker,
+            "--llm",
+            llm,
+            "--hardware-uuid",
+            util.HARDWARE_UUID,
         ]
+        if auto_auth_user:
+            cmd.extend(["--auto-auth-user", auto_auth_user])
+        if self.checkouts.ticket:
+            cmd.extend(["--ticket", self.checkouts.ticket])
+        if seed:
+            cmd.extend(["--seed", seed])
 
         env = os.environ.copy()
         env.pop("VIRTUAL_ENV", None)
         env["PYTHONUNBUFFERED"] = "1"
-        env["FLASK_CONFIG"] = "development"
-        env["FLASK_AUTO_AUTH_USER"] = auto_auth_user
+        env["PYTHONPATH"] = self.checkouts.pythonpath(Repo.BTCopilot)
 
-        logger.info(
-            f"[{self.id}] Starting ephemeral server on port {self._server_port}"
-        )
-
+        logger.info(f"[{self.id}] Starting sandbox backend: {' '.join(cmd)}")
         self.server_process = subprocess.Popen(
             cmd,
-            cwd=str(workspace_root),
+            cwd=str(self.checkouts.root),
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            start_new_session=True,
+        )
+        # Both pipes are drained by threads: the launcher's own log lines share
+        # stdout with READY/MANIFEST, and a line-at-a-time read of a buffered pipe
+        # loses whatever arrived in the same chunk.
+        self._drain(self.server_process.stdout, self._stdout_lines)
+        self._drain(self.server_process.stderr, self._stderr_lines)
+
+        timeout = SERVER_PROD_TIMEOUT if db == Db.Prod.value else SERVER_TIMEOUT
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            for line in self._stdout_lines:
+                if line.startswith(READY_PREFIX):
+                    self._server_port = int(line[len(READY_PREFIX) :])
+                elif line.startswith(MANIFEST_PREFIX):
+                    self.manifest = json.loads(line[len(MANIFEST_PREFIX) :])
+                    logger.info(
+                        f"[{self.id}] Sandbox backend ready on {self.manifest['url']}"
+                    )
+                    return True, f"Sandbox backend on port {self._server_port}"
+            if self.server_process.poll() is not None:
+                tail = "\n".join(self._stderr_lines[-25:])
+                self._stop_ephemeral_server()
+                return False, f"Sandbox backend exited early:\n{tail}"
+            time.sleep(0.25)
+
+        self._stop_ephemeral_server()
+        return False, (
+            f"Sandbox backend was not ready within {timeout}s:\n"
+            + "\n".join(self._stderr_lines[-25:])
         )
 
-        start = time.time()
-        while time.time() - start < 30:
-            if self.server_process.poll() is not None:
-                stderr = self.server_process.stderr.read().decode()
-                return False, f"Ephemeral server exited early: {stderr[-500:]}"
-            ready, _, _ = select.select([self.server_process.stdout], [], [], 0.5)
-            if not ready:
-                continue
-            line = self.server_process.stdout.readline().decode().strip()
-            if line.startswith("READY:"):
-                # READY is printed before app.run() binds the socket.
-                # Poll health endpoint until it responds.
-                import requests
+    def start_backend(
+        self,
+        auto_auth_user: Optional[str] = None,
+        seed: Optional[str] = None,
+        db: str = Db.Sqlite.value,
+        broker: str = Broker.Memory.value,
+        llm: str = Llm.Stub.value,
+    ) -> Tuple[bool, str]:
+        """A sandbox backend with no app in front of it. Read the port from
+        `server_port` and the rest from `manifest`."""
+        self._sandbox.create_sandbox()
+        return self._start_ephemeral_server(
+            auto_auth_user, seed=seed, db=db, broker=broker, llm=llm
+        )
 
-                for _ in range(20):
-                    try:
-                        requests.get(
-                            f"http://127.0.0.1:{self._server_port}/test/health",
-                            timeout=1,
-                        )
-                        break
-                    except requests.ConnectionError:
-                        time.sleep(0.25)
-                logger.info(
-                    f"[{self.id}] Ephemeral server ready on port {self._server_port}"
-                )
-                # Drain server pipes so Flask log writes never block its threads.
-                def _drain_server(pipe, lines):
-                    for raw in pipe:
-                        lines.append(raw.decode(errors="replace").rstrip("\n"))
-
-                for pipe, buf in [
-                    (self.server_process.stdout, self._stdout_lines),
-                    (self.server_process.stderr, self._stderr_lines),
-                ]:
-                    t = threading.Thread(target=_drain_server, args=(pipe, buf), daemon=True)
-                    t.start()
-                    self._drain_threads.append(t)
-                return True, f"Server started on port {self._server_port}"
-
-        if self.server_process.poll() is None:
-            self.server_process.kill()
-        return False, "Ephemeral server timed out (30s)"
-
-    def _seed_default_user(self, email: str) -> None:
+    def _check_backend(self, server_url: str) -> Tuple[bool, str]:
+        """A backend handed to us is still a backend that has to answer."""
         import requests
 
-        response = requests.post(
-            f"http://127.0.0.1:{self._server_port}/test/seed",
-            json={
-                "users": [
-                    {"username": email, "password": "test", "status": "confirmed"}
-                ],
-                "hardware_uuid": util.HARDWARE_UUID,
-            },
-            timeout=10,
-        )
+        try:
+            response = requests.get(f"{server_url}/test/health", timeout=5)
+        except requests.RequestException as e:
+            return False, f"No sandbox backend at {server_url}: {e}"
         if response.status_code != 200:
-            raise RuntimeError(f"Failed to seed default user: {response.text}")
+            return False, (
+                f"{server_url}/test/health returned {response.status_code} — "
+                "not a sandbox backend"
+            )
+        return True, "Backend healthy"
+
+    def _drain(self, pipe, lines: List[str]) -> None:
+        """Keep a child's pipe empty so its writes never block, and keep a copy
+        on disk: an in-memory tail dies with this process, and a journey is
+        troubleshot after the fact, from what the run actually logged."""
+        path = os.environ.get(APP_LOG_ENV)
+
+        def run():
+            sink = open(path, "a", buffering=1) if path else None
+            try:
+                for raw in pipe:
+                    line = raw.decode(errors="replace").rstrip("\n")
+                    lines.append(line)
+                    if sink:
+                        sink.write(line + "\n")
+            finally:
+                if sink:
+                    sink.close()
+
+        thread = threading.Thread(target=run, daemon=True)
+        thread.start()
+        self._drain_threads.append(thread)
 
     def _stop_ephemeral_server(self) -> None:
-        if self.server_process and self.server_process.poll() is None:
-            pid = self.server_process.pid
-            self.server_process.terminate()
-            try:
-                self.server_process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                self.server_process.kill()
-                self.server_process.wait(timeout=3)
+        # Generous, because its shutdown drops a restored production database
+        # and stops redis and a celery worker before it exits.
+        _stop_group(self.server_process, timeout=SERVER_STOP_TIMEOUT)
+        # A backend that had to be killed never ran its own cleanup, so finish
+        # it here: the directory it reported is ours to remove either way.
+        directory = self.manifest.get("dir")
+        if directory:
+            shutil.rmtree(directory, ignore_errors=True)
         self.server_process = None
         self._server_port = None
 
@@ -685,12 +807,23 @@ class TestInstance:
         timeout: int = 30,
         login_state: LoginState = LoginState.NoData,
         username: str = None,
-        ephemeral_server: bool = False,
-        auto_auth_user: str = "test@example.com",
+        ephemeral_server: bool = True,
+        auto_auth_user: Optional[str] = None,
         server_url: Optional[str] = None,
+        seed: Optional[str] = None,
+        db: str = Db.Sqlite.value,
+        broker: str = Broker.Memory.value,
+        llm: str = Llm.Stub.value,
     ) -> Tuple[bool, str]:
         if self.is_running:
             return False, f"Instance {self.id} already running (PID: {self.pid})"
+
+        if not ephemeral_server and not server_url:
+            raise ValueError(
+                "No backend: pass ephemeral_server=True for this instance's own "
+                "sandbox backend, or server_url to share another instance's. "
+                "The harness never targets a server it did not start."
+            )
 
         self._stdout_lines.clear()
         self._stderr_lines.clear()
@@ -701,44 +834,76 @@ class TestInstance:
 
             # 2. Determine server URL
             if server_url:
-                # Use explicitly provided server (e.g. another instance's ephemeral server)
-                pass
-            elif ephemeral_server:
-                ok, msg = self._start_ephemeral_server(auto_auth_user)
+                # Another instance's sandbox backend, for two apps on one database.
+                ok, msg = self._check_backend(server_url)
                 if not ok:
                     self._sandbox.cleanup()
                     return False, msg
-                server_url = f"http://127.0.0.1:{self._server_port}"
-                if login_state == LoginState.LoggedIn:
-                    self._seed_default_user(username or auto_auth_user)
             else:
-                server_url = "http://127.0.0.1:8888"
+                # A named account is seeded first so it holds this machine's
+                # licence; with a seed profile and no name, its own first user is
+                # the one to sign in as and the launcher reports it.
+                login_user = username or auto_auth_user
+                if not login_user and not seed:
+                    login_user = DEFAULT_USER
+                ok, msg = self._start_ephemeral_server(
+                    login_user, seed=seed, db=db, broker=broker, llm=llm
+                )
+                if not ok:
+                    self._sandbox.cleanup()
+                    return False, msg
+                server_url = self.manifest["url"]
+                username = self.manifest["user"]
 
             sandbox_env["FD_SERVER_URL_ROOT"] = server_url
 
             # 3. Populate login if requested
             if login_state == LoginState.LoggedIn:
-                self._sandbox.populate_login(
-                    server_url, username or auto_auth_user, personal
-                )
+                login_user = username or auto_auth_user
+                if not login_user:
+                    self._sandbox.cleanup()
+                    raise ValueError(
+                        "Sharing another instance's backend, so this one cannot know "
+                        "which account to sign in as. Pass username= — its manifest's "
+                        "'user' is the account that backend seeded and licensed."
+                    )
+                self._sandbox.populate_login(server_url, login_user, personal)
 
             # 4. Build app command
-            workspace_root = _uv_workspace_root(self.project_root)
-
             cmd = [
                 "uv",
                 "run",
                 "--directory",
-                str(workspace_root),
+                str(self.checkouts.root),
                 "python",
                 "-u",
                 "-m",
                 "pkdiagram",
             ]
+            # A segfault in Qt unwinds no Python, so faulthandler can only say
+            # "in the event loop". Under lldb the crash prints the C++ frame
+            # that actually failed, into the same log.
+            if os.environ.get(DEBUGGER_ENV):
+                # lldb has to own the python process itself. Wrapping `uv run`
+                # leaves it attached to a launcher that execs away, so the
+                # crash happens somewhere lldb is not looking.
+                interpreter = self.checkouts.root / ".venv" / "bin" / "python"
+                cmd = [
+                    "lldb",
+                    "--batch",
+                    "-o", "run",
+                    "-k", "thread backtrace all",
+                    "-k", "quit 1",
+                    "--",
+                    str(interpreter),
+                    "-u",
+                    "-m",
+                    "pkdiagram",
+                ] + cmd[cmd.index("pkdiagram") + 1 :]
             if personal:
                 cmd.extend(["--personal"])
 
-            self._bridge_port = _find_free_port()
+            self._bridge_port = free_port()
             if enable_bridge:
                 cmd.extend(
                     ["--test-server", "--test-server-port", str(self._bridge_port)]
@@ -756,12 +921,15 @@ class TestInstance:
             env.update(sandbox_env)
             if headless:
                 env["QT_QPA_PLATFORM"] = "offscreen"
-            env["QT_QUICK_BACKEND"] = "software"
-            # PYTHONPATH must come first so the worktree's pkdiagram is found after
-            # the editable MetaPathFinder is removed by the launcher script above.
-            existing_pythonpath = env.get("PYTHONPATH", "")
-            env["PYTHONPATH"] = (
-                str(self.project_root) + (":" + existing_pythonpath if existing_pythonpath else "")
+                env["QT_QPA_PLATFORMTHEME"] = "offscreen"
+                # The software renderer is for the offscreen tier. Forcing it
+                # on a visible launch degrades what Patrick is looking at --
+                # dark-mode colours among it -- so it stays with headless.
+                env["QT_QUICK_BACKEND"] = "software"
+            # The app imports btcopilot too (schema, signing), so it gets that
+            # checkout as well.
+            env["PYTHONPATH"] = self.checkouts.pythonpath(
+                Repo.FamilyDiagram, Repo.BTCopilot
             )
 
             logger.info(f"[{self.id}] Launching: {' '.join(cmd)}")
@@ -769,56 +937,49 @@ class TestInstance:
                 f"[{self.id}] Server: {server_url}, Bridge port: {self._bridge_port}"
             )
 
+            # Its own session: `uv run` is a wrapper, and the app we actually
+            # want stopped is its child. Signalling the group reaches whatever
+            # the app spawns, including after teardown has begun, and reaches
+            # nothing outside it.
+            # A sandbox app outlives the process that launched it, so draining
+            # its pipes in here captures nothing past our own exit -- which is
+            # why a crash left no trace. Hand the child the file directly.
+            app_log = env.get(APP_LOG_ENV)
+            sink = open(app_log, "a", buffering=1) if app_log else None
+            self._log_sink = sink
             self.process = subprocess.Popen(
                 cmd,
                 cwd=str(self.project_root),
                 env=env,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stdout=sink or subprocess.PIPE,
+                stderr=subprocess.STDOUT if sink else subprocess.PIPE,
+                # Its own process group, so teardown can signal the group --
+                # but NOT its own session. setsid detaches a GUI app from the
+                # macOS session, which costs it the native menu bar and the
+                # system appearance it reads dark mode from.
+                preexec_fn=os.setpgrp,
             )
             self.start_time = time.time()
-
-            def _drain(pipe, lines):
-                for raw in pipe:
-                    lines.append(raw.decode(errors="replace").rstrip("\n"))
-
-            for pipe, buf in [(self.process.stdout, self._stdout_lines),
-                               (self.process.stderr, self._stderr_lines)]:
-                t = threading.Thread(target=_drain, args=(pipe, buf), daemon=True)
-                t.start()
-                self._drain_threads.append(t)
+            if not sink:
+                self._drain(self.process.stdout, self._stdout_lines)
+                self._drain(self.process.stderr, self._stderr_lines)
 
             time.sleep(2)
 
             if not self.is_running:
-                stderr = (
-                    self.process.stderr.read().decode() if self.process.stderr else ""
-                )
-                self._stop_ephemeral_server()
-                self._sandbox.cleanup()
-                return False, f"App failed to start: {stderr[-500:]}"
+                tail = "\n".join(self._stderr_lines[-25:])
+                self._do_close(force=True)
+                return False, f"App failed to start:\n{tail}"
 
             # 6. Connect bridge and wait for main thread to be idle.
             # The bridge accepts 'ping' before the Qt event loop starts (ping is thread-safe),
             # but other commands need the main thread. Poll wait_until_idle so we don't
             # hand control back until the app has fully initialized.
             if enable_bridge:
-                self._bridge = BridgeClient(port=self._bridge_port)
-                if not self._bridge.connect(timeout=10):
-                    logger.warning(f"[{self.id}] Failed to connect to test bridge")
-                else:
-                    deadline = time.time() + timeout
-                    ready = False
-                    while time.time() < deadline:
-                        resp = self._bridge.send_command({"command": "wait_until_idle"})
-                        if resp.get("success"):
-                            ready = True
-                            break
-                        time.sleep(0.5)
-                    if ready:
-                        logger.info(f"[{self.id}] Bridge connected and main thread idle")
-                    else:
-                        logger.warning(f"[{self.id}] Main thread not idle after {timeout}s")
+                ok, msg = self._connect_bridge(timeout)
+                if not ok:
+                    self._do_close(force=True)
+                    return False, msg
 
             logger.info(f"[{self.id}] App started (PID: {self.pid})")
             return True, f"Instance {self.id} started (PID: {self.pid})"
@@ -833,6 +994,24 @@ class TestInstance:
             self._stop_ephemeral_server()
             self._sandbox.cleanup()
             return False, f"Failed to launch: {e}"
+
+    def _connect_bridge(self, timeout: int) -> Tuple[bool, str]:
+        """Connect and wait for the Qt main thread. A dead bridge is a failed launch."""
+        self._bridge = BridgeClient(port=self._bridge_port)
+        if not self._bridge.connect(timeout=10):
+            return (
+                False,
+                f"Test bridge never accepted a connection on {self._bridge_port}",
+            )
+
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            response = self._bridge.send_command({"command": "wait_until_idle"})
+            if response.get("success"):
+                logger.info(f"[{self.id}] Bridge connected and main thread idle")
+                return True, "Bridge ready"
+            time.sleep(0.5)
+        return False, f"App main thread not idle after {timeout}s"
 
     def close(self, force: bool = False, timeout: int = 10) -> Tuple[bool, str]:
         """Close this instance. Removes from registry."""
@@ -860,16 +1039,8 @@ class TestInstance:
             self._bridge = None
 
         try:
-            if self.process and self.process.poll() is None:
-                self.process.terminate()
-                try:
-                    self.process.wait(timeout=timeout)
-                except subprocess.TimeoutExpired:
-                    if force:
-                        self.process.kill()
-                        self.process.wait(timeout=5)
-                    else:
-                        return False, "Graceful shutdown timed out. Use force=True."
+            if not _stop_group(self.process, timeout=timeout, force=force):
+                return False, "Graceful shutdown timed out. Use force=True."
         except OSError as e:
             logger.exception(f"[{self.id}] Error closing app: {e}")
         finally:
@@ -998,25 +1169,36 @@ def launch_app(
     open_file: Optional[str] = None,
     login_state: str = LoginState.LoggedIn.value,
     username: Optional[str] = None,
-    ephemeral_server: bool = False,
-    auto_auth_user: str = "test@example.com",
+    ephemeral_server: bool = True,
+    auto_auth_user: Optional[str] = None,
     server_url: Optional[str] = None,
+    ticket: Optional[str] = None,
+    seed: Optional[str] = None,
+    db: str = Db.Sqlite.value,
+    broker: str = Broker.Memory.value,
+    llm: str = Llm.Stub.value,
 ) -> Dict[str, Any]:
-    """Launch app. Returns {success, instance_id, pid, bridge_connected}.
+    """Launch app on its own sandbox backend. Returns {success, instance_id, pid,
+    bridge_connected, server_port, manifest}.
 
-    Set ephemeral_server=True for a fully isolated btcopilot server (no external
-    Flask server needed). Each instance gets its own dynamic ports.
-
-    Use server_url to point at another instance's ephemeral server (for shared-diagram
-    tests where Pro and Personal need the same backend).
+    The backend is this instance's own, on a free port, with its own database —
+    never a server the harness did not start. Pass server_url (with
+    ephemeral_server=False) to share another instance's backend, which is how Pro
+    and Personal are put on one database.
 
     Args:
+        ticket: FD-NNN; each repo runs from that worktree when it exists, else its
+            origin clone. Defaults to FD_TICKET. See get_checkouts.
         username: User email for dev auto-login
-        ephemeral_server: Start isolated btcopilot server for this instance
-        auto_auth_user: Email for ephemeral server auto-auth (default test@example.com)
-        server_url: Override server URL (e.g. http://127.0.0.1:{other_instance.server_port})
+        auto_auth_user: Email logged in without a password (default test@example.com)
+        seed: seed profile name, or a path to an exported json file
+        db: 'sqlite' (default), 'prod' for a throwaway restore of the production
+            dump, or a database uri
+        broker: 'memory' (default) or 'redis' — redis runs a private broker and a
+            celery worker so background jobs (rebuild / deep re-extract) actually run
+        llm: 'stub' (default) or 'real' — 'real' spends money and needs api keys
     """
-    instance = TestInstance.create()
+    instance = TestInstance.create(ticket=ticket)
 
     try:
         login_enum = LoginState(login_state)
@@ -1039,6 +1221,10 @@ def launch_app(
         ephemeral_server=ephemeral_server,
         auto_auth_user=auto_auth_user,
         server_url=server_url,
+        seed=seed,
+        db=db,
+        broker=broker,
+        llm=llm,
     )
 
     if success and wait_seconds > 0:
@@ -1058,6 +1244,7 @@ def launch_app(
         "bridge_connected": instance.bridge.is_connected if instance.bridge else False,
         "bridge_port": instance._bridge_port,
         "server_port": instance._server_port,
+        "manifest": instance.manifest,
     }
 
 
@@ -1126,16 +1313,10 @@ def launch_app_in_simulator(
     try:
         # Optional ephemeral server
         if ephemeral_server:
-            sandbox_env = instance._sandbox.create_sandbox(personal=True)
-            ok, msg = instance._start_ephemeral_server(auto_auth_user)
+            ok, msg = instance.start_backend(auto_auth_user)
             if not ok:
-                instance._sandbox.cleanup()
                 TestInstance._instances.pop(instance.id, None)
                 return {"success": False, "error": msg}
-
-            server_url = f"http://127.0.0.1:{instance._server_port}"
-            if login_enum == LoginState.LoggedIn:
-                instance._seed_default_user(auto_auth_user)
 
         # Launch in simulator
         ok, msg = instance._launch_in_simulator(app_path, bundle_id, udid)
@@ -1559,6 +1740,22 @@ def window(name: str = None, instance_id: Optional[str] = None) -> Dict[str, Any
 
 
 @mcp.tool()
+def dismiss_dialog(button: str, instance_id: Optional[str] = None) -> Dict[str, Any]:
+    """Press a button on the modal message box that is up: "save", "cancel",
+    "ok", "yes" or "no". Returns the dialog's text.
+
+    A modal blocks the app's main thread inside whatever command raised it, so
+    that command is still in flight: send this over a second connection (an
+    agent's other tool call, or a second BridgeClient in a test). Keys reach
+    only the default button, so anything else needs this.
+    """
+    bridge, err = _resolve_bridge(instance_id)
+    if err:
+        return err
+    return bridge.send_command({"command": "dismiss_dialog", "button": button})
+
+
+@mcp.tool()
 def screenshot(
     action: str = "take",
     name: str = None,
@@ -1786,13 +1983,17 @@ def report_testing_limitation(
 
 @mcp.tool()
 def seed_server_data(
-    data: Dict[str, Any], instance_id: Optional[str] = None
+    profile: Optional[str] = None,
+    data: Optional[Dict[str, Any]] = None,
+    instance_id: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Seed test data into the ephemeral server. Requires ephemeral_server=True on launch.
+    """Seed this instance's backend and return what was created, including a
+    manifest naming the rows the profile promises.
 
-    data: dict with optional 'users' and 'diagrams' lists.
-    Users: {username, password, first_name, last_name, status}
-    Diagrams: {user_id, data}
+    profile: 'minimal', 'family', 'hostile', 'random', composed with '+'
+        ('family+hostile') and parameterised with ':' ('random:7:20').
+    data: explicit users / diagrams / discussions / access_rights, merged on top
+        of the profile.
     """
     instance, err = _resolve_instance(instance_id)
     if err:
@@ -1801,20 +2002,63 @@ def seed_server_data(
     if not instance.server_port:
         return {
             "success": False,
-            "error": "No ephemeral server for this instance. Launch with ephemeral_server=True.",
+            "error": "This instance has no backend of its own. It was launched "
+            "against another instance's server_url — seed that instance instead.",
         }
 
     import requests
 
+    if not profile and not data:
+        return {"success": False, "error": "Pass a profile name or a data payload"}
+
+    payload = dict(data or {})
+    if profile:
+        payload["profile"] = profile
+    # Without this the rows look licensed and the apps still open unlicensed.
+    payload.setdefault("hardware_uuid", util.HARDWARE_UUID)
     try:
         response = requests.post(
             f"http://127.0.0.1:{instance.server_port}/test/seed",
-            json=data,
-            timeout=10,
+            json=payload,
+            timeout=120,
         )
-        return response.json()
     except requests.RequestException as e:
         return {"success": False, "error": str(e)}
+    if response.status_code != 200:
+        return {
+            "success": False,
+            "error": f"{response.status_code}: {response.text[:500]}",
+        }
+    return response.json()
+
+
+@mcp.tool()
+def get_checkouts(ticket: Optional[str] = None) -> Dict[str, Any]:
+    """Which checkout of each repo a sandbox for this ticket runs from.
+
+    A repo runs from its <repo>/.claude/worktrees/<ticket> when that exists, and
+    from the origin clone otherwise — 'source' says which.
+    """
+    checkouts = Checkouts.resolve(ticket)
+    return {
+        "success": True,
+        "describe": checkouts.describe(),
+        **checkouts.asdict(),
+    }
+
+
+@mcp.tool()
+def get_app_modules(instance_id: Optional[str] = None) -> Dict[str, Any]:
+    """Which checkout a launched app actually imported each repo from.
+
+    get_checkouts reports what the launcher resolved; this asks the running app's
+    own sys.modules. Use it when an app looks like it is running the wrong code —
+    the two disagreeing is the bug, and only this side is evidence.
+    """
+    instance = TestInstance.get(instance_id)
+    if not instance.bridge:
+        return {"success": False, "error": "No bridge; launch with enable_bridge=True"}
+    return instance.bridge.send_command({"command": "get_modules"})
 
 
 # =============================================================================
@@ -2069,7 +2313,26 @@ def sim_log(
         return {"success": False, "error": "xcrun not found"}
 
 
+def _reexec_from_checkout() -> None:
+    """Serve the ticket's own harness.
+
+    A registration file can only name one path, so the entry point moves itself
+    to the checkout FD_TICKET resolves to before it starts serving. Without this
+    the tools would always be origin master's, whatever the ticket.
+    """
+    if os.environ.get(REEXEC_ENV):
+        return
+    resolved = Checkouts.resolve().familydiagram.path / "mcpserver" / "mcp_server.py"
+    if not resolved.is_file() or resolved.resolve() == Path(__file__).resolve():
+        return
+    os.environ[REEXEC_ENV] = "1"
+    logger.info(f"Serving the harness from {resolved}")
+    os.execv(sys.executable, [sys.executable, str(resolved), *sys.argv[1:]])
+
+
 if __name__ == "__main__":
+    _reexec_from_checkout()
     threading.Thread(target=_parent_death_watchdog, daemon=True).start()
     logger.info("Starting Family Diagram MCP Testing Server")
+    logger.info(Checkouts.resolve().describe())
     mcp.run(transport="stdio")

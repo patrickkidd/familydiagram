@@ -270,6 +270,13 @@ def init_logging():
 ##
 
 
+# Pixels scrolled per wheel notch, for views that scroll themselves.
+S_NO_SERVER_CASE = "Open a server case to chat."
+
+WHEEL_STEP = 60
+# Flick velocity per wheel notch, so a mouse wheel glides like a flick does.
+WHEEL_FLICK_VELOCITY = 600
+
 EXTENSION = "fd"
 DOT_EXTENSION = "." + EXTENSION
 OPEN_FILE_TYPES = "Family Diagrams (%s)" % ",".join(["*." + i for i in [EXTENSION]])

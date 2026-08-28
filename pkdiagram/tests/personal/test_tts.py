@@ -13,63 +13,63 @@ pytestmark = [
 
 
 def test_sayAtIndex_sets_index_and_calls_say(personalApp: PersonalAppController):
-    personalApp._ensureTts()
-    changed = util.Condition(personalApp.ttsPlayingIndexChanged)
+    personalApp.tts._ensure()
+    changed = util.Condition(personalApp.tts.playingIndexChanged)
     with (
-        patch.object(personalApp._tts, "say") as say,
-        patch.object(personalApp._tts, "stop"),
+        patch.object(personalApp.tts._speech, "say") as say,
+        patch.object(personalApp.tts._speech, "stop"),
     ):
-        personalApp.sayAtIndex("hello", 3)
-    assert personalApp.ttsPlayingIndex == 3
+        personalApp.tts.say("hello", 3)
+    assert personalApp.tts.playingIndex == 3
     assert changed.callCount >= 1
     say.assert_called_once_with("hello")
 
 
 def test_stopSpeaking_calls_stop(personalApp: PersonalAppController):
-    personalApp._ensureTts()
-    with patch.object(personalApp._tts, "stop") as stop:
-        personalApp.stopSpeaking()
+    personalApp.tts._ensure()
+    with patch.object(personalApp.tts._speech, "stop") as stop:
+        personalApp.tts.stop()
     stop.assert_called_once()
 
 
 def test_state_ready_resets_index(personalApp: PersonalAppController):
-    personalApp._ttsPlayingIndex = 5
-    changed = util.Condition(personalApp.ttsPlayingIndexChanged)
-    personalApp._onTtsStateChanged(QTextToSpeech.Ready)
-    assert personalApp.ttsPlayingIndex == -1
+    personalApp.tts._playingIndex = 5
+    changed = util.Condition(personalApp.tts.playingIndexChanged)
+    personalApp.tts._onStateChanged(QTextToSpeech.Ready)
+    assert personalApp.tts.playingIndex == -1
     assert changed.callCount == 1
 
 
 def test_state_error_resets_index(personalApp: PersonalAppController):
-    personalApp._ttsPlayingIndex = 2
-    changed = util.Condition(personalApp.ttsPlayingIndexChanged)
-    personalApp._onTtsStateChanged(QTextToSpeech.BackendError)
-    assert personalApp.ttsPlayingIndex == -1
+    personalApp.tts._playingIndex = 2
+    changed = util.Condition(personalApp.tts.playingIndexChanged)
+    personalApp.tts._onStateChanged(QTextToSpeech.BackendError)
+    assert personalApp.tts.playingIndex == -1
     assert changed.callCount == 1
 
 
 def test_state_speaking_does_not_reset_index(personalApp: PersonalAppController):
-    personalApp._ttsPlayingIndex = 4
-    changed = util.Condition(personalApp.ttsPlayingIndexChanged)
-    personalApp._onTtsStateChanged(QTextToSpeech.Speaking)
-    assert personalApp.ttsPlayingIndex == 4
+    personalApp.tts._playingIndex = 4
+    changed = util.Condition(personalApp.tts.playingIndexChanged)
+    personalApp.tts._onStateChanged(QTextToSpeech.Speaking)
+    assert personalApp.tts.playingIndex == 4
     assert changed.callCount == 0
 
 
 def test_sayAtIndex_stops_previous(personalApp: PersonalAppController):
-    personalApp._ensureTts()
+    personalApp.tts._ensure()
     with (
-        patch.object(personalApp._tts, "stop") as stop,
-        patch.object(personalApp._tts, "say"),
+        patch.object(personalApp.tts._speech, "stop") as stop,
+        patch.object(personalApp.tts._speech, "say"),
     ):
-        personalApp.sayAtIndex("first", 0)
-        personalApp.sayAtIndex("second", 1)
+        personalApp.tts.say("first", 0)
+        personalApp.tts.say("second", 1)
     assert stop.call_count == 2
-    assert personalApp.ttsPlayingIndex == 1
+    assert personalApp.tts.playingIndex == 1
 
 
 def test_ttsVoices_returns_list_of_dicts(personalApp: PersonalAppController):
-    voices = personalApp.ttsVoices
+    voices = personalApp.tts.voices
     assert isinstance(voices, list)
     if voices:
         assert "name" in voices[0]
@@ -77,41 +77,41 @@ def test_ttsVoices_returns_list_of_dicts(personalApp: PersonalAppController):
 
 
 def test_setTtsVoice_persists_to_settings(personalApp: PersonalAppController):
-    voices = personalApp.ttsVoices
+    voices = personalApp.tts.voices
     if not voices:
         pytest.skip("No TTS voices available")
     name = voices[0]["name"]
-    changed = util.Condition(personalApp.ttsVoiceChanged)
-    personalApp.setTtsVoice(name)
-    assert personalApp.ttsVoiceName == name
+    changed = util.Condition(personalApp.tts.voiceChanged)
+    personalApp.tts.setVoice(name)
+    assert personalApp.tts.voiceName == name
     assert changed.callCount == 1
     assert personalApp._settings.value("ttsVoiceName") == name
 
 
 def test_initTtsVoice_restores_saved(personalApp: PersonalAppController):
-    personalApp._ensureTts()
-    voices = personalApp.ttsVoices
+    personalApp.tts._ensure()
+    voices = personalApp.tts.voices
     if not voices:
         pytest.skip("No TTS voices available")
     name = voices[0]["name"]
     personalApp._settings.setValue("ttsVoiceName", name)
-    personalApp._initTtsVoice()
-    assert personalApp._tts.voice().name() == name
+    personalApp.tts._initVoice()
+    assert personalApp.tts._speech.voice().name() == name
 
 
 def test_openSystemVoiceSettings(personalApp: PersonalAppController):
     with patch("subprocess.Popen") as popen:
-        personalApp.openSystemVoiceSettings()
+        personalApp.tts.openSystemSettings()
     popen.assert_called_once()
 
 
 def test_previewVoice(personalApp: PersonalAppController):
-    personalApp._ensureTts()
-    voices = personalApp.ttsVoices
+    personalApp.tts._ensure()
+    voices = personalApp.tts.voices
     if not voices:
         pytest.skip("No TTS voices available")
     name = voices[0]["name"]
-    with patch.object(personalApp._tts, "say") as say:
-        personalApp.previewVoice(name)
-    assert personalApp.ttsVoiceName == name
+    with patch.object(personalApp.tts._speech, "say") as say:
+        personalApp.tts.preview(name)
+    assert personalApp.tts.voiceName == name
     say.assert_called_once_with("Hello, this is a preview of my voice.")

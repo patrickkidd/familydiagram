@@ -150,6 +150,14 @@ class Discussion(QObject):
             else -1
         )
 
+    def addStatements(self, data: list[dict]):
+        """Record a turn the server stored, so the conversation this object
+        holds stays the whole conversation."""
+        known = {x.id for x in self._statements}
+        self._statements.extend(
+            _statement(x, self._speakers) for x in data if x["id"] not in known
+        )
+
     @staticmethod
     def create(data: dict) -> "Discussion":
         speakers = [
@@ -166,18 +174,19 @@ class Discussion(QObject):
             diagram_id=data["diagram_id"],
             user_id=data["user_id"],
             summary=data["summary"],
-            statements=[
-                Statement(
-                    id=x["id"],
-                    text=x["text"],
-                    speaker=next(y for y in speakers if y.id == x["speaker_id"]),
-                    order=x.get("order"),
-                )
-                for x in data.get("statements", [])
-            ],
+            statements=[_statement(x, speakers) for x in data.get("statements", [])],
             speakers=speakers,
             extracted_through_order=data.get("extracted_through_order"),
         )
+
+
+def _statement(data: dict, speakers: list[Speaker]) -> Statement:
+    return Statement(
+        id=data["id"],
+        text=data["text"],
+        speaker=next(y for y in speakers if y.id == data["speaker_id"]),
+        order=data.get("order"),
+    )
 
 
 qmlRegisterType(Discussion, "Personal", 1, 0, "Discussion")

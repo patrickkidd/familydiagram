@@ -68,6 +68,7 @@ class TestBridgeServer(QObject):
         self._handlers = {
             # App state (high-level)
             "get_app_state": self._handleGetAppState,
+            "get_modules": self._handleGetModules,
             # Element finding
             "find_element": self._handleFindElement,
             "list_elements": self._handleListElements,
@@ -96,9 +97,12 @@ class TestBridgeServer(QObject):
             # Windows
             "get_windows": self._handleGetWindows,
             "activate_window": self._handleActivateWindow,
+            "dismiss_dialog": self._handleDismissDialog,
             # File operations
             "open_file": self._handleOpenFile,
             "open_server_diagram": self._handleOpenServerDiagram,
+            "close_diagram": self._handleCloseDiagram,
+            "get_timeline": self._handleGetTimeline,
             # Screenshots
             "take_screenshot": self._handleTakeScreenshot,
             # Personal app state
@@ -117,7 +121,9 @@ class TestBridgeServer(QObject):
         # Commands that run directly on the bridge thread (no Qt dispatch).
         # These must only read thread-safe state from the inspector.
         # ping reads no Qt state — safe to answer directly on the bridge thread.
-        self._threadSafeHandlers = {"ping"}
+        # get_modules reads sys.modules, never Qt — and has to answer during a
+        # launch, before the main thread is idle.
+        self._threadSafeHandlers = {"ping", "get_modules"}
 
     @property
     def port(self) -> int:
@@ -307,6 +313,10 @@ class TestBridgeServer(QObject):
     def _handlePing(self, command: Dict) -> Dict:
         """Handle ping command."""
         return {"success": True, "message": "pong"}
+
+    def _handleGetModules(self, command: Dict) -> Dict:
+        """Handle get_modules command."""
+        return self._inspector.getModules()
 
     def _handleGetAppState(self, command: Dict) -> Dict:
         """Handle get_app_state command."""
@@ -532,6 +542,13 @@ class TestBridgeServer(QObject):
 
         return self._inspector.activateWindow(objectName)
 
+    def _handleDismissDialog(self, command: Dict) -> Dict:
+        """Handle dismiss_dialog command."""
+        button = command.get("button")
+        if not button:
+            return {"success": False, "error": "Missing 'button'"}
+        return self._inspector.dismissDialog(button)
+
     def _handleOpenFile(self, command: Dict) -> Dict:
         """Handle open_file command."""
         filePath = command.get("filePath")
@@ -546,6 +563,12 @@ class TestBridgeServer(QObject):
         if not diagramId:
             return {"success": False, "error": "Missing 'diagramId'"}
         return self._inspector.openServerDiagram(diagramId)
+
+    def _handleCloseDiagram(self, command: Dict) -> Dict:
+        return self._inspector.closeDiagram()
+
+    def _handleGetTimeline(self, command: Dict) -> Dict:
+        return self._inspector.getTimeline()
 
     def _handleTakeScreenshot(self, command: Dict) -> Dict:
         """Handle take_screenshot command."""

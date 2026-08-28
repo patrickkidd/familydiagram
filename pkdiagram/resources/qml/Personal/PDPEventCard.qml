@@ -65,8 +65,8 @@ Item {
         if (!dt) return ""
         var d = new Date(dt)
         var formatted = Qt.formatDateTime(d, "MM/dd/yyyy hh:mm AP")
-        if (certainty && certainty !== "certain" && personalApp) {
-            return formatted + " (" + personalApp.dateCertaintyLabel(certainty) + ")"
+        if (certainty && certainty !== "certain" && pdpController) {
+            return formatted + " (" + pdpController.dateCertaintyLabel(certainty) + ")"
         }
         return formatted
     }
@@ -100,7 +100,7 @@ Item {
                     spacing: 8
 
                     Text {
-                        text: personalApp ? personalApp.eventKindLabel(eventData ? eventData.kind : null) : ""
+                        text: pdpController ? pdpController.eventKindLabel(eventData ? eventData.kind : null) : ""
                         font.pixelSize: util.QML_TITLE_FONT_SIZE
                         font.family: util.FONT_FAMILY_TITLE
                         color: eventKindColor(eventData ? eventData.kind : null)
@@ -189,7 +189,7 @@ Item {
                                     opacity: 0.7
                                 }
                                 Text {
-                                    text: personalApp ? personalApp.resolvePersonName(eventData ? eventData.person : null) : ""
+                                    text: pdpController ? pdpController.resolvePersonName(eventData ? eventData.person : null) : ""
                                     font.pixelSize: util.TEXT_FONT_SIZE
                                     color: util.QML_TEXT_COLOR
                                     wrapMode: Text.WordWrap
@@ -200,7 +200,7 @@ Item {
                             ColumnLayout {
                                 Layout.fillWidth: true
                                 spacing: 2
-                                visible: (isPairBondEvent || isOffspringEvent) && eventData !== null && eventData !== undefined && hasValue(eventData.spouse) && personalApp && personalApp.resolvePersonName(eventData.spouse) !== ""
+                                visible: (isPairBondEvent || isOffspringEvent) && eventData !== null && eventData !== undefined && hasValue(eventData.spouse) && pdpController && pdpController.resolvePersonName(eventData.spouse) !== ""
 
                                 Text {
                                     text: "Spouse"
@@ -210,7 +210,7 @@ Item {
                                     opacity: 0.7
                                 }
                                 Text {
-                                    text: personalApp ? personalApp.resolvePersonName(eventData ? eventData.spouse : null) : ""
+                                    text: pdpController ? pdpController.resolvePersonName(eventData ? eventData.spouse : null) : ""
                                     font.pixelSize: util.TEXT_FONT_SIZE
                                     color: util.QML_TEXT_COLOR
                                     wrapMode: Text.WordWrap
@@ -221,7 +221,7 @@ Item {
                             ColumnLayout {
                                 Layout.fillWidth: true
                                 spacing: 2
-                                visible: isOffspringEvent && eventData !== null && eventData !== undefined && hasValue(eventData.child) && personalApp && personalApp.resolvePersonName(eventData.child) !== ""
+                                visible: isOffspringEvent && eventData !== null && eventData !== undefined && hasValue(eventData.child) && pdpController && pdpController.resolvePersonName(eventData.child) !== ""
 
                                 Text {
                                     text: "Child"
@@ -231,7 +231,7 @@ Item {
                                     opacity: 0.7
                                 }
                                 Text {
-                                    text: personalApp ? personalApp.resolvePersonName(eventData ? eventData.child : null) : ""
+                                    text: pdpController ? pdpController.resolvePersonName(eventData ? eventData.child : null) : ""
                                     font.pixelSize: util.TEXT_FONT_SIZE
                                     color: util.QML_TEXT_COLOR
                                     wrapMode: Text.WordWrap
@@ -294,7 +294,7 @@ Item {
                                     opacity: 0.7
                                 }
                                 Text {
-                                    text: personalApp ? personalApp.variableLabel(eventData ? eventData.symptom : null) : ""
+                                    text: pdpController ? pdpController.variableLabel(eventData ? eventData.symptom : null) : ""
                                     font.pixelSize: util.TEXT_FONT_SIZE
                                     color: variableColor(eventData ? eventData.symptom : null, false)
                                     Layout.fillWidth: true
@@ -314,7 +314,7 @@ Item {
                                     opacity: 0.7
                                 }
                                 Text {
-                                    text: personalApp ? personalApp.variableLabel(eventData ? eventData.anxiety : null) : ""
+                                    text: pdpController ? pdpController.variableLabel(eventData ? eventData.anxiety : null) : ""
                                     font.pixelSize: util.TEXT_FONT_SIZE
                                     color: variableColor(eventData ? eventData.anxiety : null, false)
                                     Layout.fillWidth: true
@@ -334,7 +334,7 @@ Item {
                                     opacity: 0.7
                                 }
                                 Text {
-                                    text: personalApp ? personalApp.relationshipLabel(eventData ? eventData.relationship : null) : ""
+                                    text: pdpController ? pdpController.relationshipLabel(eventData ? eventData.relationship : null) : ""
                                     font.pixelSize: util.TEXT_FONT_SIZE
                                     color: util.QML_TEXT_COLOR
                                     Layout.fillWidth: true
@@ -344,7 +344,7 @@ Item {
                             ColumnLayout {
                                 Layout.fillWidth: true
                                 spacing: 2
-                                visible: isShiftEvent && eventData && eventData.relationshipTargets && eventData.relationshipTargets.length > 0 && personalApp && personalApp.resolvePersonNames(eventData.relationshipTargets) !== ""
+                                visible: isShiftEvent && eventData && eventData.relationshipTargets && eventData.relationshipTargets.length > 0 && pdpController && pdpController.resolvePersonNames(eventData.relationshipTargets) !== ""
 
                                 Text {
                                     text: "Targets"
@@ -354,7 +354,7 @@ Item {
                                     opacity: 0.7
                                 }
                                 Text {
-                                    text: personalApp ? personalApp.resolvePersonNames(eventData ? eventData.relationshipTargets : []) : ""
+                                    text: pdpController ? pdpController.resolvePersonNames(eventData ? eventData.relationshipTargets : []) : ""
                                     font.pixelSize: util.TEXT_FONT_SIZE
                                     color: util.QML_TEXT_COLOR
                                     wrapMode: Text.WordWrap
@@ -365,7 +365,7 @@ Item {
                             ColumnLayout {
                                 Layout.fillWidth: true
                                 spacing: 2
-                                visible: isShiftEvent && eventData && eventData.relationshipTriangles && eventData.relationshipTriangles.length > 0 && personalApp && personalApp.resolvePersonNames(eventData.relationshipTriangles) !== ""
+                                visible: isShiftEvent && eventData && eventData.relationshipTriangles && eventData.relationshipTriangles.length > 0 && pdpController && pdpController.resolvePersonNames(eventData.relationshipTriangles) !== ""
 
                                 Text {
                                     text: "Triangles"
@@ -375,7 +375,7 @@ Item {
                                     opacity: 0.7
                                 }
                                 Text {
-                                    text: personalApp ? personalApp.resolvePersonNames(eventData ? eventData.relationshipTriangles : []) : ""
+                                    text: pdpController ? pdpController.resolvePersonNames(eventData ? eventData.relationshipTriangles : []) : ""
                                     font.pixelSize: util.TEXT_FONT_SIZE
                                     color: util.QML_TEXT_COLOR
                                     wrapMode: Text.WordWrap
@@ -396,7 +396,7 @@ Item {
                                     opacity: 0.7
                                 }
                                 Text {
-                                    text: personalApp ? personalApp.variableLabel(eventData ? eventData.functioning : null) : ""
+                                    text: pdpController ? pdpController.variableLabel(eventData ? eventData.functioning : null) : ""
                                     font.pixelSize: util.TEXT_FONT_SIZE
                                     color: variableColor(eventData ? eventData.functioning : null, true)
                                     Layout.fillWidth: true

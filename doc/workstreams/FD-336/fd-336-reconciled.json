@@ -1,0 +1,358 @@
+{
+ "proposed_criteria": [
+  {
+   "text": "A discussion started from Pro's embedded Discuss tab while server case X is open is stored with discussions.diagram_id = X, and its extraction's staged PDP lands in X's diagram row \u2014 RED if the row shows the user's free_diagram_id or the PDP appears in the free diagram's data (today POST /personal/discussions/ ignores diagram_id and hardwires the free diagram, so every downstream AC would run against the wrong row while looking green in the client).",
+   "track": "agent",
+   "harness_drivable": true,
+   "grading_test": "familydiagram-testing MCP: launch Pro (ephemeral_server=True), seed_server_data(user with free diagram F + diagram X with distinct people), open_server_diagram(X), open the chat drawer, send one statement via chatSendButton (or curl POST /personal/discussions/ {diagram_id: X} on the sandbox); then sqlite `select diagram_id from discussions` == X and GET /personal/diagrams/X lists the discussion; POST /extract and assert pickle.loads(diagrams.data)['pdp'] for X is non-empty while F's is empty; the coach reply names people from X.",
+   "why_missed": "The ACs bind the embedded tabs to Pro's Scene/Diagram client-side only; the server-side discussion\u2192diagram binding is never mentioned.",
+   "verified_in_code": "VERIFIED btcopilot/personal/routes/discussions.py:27-52 _create_discussion uses user.free_diagram and ignores body diagram_id; personalappcontroller.py:1006 sends diagram_id that is never honored; extract/commit/chat resolve discussion.diagram (discussions.py:246-247,329; personal/chat.py:46-49) \u2192 split-brain: Pro accept writes the case row while extract/commit-pdp write the free row.",
+   "risk_rank": 1
+  },
+  {
+   "text": "After the first chat turn on a Pro server case with no primary-marked person, GET /v1/diagrams/{id} and a Pro reopen show exactly the clinician's people \u2014 RED if 'User'(id 1)/'Assistant'(id 2) people appear in the row or on the canvas, if an existing non-person item with id 1/2 now collides with an injected person, or if the row's bytes changed with an unchanged version (so a Pro Cmd+S with a stale expected_version overwrites it with no 409).",
+   "track": "agent",
+   "harness_drivable": true,
+   "grading_test": "curl on sandbox 8889 (auto-auth) or the ephemeral server: seed diagram X with people ids 10..12, an Event with id 2, none primary, lastItemId 12; record version; POST /personal/discussions/ then POST .../statements {statement:'hi'} (LLM key or harness stub); unpickle GET /v1/diagrams/X: no person named User/Assistant, people count unchanged, no duplicate ids; if defaults are inserted by owner decision, assert version incremented. Then from a Pro instance opened BEFORE the chat, save_diagram: assert conflicts==1, not a silent 200. MCP open_server_diagram(X) + scene tool confirms canvas.",
+   "why_missed": "The ticket treats the server as a passive store for chat ('sees last saved state'); the chat route WRITES speaker placeholder people into the row, unversioned, a mutation designed for Personal's free diagram.",
+   "verified_in_code": "VERIFIED discussions.py:114-119 ensure_chat_defaults + set_diagram_data; schema.py:1383-1440 appends Person(id=1,'User',primary=True) when no primary and Person(id=2,'Assistant') when no person id 2, checking people only; pro/models/diagram.py:93-107 set_diagram_data rewrites data with NO version bump; modelmixin.py:181 updated_at has no onupdate; personal/routes/diagrams.py:186-190 import-text same pattern. INFERRED: id-2 person beside an id-2 event collides in Scene.itemRegistry on next Pro load.",
+   "risk_rank": 2
+  },
+  {
+   "text": "Tightens 'saver writes COMPLETE DiagramData' (S3): a Pro Cmd+S issued after a server-side extraction/cluster detection leaves the row's pdp (all staged people/events/pair_bonds) and clusters/clusterCacheKey exactly as the server wrote them \u2014 RED if the staged item count drops or clusters become empty after the Pro save, including when Pro opened the case BEFORE the pdp was written (cached data lacks pdp; version mismatch must force a 409 replay).",
+   "track": "agent",
+   "harness_drivable": true,
+   "grading_test": "Sandbox Flask 8889 or MCP ephemeral server: seed a row whose pickle has pdp with 3 negative-id people and 2 clusters (/test/diagrams/seed_pickle), open_server_diagram in Pro, add_person, save_diagram, curl GET /v1/diagrams/{id} and unpickle: len(pdp.people)==3 and len(clusters)==2. Repeat with Pro opened before the pdp was written: assert conflicts==1 and the same counts. Existing test_save_preserves_server_pdp/clusters (test_serverfilemanagermodel.py:326,349) must be retargeted at the saver, not deleted.",
+   "why_missed": "Scene.diagramData() yields pdp/clusters at empty defaults; a 'complete' write sourced from the Scene wipes both, and the AC lists no survival check.",
+   "verified_in_code": "VERIFIED scene.py:1484-1527 Scene.diagramData() never sets pdp/clusters/clusterCacheKey; serverfilemanagermodel.py:511-561 preserves them only by omission; server_types.py:213-218 merge base is the CACHED diagram.data, refreshed only on 409 (:290-300); pro/routes.py:236-271 whole-blob replace with no server-side field filtering.",
+   "risk_rank": 3
+  },
+  {
+   "text": "Tightens 'concurrent-save tests pass with no data loss': after Pro saves once, the cached Diagram object is replaced (30-min poll, index sync, or open_server_diagram re-sync), another writer (second Pro, Personal on the same server, or an embedded PDP accept) adds an item, and Pro then saves an unrelated edit \u2014 the other writer's item is still on the row. RED if it is absent from GET /v1/diagrams/{id}.",
+   "track": "agent",
+   "harness_drivable": true,
+   "grading_test": "MCP: two Pro instances on one ephemeral server, both open_server_diagram(N); A add_person + save_diagram; A open_server_diagram(N) again (forces syncDiagramFromServer \u2192 cache object swap); B add_person + save_diagram; A add_person + save_diagram; unpickle GET /v1/diagrams/N: all three people present. Variant with B=Personal (server_url=A's port, dev_login) accepting 'Connie' via inject_pdp_data. pytest (test_serverfilemanagermodel.py create_model + test_user fixtures): setData once, write a second Person via a second Diagram object, model.syncDiagramFromServer(id) (what onServerPollTimer does), setData again from the unchanged Scene, assert the second Person survives. Poll interval is a 30-min class constant: the real-app poll venue is human (leave Pro open 31+ min).",
+   "why_missed": "The ticket assumes the FD-311 snapshot-diff baseline is intact; it never states the baseline must survive the Diagram object being replaced, and a saver 'holding the open Diagram' inherits or worsens this unless it re-resolves the object or owns the snapshot.",
+   "verified_in_code": "VERIFIED serverfilemanagermodel.py:377-397 _addOrUpdateDiagram replaces diagramCache[id] with a NEW Diagram when server updated_at is newer (ad-hoc _lastSavedSnapshot lost); :496-509 setData resolves via diagramForRow and falls back to diagram.data as baseline (comment documents the delete hazard); server_types.py:262-286 Diagram.save never updates self.updated_at while pro/routes.py:242 sets row updated_at from the client body, so the first poll after any Pro save always swaps; mainwindow.py:86-88,348-350,1270-1274 poll; no serverFileModel.dataChanged listener so the Scene is never reloaded; scene.serverDiagram() keeps the object set at open (scene.py:334-338, mainwindow.py:840); mcpbridge/inspector.py:1416 openServerDiagram also re-syncs. INFERRED: apply_local_changes (schema.py:525,536-540) then classifies every server-only item as deleted.",
+   "risk_rank": 4
+  },
+  {
+   "text": "After a Pro server case reserves an id block (first person added) and is saved, the row's lastItemId read back over GET /v1/diagrams/{id} is never lower than the reserved block end, and a following PDP accept commits people whose ids are all above that block end \u2014 RED if a committed person can share an id with a person the clinician adds next.",
+   "track": "agent",
+   "harness_drivable": true,
+   "grading_test": "MCP: Pro (ephemeral_server=True), open_server_diagram, add_person (fires reserve_ids, block [L+1..L+100]), save_diagram, curl GET /v1/diagrams/{id} and unpickle: assert lastItemId >= L+100. Then inject_pdp_data one person, accept in the embedded PDP sheet, add_person again, get_scene_items: all ids distinct and the committed person's id > L+100. RED today: Pro writes lastItemId = max(cached, max-used-id) < block end.",
+   "why_missed": "'No data loss' says nothing about the id space; btcopilot J-3 tests two reservations and never a PUT after a reservation.",
+   "verified_in_code": "VERIFIED serverfilemanagermodel.py:538 lastItemId=max(cached server, scene local); scene.py:2057-2065 scene.lastItemId tracks max USED id, not block end; serverblockallocator.py:48-66 client updates only diagram.version, never diagram.data; pro/models/diagram.py:234-241 PUT is a blind write with no monotonic guard; test_mvp_merge_integration.py:190-222 no PUT after reserve. INFERRED: commit_pdp_items (schema.py:594-596 _next_id from lastItemId) reuses an id inside Pro's block.",
+   "risk_rank": 5
+  },
+  {
+   "text": "An embedded PDP accept (which today triggers cluster detection \u2192 a full snapshot-diff save of the live Scene) while the clinician has unsaved Pro edits leaves the row and the Pro window consistent: either the unsaved edits are on the row AND the title has no '*' with Save disabled, or the edits are NOT on the row AND the title keeps '*'; and Cmd+Z immediately after the accept either removes the symbol AND restores the card AND persists the reversal, or is a visible no-op \u2014 RED if the row already contains a rename while the title still shows '*', or if the card reappears while the symbol stays so re-accepting yields two 'Connie' rows.",
+   "track": "agent",
+   "harness_drivable": true,
+   "grading_test": "MCP: Pro + ephemeral server, open_server_diagram, add_person 'Unsaved' (title shows '*' via get_property on the main window), inject_pdp_data, accept, wait_until_idle, unpickle GET row: if 'Unsaved' in people assert title has no '*' else assert '*' persists. Then Edit\u2192Undo (press_key): personal_state('pdp') and scene tool must agree (card present \u21d4 symbol absent); if the card is back, accept again and assert exactly one Connie in diagrams.data. pytest-qt: same sequence asserting scene.stack().isClean() and HandlePDPItem undo leaves scene.people() consistent with diagram.getDiagramData().people.",
+   "why_missed": "The ticket says the tabs 'operate on Pro's open Scene' but never decides whether Personal-pipeline saves may push unsaved Scene edits behind Cmd+S, nor reconciles Personal's private undo stack (undo rewrites the Diagram blob, not the Scene) with Pro's stack-driven dirty model.",
+   "verified_in_code": "VERIFIED personalappcontroller.py:1789 acceptAll \u2192 clusterModel.detect(); :396-397 clustersDetected \u2192 saveDiagram; :301-358 saveDiagram writes self.scene.diagramData() snapshot-diff (whole live Scene); saveDiagram also auto-fires on event-form save, deleteEvent, undo, saveUserProfile (:254,280,287); :115 private QUndoStack, :1224-1226 pushes HandlePDPItem, :1408 scene.addItem(undo=False); personal/commands.py:33-38 undo = setDiagramData only; mainwindow.py:672-693 only Pro's save() calls stack().setClean(); :600-607 Save action enabled only when dirty; :573 confirmSave keys off isClean().",
+   "risk_rank": 6
+  },
+  {
+   "text": "Tightens 'exactly one save path': a single Pro process holding a server case is the only client writer of that row \u2014 an embedded PDP accept immediately followed by Pro Cmd+S (and the reverse) each complete with zero 409 retries and the row version advances by exactly one per write; a second write started while a save is blocked is queued, never issued with the same expected_version. RED if save_diagram reports conflicts>0, the 'Save Failed After Retries' dialog appears, or two PUTs for the row are in flight from the process at once.",
+   "track": "agent",
+   "harness_drivable": true,
+   "grading_test": "MCP: Pro (ephemeral_server=True), open_server_diagram, inject_pdp_data (1 person), accept, wait_until_idle, save_diagram \u2192 conflicts==0; curl GET row version before/after each step and assert +1 per write. Reverse: add_person, save_diagram, then accept \u2192 no 'Version conflict when saving' log lines and version +1. Interleave: trigger accept while a Pro save is blocked (slowed ephemeral server) and assert the second write is queued. Note: mcpbridge save_diagram prefers a PersonalAppController when found (inspector.py:2082-2085) \u2014 the bridge must be disambiguated for embedded Pro or this test targets the wrong path.",
+   "why_missed": "'Exactly one save path' and 'no second Scene' are structural; nothing observable pins ONE Diagram object/version counter or serialization of writes, and blockingRequest's nested event loop lets a second write start mid-save.",
+   "verified_in_code": "VERIFIED two Diagram objects today \u2014 personalappcontroller.py:988-1004 builds its own from /personal/diagrams JSON, serverfilemanagermodel.py:334-397 caches Pro's; versions diverge independently (server_types.py:264, serverblockallocator.py:66); server_types.py:598-621 blockingRequest spins a nested QEventLoop with the client timeout commented out (:613-620); _withSaveGuard (personalappcontroller.py:289-299) guards only the Personal path; Personal JSON PUT returns no canonical blob (personal/routes/diagrams.py:137) so the client keeps its own post-merge bytes (server_types.py:283-285) while /v1 returns canonical data.",
+   "risk_rank": 7
+  },
+  {
+   "text": "The S1 and S3 gates are non-vacuous: (a) S1 byte-identical means the DiagramSaver's PUT body 'data' bytes and stored row bytes equal what the pre-refactor setData path produces for identical Scene + cached row on three rows \u2014 no pdp/clusters, populated pdp+clusters, and a legacy row with top-level keys not in DiagramData \u2014 compared OUTPUT-vs-OUTPUT since getDiagramData already canonicalizes; (b) the concurrent-save suite runs the REAL saver end-to-end (real applyChange, real HTTP PUT, real row) \u2014 RED if the suite still passes when apply_local_changes is mutated to return the server unchanged or when the saver's field list drops a field.",
+   "track": "agent",
+   "harness_drivable": true,
+   "grading_test": "(a) pytest btcopilot/btcopilot/tests/pro with the Flask test client capturing request.data of PUT /v1/diagrams/{id}: run the pinned pre-refactor ServerFileManagerModel.setData (copy at the S1 commit's parent) and the DiagramSaver against identical Scene + Diagram.data for rows (a)(b)(c); assert pickle 'data' bytes equal and Diagram.query.get(id).data equal. (b) Mutation check: temporarily make DiagramData.apply_local_changes return `server` and run pytest familydiagram/pkdiagram/tests/models/test_serverfilemanagermodel.py -k concurrent \u2192 must FAIL (today passes because _pro_apply_change/_personal_apply_change are test-local copies). Real venue: MCP J-1A/J-2A journeys (doc/plans/2026-05-01--mvp-merge-fix/JOURNEYS.md) with two instances: Personal save_diagram conflicts==0, then Pro save_diagram conflicts==1 and GET row shows both edits.",
+   "why_missed": "'byte-identical-save test' never says identical to what (raw rows with older-shaped pdp or unknown keys are not stable under today's save, so a raw-row gate is unpassable or vacuous), and 'concurrent-save tests pass' is satisfiable by the existing copy-of-applyChange unit tests that never touch the saver or the server.",
+   "verified_in_code": "VERIFIED server_types.py:302-309 getDiagramData keeps only DiagramData fields and rebuilds pdp via from_dict(PDP); :216 newData = pickle.dumps(asdict(diagramData)); pro/routes.py:236-271 stores data verbatim and returns the canonical blob; mainwindow.py:667-668 Pro pickles scene.data() (not diagramData()) as applyChange input; test_serverfilemanagermodel.py:440-470,553-760 header 'without server round-trips', local re-implementations; btcopilot test_mvp_merge_integration.py:55-190 hits the route with hand-built pickles, not the client saver.",
+   "risk_rank": 8
+  },
+  {
+   "text": "Tightens 'no second Scene, no separate load' into a lifecycle contract: with the embedded tab open on case N, (a) a Session 'changed' emission (hourly token refresh, re-login, dev_login) issues no GET /personal/diagrams/{id} and the tab stays bound to Pro's Scene for N; (b) an Extract/Rebuild/transcription started on case A whose response arrives after closing A and opening B leaves B's PDP at 0 and B's row pdp empty with no RuntimeError; (c) switching N \u2192 local .fd disables the tab and clears N's discussion state, switching back restores it; (d) 20 open-case/open-tab/extract/close cycles end with no crash, no 'wrapped C/C++ object has been deleted', and RSS within 15% of the first cycle.",
+   "track": "agent",
+   "harness_drivable": true,
+   "grading_test": "pytest-qt (familydiagram/pkdiagram/tests): MainWindow with server diagram open + embedded controller; emit session.changed([],[LICENSE_PROFESSIONAL]) \u2192 no request to /personal/diagrams/<id> and controller.scene is mw.scene; patch Server.nonBlockingRequest to capture extractFull's success callback, mw.setDocument(B), invoke the callback with a PDP payload \u2192 B's diagram.getDiagramData().pdp empty, no exception; setDocument(server)/setDocument(None) x20 with the tab loaded \u2192 engine warnings empty. MCP: open_server_diagram(N), dev_login, get_personal_state('all') and get_status both report N; open_file(local .fd) \u2192 tab enabled=false and personal_state('discuss') has no current discussion; open_server_diagram(N) \u2192 discussion list restored; loop open/click copilotButton/inject_pdp_data/open_pdp_sheet/Cmd+W x20 sampling RSS via psutil.",
+   "why_missed": "The load is triggered dynamically by Session.changed (fired by Pro's own session lifecycle), every async callback resolves self._diagram/self.scene at callback time, the server gate is stated as static rather than a transition, and 'decomposed' is a code-shape AC with nothing asserting survival of Scene.deinit.",
+   "verified_in_code": "VERIFIED personalappcontroller.py:121 session.changed \u2192 onSessionChanged, :386-401 _refreshDiagrams + _refreshDiagram on every change, :913-975 creates Scene() and setScene; session.py:60-63 hourly update timer, :225-242 setData emits changed; :1714-1718 extractFull onSuccess writes self._diagram at callback time, :1795-1830 _pollRebuild recursion via QTimer.singleShot, :563-583 transcription poll; cancelRebuild (:1845) is the only cancellation, nothing cancels on setScene(None); :988-1004 binds _diagram/_discussions/_currentDiscussion per load with no teardown except logout; mainwindow.py:1096-1131 setDocument deinits the old Scene; scene.py:312-330 deinit dumps itemRegistry; PersonalContainer.qml:52-95 / DiscussView.qml:54-150 Connections on personalApp that read scene.people(); documentview.py:272-316 setScene(None).",
+   "risk_rank": 9
+  },
+  {
+   "text": "Absorbed label bug, re-grounded: accepting an extracted person whose chunk is {name:'Connie', last_name:'Stinson'} shows 'Connie Stinson' on the Pro canvas immediately AND after save/close/reopen, a chunk with only last_name renders a non-empty label, a chunk {name:'Connie'} renders 'Connie', and the reopened row's person chunk carries the last name under the key the Scene reads (lastName) \u2014 RED if the live label is 'Connie' while the reopened label differs, the last-name-only person renders blank, or the chunk still carries only snake_case last_name. Separately (human): every person symbol on production diagram 1924 has a label after the release.",
+   "track": "agent",
+   "harness_drivable": true,
+   "grading_test": "MCP: Pro + ephemeral server, open_server_diagram(X), inject_pdp_data({people:[{id:-1,name:'Connie',last_name:'Stinson'},{id:-2,last_name:'Stinson'},{id:-3,name:'Connie'}]}), accept all; get_layout_bounds labels == ['Connie Stinson', <non-empty>, 'Connie']; save_diagram, close, open_server_diagram(X), labels identical; unpickle GET row and assert each chunk has lastName populated. pytest familydiagram/pkdiagram/tests/personal/test_pdp_2_scene.py asserting fullNameOrAlias() for all three chunks. Human pre-check: dump 1924's people via the admin API and count entries with empty name and non-empty last_name \u2014 any such entry needs a data migration or the AC must be re-scoped to new commits only; post-release Patrick opens 1924 in Pro and counts blank symbols (0 expected).",
+   "why_missed": "The ticket's mechanism (label from firstName/lastName) does not match the code: there is no firstName prop and a name-only chunk already labels on master. What is real is that the committed chunk writes last_name which the Scene never reads (lastName), the compat rename runs only for data < 2.1.11b1, and the live accept path bypasses compat entirely; a writer-only fix does not rewrite rows already persisted.",
+   "verified_in_code": "VERIFIED empirically (/tmp/fd336_label_check.py, version 2.1.23b3): {name:'Connie'} \u2192 'Connie'; {name:'Connie',last_name:'Stinson'} \u2192 lastName None, label 'Connie'; {last_name:'Stinson'} \u2192 ''. schema.py:295-301 Person(name,last_name,...), :711 self.people.append(asdict(new_person)); person.py:101-103 props name/lastName (no firstName anywhere); person.py:463-482 label = name (+middle)(+lastName)(+nick); item.py:137-148 read ignores unknown keys, :128-135 write re-emits _readChunk so the stray key persists; compat.py:781-783 last_name\u2192lastName only UP_TO '2.1.11b1'; personalappcontroller.py:1401 item.read(chunk, byId) never runs compat. INFERRED: the label-less people on 1924 are name=None/last_name-only rows, not name-only rows; 1924's actual chunks were not inspectable (no local snapshot).",
+   "risk_rank": 10
+  },
+  {
+   "text": "Tightens 'enabled only for server diagrams': opening a server case the user does NOT own (shared read-write) or one Pro opened read-only either shows the Discuss/Learn/Plan slot in an explicit disabled/explained state or lets the user chat/extract/accept successfully \u2014 RED if the tabs are enabled and any embedded action pops 'Save Error'/'Unexpected server error (HTTP 403)' or returns 401/403 in the HTTP log.",
+   "track": "agent",
+   "harness_drivable": true,
+   "grading_test": "MCP + sqlite: seed users A (owner) and B, diagram X owned by A, insert access_rights row (diagram_id=X,user_id=B,right=read-write) into the sandbox sqlite (/test/seed does not seed access_rights); launch Pro as B, open_server_diagram(X); assert tab/copilotButton state via find_element + get_property('enabled'); if enabled, click chatSendButton and inject_pdp_data + accept and assert no QMessageBox (get_windows) and no 'server error' chat bubble; curl GET /personal/diagrams/X/discussions as B must not be 403 in the enabled case. Also open a case read-only and repeat.",
+   "why_missed": "'Server diagram' is treated as one class; the Personal routes are owner-only and Pro additionally has read-only server opens, neither addressed by the ACs.",
+   "verified_in_code": "VERIFIED btcopilot/personal/routes/diagrams.py:80-81 GET 403 unless owner/admin, :103-104 PUT 403 without write access, :141-150 discussions list 403 for non-owner; discussions.py:227-229,296-298 extract/commit-pdp 401 for non-owner; pro/routes.py:229-231 /v1 PUT 401 without write access; server_types.py:249-258 HTTPError \u2192 QMessageBox.critical 'Save Error'; mainwindow.py:994-1010 readOnly server open, :662 save() no-ops when readOnly while personalappcontroller commit paths never check scene.readOnly(); scenemodel.py:76-78 isOnServer has no ownership check; DiscussView.qml:115-121 renders failures as an 'expert' chat bubble.",
+   "risk_rank": 11
+  },
+  {
+   "text": "Tightens 'save-before-chat prompt present': pressing Send in the embedded Discuss tab while Pro's undo stack is dirty shows the prompt; choosing Save produces a PUT /v1/diagrams/X (version +1) that COMPLETES before POST /statements and the coach's context reflects the edit; choosing Cancel creates neither a statement row nor a PUT; with a clean stack no prompt appears \u2014 RED if a statement's created_at precedes the row's version bump, a declined prompt still posts, or the prompt appears on a clean stack.",
+   "track": "agent",
+   "harness_drivable": true,
+   "grading_test": "MCP + sqlite on the ephemeral server: open_server_diagram(X), add_person 'Zed' (dirty), type into chatTextEdit, click chatSendButton \u2192 find_element for the prompt; Cancel \u2192 `select count(*) from statements` unchanged and diagrams.version unchanged; repeat with Save \u2192 diagrams.version +1, pickle.loads(data) contains 'Zed', and the request log shows PUT /v1/diagrams/X finished before POST .../statements; clean stack \u2192 no prompt. LLM key or harness stub required for the send.",
+   "why_missed": "Presence-only AC: no ordering, no decline semantics, no observable on the row.",
+   "verified_in_code": "VERIFIED btcopilot/personal/chat.py:44-49 context from discussion.diagram.get_diagram_data() (persisted row) \u2014 also used by extraction dedup (discussions.py:246), so unsaved Pro people get re-proposed; mainwindow.py:570-585 existing confirmSave semantics (Yes saves synchronously, Cancel aborts); personalappcontroller.py:1155-1200 sendStatement posts asynchronously with no save hook. INFERRED: no prompt exists anywhere yet (grep for unsaved/save-before in Personal QML and documentview returned nothing).",
+   "risk_rank": 12
+  },
+  {
+   "text": "Tightens 'no second Session in-process': launching Pro and opening a server case creates exactly one session token for the user (one sessions row / one Authorization token in the sandbox access log), writes no 'autoReadAloud', 'ttsVoiceName', 'responseModel' or 'lastDiagramId' keys into Pro's preferences or a 'personal.alaskafamilysystems.com' config file, and with a local .fd open (or no document) no QTextToSpeech, QAudioRecorder, QAccelerometer/ShakeDetector or Personal-owned QNetworkAccessManager exists; window-shown time stays within 10% of pre-ticket master \u2014 RED on a second token, any such key, any such object before a server case is opened, or a startup regression.",
+   "track": "agent",
+   "harness_drivable": true,
+   "grading_test": "MCP: launch Pro (ephemeral_server=True), dev_login, open_server_diagram(N), open the tab, toggle Read-aloud once; sqlite `select count(*) from sessions where user_id=?` == 1; grep the instance's sandboxed QSettings/app-config dir for the keys and for a personal.* config file. pytest-qt: construct MainWindow, open a local .fd, findChildren for QTextToSpeech/QAudioRecorder/ShakeDetector/QNetworkAccessManager owned by Personal components \u2192 none. MCP: time launch_app(Pro) to get_app_state ready across 5 runs on master vs branch.",
+   "why_missed": "'No second Session' has no observable; the controller also builds its own Analytics, AppConfig (separate prefs file), unprefixed Settings on the app's QSettings, and peripherals at construction, so a build could share the Session object yet still leak config/analytics/peripheral state.",
+   "verified_in_code": "VERIFIED personalappcontroller.py:117-124 Analytics + Session + AppConfig(prefsName='personal.alaskafamilysystems.com'), :131-133 ShakeDetector (started :391 on login), :135-139 Settings(app.prefs()) + _ensureTts at construction if pref, :143-149 QNetworkAccessManager, :198-207 session.init from its own lastSessionData; personal/settings.py:14-20 unprefixed keys; app/application.py:180-188 Pro prefs 'familydiagrammac'; shakedetector.py:8-31 QAccelerometer on desktop; app/appcontroller.py:56 Pro's own Session.",
+   "risk_rank": 13
+  },
+  {
+   "text": "Tightens 'Copilot view removed', 'hamburger hidden', and 'disabled for local .fd': after removal Ctrl+4 and the View menu no longer expose 'Show Copilot', the drawer's tab bar shows exactly the agreed set (Timeline/Settings/Discuss/Learn/Plan/Triangles) with header text matching the selected tab, the QML engine logs zero ReferenceErrors for 'copilot'; with a local .fd open the chat icon neither opens the tab nor throws and its disabled state is visibly explained; and no control reachable from the embedded tabs invokes Personal's hard-clear (Clear Events Only / Clear All Data), diagram delete/create, or logout \u2014 RED on any stale action, mismatched header, QML warning, a blank Personal container on a local file, or a destructive control in Pro's object tree.",
+   "track": "human",
+   "harness_drivable": true,
+   "grading_test": "pytest-qt: load CaseProperties via the dv fixture, assert engine warnings empty, assert tabBar count/labels, mw.ui has no actionShow_Copilot; grep that RightDrawerView.Copilot, CopilotEngine, the 'copilot' context property and test_copilotengine/test_show_copilot are removed or retargeted (session.py:42 'copilot' is a license attr \u2014 verify before deleting). MCP: list_elements on the drawer; press_key Ctrl+4 \u2192 no drawer opens; open_file(local .fd), find_element(copilotButton) get_property enabled/visible + take_screenshot, click it \u2192 currentDrawer unchanged; open_server_diagram with 5 events, open the drawer, list_elements over the overlay \u2192 no clearDataDialog/'Clear Events Only'/'Clear All Data'/new-diagram/delete-diagram/logout elements; exercise every visible embedded button, curl GET row \u2192 events count still 5. Human: Patrick judges whether the disabled affordance explains itself.",
+   "why_missed": "'Copilot view removed' names the QML view only but the feature is wired through a menu action with shortcut, a context property, a Session Qt property, an enum, and index-based tab mapping that fail silently as QML binding errors; 'disabled' does not say hidden vs greyed vs explained; the ticket hides the hamburger only while the clear-data dialog is a separate control that wipes the row with no snapshot-diff, no undo, and no server-side history.",
+   "verified_in_code": "VERIFIED mainwindow_form.py:387-389,496,782-783 (action + Ctrl+4); documentcontroller.py:181,1128-1129; documentview.py:450-457,723-727; qmlengine.py:11,42,55,83; documentview/__init__.py:8; CaseProperties.qml:37,45-63,98-108,130,740-742 (index-based tab/header mapping, CopilotView at stack index 2); toolbars.py:895-899 copilotButton bound to actionShow_Copilot with no enabled condition; documentcontroller.py:523-560 updateActions never touches it; scenemodel.py:76-78 isOnServer; personalappcontroller.py:1837-1885 clearDiagramData hard-clears with no snapshot-diff/undo, UI at PersonalContainer.qml:1059,1085; PersonalContainer.qml:115-138 hamburger, :1252-1298 Drawer with AccountDrawer (logout :1268, loadDiagram/createDiagram :1276-1282). INFERRED: whether clearDataDialog lives under the hamburger was not traced.",
+   "risk_rank": 14
+  }
+ ],
+ "ambiguities_for_owner": [
+  "Discussion binding: POST /personal/discussions/ hardwires the caller's free diagram \u2014 is changing that route in scope for FD-336, may a Pro case hold multiple discussions, and are they owned by the case (visible to read-write collaborators / on the phone) or by the clinician user?",
+  "Subject identity on a Pro case: chat/extraction treats the primary person else id 1 as 'the user' and injects 'User'(id 1)/'Assistant'(id 2) people when absent \u2014 who is the subject (clinician, client-as-primary, nobody), and must the chat route stop writing the row for non-free diagrams?",
+  "Is 'every write to the diagrams row bumps version' in scope (chat defaults and import-text write via set_diagram_data with no bump, so a stale Pro save silently overwrites them) \u2014 a btcopilot change outside the stated scope?",
+  "Which server diagrams enable the feature: owned only, or also shared READ_WRITE cases (Personal routes are owner-only \u2192 server auth change), read-only opens, and the free-license user's free diagram opened in Pro?",
+  "May an embedded PDP accept / cluster detection / event-form save push the clinician's UNSAVED Pro Scene edits to the server behind Cmd+S, or must the embedded pipeline write only pdp/committed items and leave Scene edits to Pro's explicit save?",
+  "Dirty/undo model after a PDP accept: should Pro's title show '*' and Cmd+Z revert the accepted person (requires pushing onto Pro's Scene stack), or is 'already on the server' considered clean and the accept not undoable?",
+  "Save-before-chat shape: modal on every send while dirty, once per dirty period, or auto-save; does Cancel block the send; does the same gate apply to Extract (whose dedup reads the DB row and will re-propose unsaved Pro people)?",
+  "S1 byte-identical against WHAT: the pre-refactor code's PUT body/stored row for identical inputs (output-vs-output, since getDiagramData already canonicalizes pdp and drops unknown top-level keys), or the raw stored row (unpassable for legacy rows)?",
+  "When the poll or a re-sync replaces the cached Diagram object, which object is 'the open Diagram' the saver holds, and is fixing the existing snapshot-loss-on-swap data-loss path part of S3's concurrent-save scope?",
+  "lastItemId ownership after block reservation: clamp client-side in the saver to >= the server's stored value, or refuse to lower it server-side in the PUT route?",
+  "Label field contract: extraction emits name + last_name while the Scene stores name + lastName \u2014 which side converts (schema Person field rename vs. commit-time mapping), is a multi-token name split, and do existing rows on 1924 with name=None/last_name-only get a data migration or is the 1924 AC re-scoped to new commits?",
+  "Placement of accepted people on the Pro canvas: run the existing local auto-arrange on accept, place at viewport center, or accept (0,0) stacking (1924 has 21 people at the origin)?",
+  "On save failure (HTTP error or 3x409) what is the contract \u2014 keep the document dirty for retry, or retry with backoff? Today the document is marked clean after the failure dialog, discarding edits on close.",
+  "Should the standalone Personal app keep its own Session/AppConfig/Session.changed-driven reload after decomposition, with only the Pro embedding stripping them?",
+  "Does the familydiagram-testing ephemeral server stub the LLM for chat/extract, or do the chat-dependent criteria need a real key on the sandbox (otherwise they become human-track on 8889)?",
+  "After the JSON path retires, pipeline writes go through /v1 which stamps updated_at from the client clock; Pro's file-list 'modified' and the 30-minute refetch will then react to every pipeline write \u2014 intended, and should the poll stop replacing the cached Diagram object?",
+  "Cross-device liveness: Pro never reloads the open case; is reopen-to-see-phone-changes acceptable for beta, or is a refresh/poll required?"
+ ],
+ "code_facts": [
+  "btcopilot/btcopilot/personal/routes/discussions.py:27-52 \u2014 _create_discussion attaches every discussion to user.free_diagram (creating it if missing) and ignores body diagram_id; familydiagram/pkdiagram/personal/personalappcontroller.py:1006 sends diagram_id that is never honored.",
+  "btcopilot/btcopilot/personal/routes/discussions.py:114-119 + btcopilot/btcopilot/schema.py:1383-1440 \u2014 every chat turn calls ensure_chat_defaults() then set_diagram_data(): appends Person(id=1,'User',primary=True) when no primary and Person(id=2,'Assistant') when no person id 2, checking people only; pro/models/diagram.py:93-107 set_diagram_data rewrites the row WITHOUT bumping version; modelmixin.py:181 updated_at has no onupdate; personal/routes/diagrams.py:186-190 import-text same pattern.",
+  "btcopilot/btcopilot/personal/chat.py:44-49 and routes/discussions.py:246-247 \u2014 coach context and extraction dedup both read discussion.diagram.get_diagram_data() (the persisted row); unsaved Pro edits are invisible to both.",
+  "btcopilot/btcopilot/personal/routes/diagrams.py:80-81,103-104,141-150; discussions.py:227-229,296-298; pro/routes.py:229-231 \u2014 Personal GET/discussions list are owner-or-admin only (403), PUT 403 without write access, extract/commit-pdp 401 for non-owner, /v1 PUT 401 without write access; familydiagram/pkdiagram/models/scenemodel.py:76-78 isOnServer has no ownership check.",
+  "btcopilot/btcopilot/pro/routes.py:236-271 \u2014 PUT /v1/diagrams/{id}: pickle.loads body, sets row updated_at from client (l.242), update_with_version_check(expected_version, new_data) whole-blob replace, 409 returns pickled {version,data}, 200 returns canonical {version,data}.",
+  "btcopilot/btcopilot/personal/routes/diagrams.py:96-137 \u2014 PUT /personal/diagrams/{id}: base64 JSON body, same version check, 200 returns {success, version} only (no canonical data) \u2192 client keeps its own post-merge bytes as diagram.data (familydiagram/pkdiagram/server_types.py:283-285).",
+  "btcopilot/btcopilot/pro/models/diagram.py:215-237 \u2014 update_with_version_check takes new_data (whole blob) OR diagram_data (merges only pdp/lastItemId/people/events/pair_bonds into the existing pickle; not clusters/emotions/layers); SQL version = version+1 guarded by expected version; no monotonic guard on lastItemId.",
+  "btcopilot/btcopilot/personal/routes/discussions.py:116-119 (extract stores PDP), :285-366 commit-pdp (32x retry update_with_version_check(diagram_data=), apply_parent_edits :352), personal/tasks.py:47-60 deep re-extract \u2014 server-side writers remain concurrent writers on the row after the client 'single save owner'.",
+  "btcopilot/btcopilot/schema.py:295-301 Person(id,name,last_name,gender,parents,confidence) \u2014 no first_name; :614-749 commit_pdp_items, :711 self.people.append(asdict(new_person)) so the chunk keys are exactly the dataclass fields; :594-596 _next_id from lastItemId; :425-471 DiagramData, :473-483 SCENE_COLLECTION_FIELDS, :485-550 apply_local_changes (id-keyed snapshot-diff, item-level LWW, :525,536-540 delete classification).",
+  "familydiagram/pkdiagram/scene/person.py:101-106 props name/middleName/lastName/nickName/birthName/alias (no firstName prop anywhere; PersonProperties.qml:172 firstNameEdit binds name); :463-482 fullNameOrAlias = name (+middle)(+lastName)(+nick), hideNames\u2192'', showAliases\u2192'[alias]'; :1328-1345 updateDetails; mainwindow.py:1195-1200 forces showAliases when useRealNames && requirePasswordForRealNames.",
+  "familydiagram/pkdiagram/scene/item.py:137-148 \u2014 Item.read sets only registered props from chunk.get(attr), unknown keys ignored but retained in _readChunk and re-emitted on write (:128-135); familydiagram/pkdiagram/models/compat.py:781-783 renames last_name\u2192lastName only when data version < 2.1.11b1 (app is 2.1.23b3, version.py:13); personalappcontroller.py:1347-1413 _addCommittedItemsToScene calls item.read(chunk, byId) with no compat pass, no itemPos (lands at (0,0)), scene.addItem(undo=False) (:1408). Empirical (/tmp/fd336_label_check.py): {name:'Connie'}\u2192'Connie'; {name:'Connie',last_name:'Stinson'}\u2192'Connie'; {last_name:'Stinson'}\u2192'' (blank).",
+  "familydiagram/doc/plans/diagram-data-integrity-tests.md:168-180 \u2014 diagram 1924 previously lost 7 people to the pre-fix applyChange and has 21 people at (0,0); documentcontroller.py:870-883 has a local btcopilot.arrange.layout auto-arrange never invoked by the accept path; the 1924 snapshot referenced in doc/plans/2026-05-02--auto-arrange-layout.md:123 no longer exists under /tmp.",
+  "familydiagram/pkdiagram/models/serverfilemanagermodel.py:480-591 \u2014 setData DiagramDataRole branch :495-586: resolves Diagram via diagramForRow (cache), baseline = diagram._lastSavedSnapshot or diagram.data (:508-509), applyChange :511-561 writes SCENE_COLLECTION_FIELDS via apply_local_changes + explicit scalar list, lastItemId=max(cached, scene) (:538), pdp/clusters/clusterCacheKey/id never assigned (pass through from cached data); diagram.save(useJson=False) :565-567 \u2192 pickle PUT /v1; stores _lastSavedSnapshot on success :574; failure \u2192 QMessageBox 'Save Failed After Retries' :580-584 returns False.",
+  "familydiagram/pkdiagram/models/serverfilemanagermodel.py:334-397 \u2014 _addOrUpdateDiagram writes hashed diagram.pickle to disk (:369-374) and REPLACES diagramCache[id] with a NEW Diagram object when server updated_at is newer (:389-390), losing _lastSavedSnapshot; called by update (:189-273, 30-min index poll), syncDiagramFromServer (:278-299), inspector.openServerDiagram (mcpbridge/inspector.py:1416); no serverFileModel.dataChanged listener in mainwindow so the open Scene is never reloaded.",
+  "familydiagram/pkdiagram/server_types.py:205-309 \u2014 Diagram.save: 3x retry loop, getDiagramData()\u2192applyChange\u2192pickle.dumps(asdict) (:216-220); useJson=True \u2192 JSON {data:b64, expected_version} to /personal/diagrams/{id} (:222-229), else pickle {data, updated_at: utcnow, expected_version} to /v1 (:232-240); on 200 sets version and canonical data (falls back to sent bytes) (:268-288); on 409 refreshes version/data, stillValidAfterRefresh always lambda d: True (:290-306); self.updated_at never updated; HTTPError \u2192 QMessageBox.critical 'Save Error' returns False (:249-262); getDiagramData :302-317 keeps only DiagramData fields and rebuilds pdp via from_dict(PDP) (unknown top-level keys dropped every save); setDiagramData :311-330 writes only pdp/lastItemId/people/events/pair_bonds/clusters/clusterCacheKey.",
+  "familydiagram/pkdiagram/server_types.py:597-621 \u2014 blockingRequest spins a nested QEventLoop (timers/network callbacks run INSIDE a save; re-entrant writes possible); client request timeout commented out (:613-620) so a hung request never fires extractFailed.",
+  "familydiagram/pkdiagram/serverblockallocator.py:48-66 \u2014 reserve_ids bumps server lastItemId+version in 100-id blocks; client updates only diagram.version, not diagram.data; familydiagram/pkdiagram/scene/scene.py:2057-2065 with an allocator Scene.lastItemId tracks the max USED id, not the block end; btcopilot tests/pro/test_mvp_merge_integration.py:190-222 J-3 covers two reservations, no PUT after a reservation.",
+  "familydiagram/pkdiagram/scene/scene.py:1484-1527 \u2014 Scene.diagramData() constructs every non-personal DiagramData field 1:1 from Scene props and omits pdp/clusters/clusterCacheKey/id; :334-338 setServerDiagram/serverDiagram (None for local .fd; set only via mainwindow.py:840); :312-330 deinit dumps itemRegistry; :1158 compat.update_data runs in Scene.read.",
+  "familydiagram/pkdiagram/mainwindow/mainwindow.py:660-694 \u2014 save() writes the local doc (:667-669, pickles scene.data() NOT scene.diagramData()), then serverFileModel.setData(DiagramDataRole) if scene.serverDiagram() (:671-683), then stack().setClean() unconditionally even when setData returned False; :505-508,573 dirty = scene.stack().isClean(); :600-607 Save action enabled only when dirty; :570-585 confirmSave (Yes saves synchronously, Cancel aborts); :662 save() no-ops when readOnly; :994-1010 readOnly server open; :830-849 onServerFileClicked sets _isOpeningServerDiagram + qmlEngine().setServerDiagram; :1026-1048 Scene(document) + read; :1096-1138 setDocument deinits the old Scene and stack, :1219-1236 ServerBlockAllocator bound to the Diagram captured at click time; :86-88,348-350,1270-1274 30-min serverPollTimer \u2192 syncDiagramFromServer; :1919 closes the document on logout.",
+  "familydiagram/pkdiagram/mainwindow/autosavemanager.py:87-130 \u2014 AutoSaveManager writes a local pickle only; the server is written only on explicit save().",
+  "familydiagram/pkdiagram/personal/personalappcontroller.py:117-149 \u2014 constructs its own Analytics, Session (:121-124), AppConfig(prefsName='personal.alaskafamilysystems.com'), SceneModel, PeopleModel, SARFGraphModel, ClusterModel(session), ShakeDetector (:131-135), Settings(app.prefs()) + _ensureTts at construction (:135-139), QNetworkAccessManager (:143-149); personal/settings.py:14-20 unprefixed keys; app/appcontroller.py:56 Pro's own Session; app/application.py:180-188 Pro prefs 'familydiagrammac'.",
+  "familydiagram/pkdiagram/personal/personalappcontroller.py:121,386-421 \u2014 session.changed \u2192 onSessionChanged \u2192 persists session, starts/stops shake, _refreshDiagrams + _refreshDiagram (GET /personal/diagrams, GET /personal/diagrams/{lastDiagramId or free}) \u2192 new Scene() + scene.read + setScene (:913-985, :987-1028 loadDiagram, :360-379 setScene fans out to models and loads clusters); app/session.py:60-63 hourly update timer, :225-242 setData emits changed; :217-248 init(engine)/deinit register context props CUtil, util, session, personalApp, sceneModel, peopleModel, sarfGraphModel, clusterModel.",
+  "familydiagram/pkdiagram/personal/personalappcontroller.py:289-358 \u2014 _withSaveGuard reentrancy queue; saveDiagram builds its own applyChange (:320-347: SCENE_COLLECTION_FIELDS via apply_local_changes + version, versionCompat, name, lastItemId(max), clusters, clusterCacheKey; everything else incl. pdp passes through), snapshot-diffs self.scene.diagramData() against _diagram._lastSavedSnapshot (:310-313,356), _diagram.save(useJson=True) (:349-351); auto-triggered by onEventFormSaved :254, deleteEvent :280, undo :287, _onClustersDetected :397, saveUserProfile; clusterModel.detect() after accept/acceptAll/import (:1223,1789,1921; clustermodel.py:90 _onSceneChanged is a no-op).",
+  "familydiagram/pkdiagram/personal/personalappcontroller.py:1062-1198 discussion controller (createDiscussion POST /personal/discussions/ :1094-1119, sendStatement POST .../statements async with no save hook :1154-1198); :1209-1249 acceptPDPItem/rejectPDPItem push HandlePDPItem onto the controller's PRIVATE QUndoStack (:115; personal/commands.py:13-38 undo = _diagram.setDiagramData(prev) + pdpChanged, no scene change, no save); :1251-1283 _postCommitPdp (best-effort, server re-commits idempotently); :1295-1345 _doAcceptPDPItem = CLIENT-side commit_pdp_items inside applyChange \u2192 JSON PUT \u2192 _addCommittedItemsToScene; :1415-1474 _doHandleCommittedItem (person.setName :1461); :1687-1795 acceptAllPDPItems; :1836-1887 clearDiagramData hard-clears events/people(except ids 1/2)/pair_bonds/emotions with no snapshot-diff and no undo (UI PersonalContainer.qml:1059,1085); :1889-1949 journal import; :1951-1994 extractFull (writes PDP via _diagram.setDiagramData :1972, callback resolves self._diagram at callback time); :1996-2140 rebuild (QTimer.singleShot polling :2060/2093, watchdog, cancelRebuild the only cancellation); :659-893 audio/transcription (AssemblyAI via own QNetworkAccessManager, poll :836); :154-215,588-657 TTS; :431-566 user profile wizard.",
+  "familydiagram/pkdiagram/personal/sarfgraphmodel.py:14-203 and clustermodel.py:30-291 \u2014 Learn models: SARFGraphModel scene\u2192event/cumulative data (pdpChanged\u2192refresh, controller :131); ClusterModel POST /personal/diagrams/{id}/clusters (:244), disk cache :93-135, clustersDetected \u2192 saveDiagram.",
+  "familydiagram/pkdiagram/personal/shakedetector.py:8-31 \u2014 optional QAccelerometer on desktop, cooldown QTimer; started/stopped in onSessionChanged (:402/405).",
+  "familydiagram/pkdiagram/main.py:157-207 Personal entry (PersonalAppController() :165, app.personalController :166, QQmlApplicationEngine + controller.init(engine) :171-173, PersonalApplication.qml :175); :213-219 Pro entry Application(Type.Pro) \u2192 AppController \u2192 MainWindow(appConfig, session) (mainwindow.py:93,103,180 DocumentView(self, session)); documentview.py:45-53 creates QmlEngine(session) (qmlengine.py:25-67 context props engine, util, copilot, btcopilot, session, sceneModel, searchModel, timelineModel, eventSelectionModel, peopleModel, accessRightsModel; :85-87 setServerDiagram \u2192 scenemodel.py:59-62). Missing in Pro for the embedded views: personalApp, sarfGraphModel, clusterModel, CUtil \u2014 tests/personal/test_discussview.py:36-53 already runs DiscussView on Pro's qmlEngine fixture by injecting those four.",
+  "familydiagram/pkdiagram/resources/qml/Personal/PersonalContainer.qml (1517 l.) \u2014 header :97-385 (hamburgerButton :115-138 onClicked drawer.open(), discussion/story/import dropdowns, extract/rebuild buttons :247-330), StackLayout :387-415 with DiscussView/LearnView/PlanView, custom tabBar :418-495 (objectNames discussTab/learnTab/planTab), pasteTextDrawer :869 and eventFormDrawer :1300-1318 parented to Overlay.overlay, account Drawer :1252-1298 hosting AccountDrawer (logout :1268, loadDiagram/createDiagram :1276-1282), :1316 Component.onCompleted personalApp.initEventForm(eventForm) (Pro has its own EventFormDrawer, documentview.py:121); Connections on personalApp :52-95. DiscussView.qml (782 l.): ~28 personalApp.* calls, extractOverlay :131-158 (non-cancellable, criticalBox on extractFailed), chatTextEdit :514, chatSendButton :555, pdpSheet :741-779; PDPSheet.qml:363,1205,1212 acceptAllButton/pdpAcceptButton/pdpRejectButton; LearnView.qml (2573 l.) uses clusterModel/sarfGraphModel only; PlanView.qml 25-line placeholder. Personal QML imports '../PK', '.' as Personal, '..' as Root resolvable from resources/qml/.",
+  "Copilot wiring \u2014 familydiagram/pkdiagram/models/copilotengine.py:31-98 (exported models/__init__.py:21); views/qml/copilotview.py:10-27 (views/qml/__init__.py:1); resources/qml/CopilotView.qml (264 l.); documentview/qmlengine.py:11,42,55,83; CaseProperties.qml:37,51-52,62,102,130 (4 tabs Timeline/Settings/Copilot/Triangles, index-based mapping),:740-742 CopilotView at stack index 2, :85-123 header ToolBar, :125-134 footer TabBar, :144+ StackLayout; views/caseproperties.py:5, views/qmldrawer.py:146 setCurrentTabIndex; documentview/__init__.py:8 RightDrawerView.Copilot; documentview/toolbars.py:895-899 copilotButton (pixmap callout.png, action actionShow_Copilot, no enabled condition); mainwindow_form.py:387-389,496,782-783 (Ctrl+4); documentcontroller.py:181,1128-1129, :523-560 updateActions never touches it; documentview.py:81-88 CaseProperties construction, :249-258 onCasePropsInit, :450-457,723-727; app/session.py:42 'copilot' Qt property is a LICENSE attr \u2014 verify before deleting; views/qmlbtcopilot.py is license constants, keep; tests: tests/models/test_copilotengine.py, tests/views/test_copilotview.py, tests/test_documentview.py:1087-1090 test_show_copilot, tests/views/test_CaseProperties.py:13,281-284, tests/personal/test_discussview.py:12.",
+  "familydiagram/pkdiagram/tests/models/test_serverfilemanagermodel.py \u2014 real-model saves :247,326,349,366,403,425 (test_save_preserves_server_pdp/clusters assert today's exclusion behavior); concurrent tests :553-760 run against test-local copies _pro_apply_change :459 / _personal_apply_change :520 (header :440-470 'without server round-trips'), not the production applyChanges. tests/personal/conftest.py:9-40 personalApp fixture builds PersonalAppController + its own QQmlApplicationEngine + Scene(); no fixture hosts the Personal tabs inside MainWindow/CaseProperties. tests/personal/test_pdp_2_scene.py:30-494 accept\u2192scene; test_personalappcontroller.py (save error :266, commit-pdp :422/453, committed edits :1288-1489); tests/scene/test_person.py:105-185 label asserts, no name-only/last_name-only test. btcopilot: tests/pro/test_mvp_merge_integration.py:55-225, tests/personal/test_diagrams.py:91-194 (JSON PUT + optimistic locking).",
+  "familydiagram/pkdiagram/mcpbridge/inspector.py:1389-1466 openServerDiagram (Pro: syncDiagramFromServer + onServerFileClicked; Personal: _refreshDiagram via lastDiagramId), :1605-1633 Personal commands locate the controller via app.personalController or QApplication children, :2058-2105 saveDiagram prefers a PersonalAppController if found (controller.saveDiagram()) else mainWindow.save(), counts 409s by scraping 'Version conflict when saving' log lines, :2101 uses scene.serverDiagram() \u2014 if Pro exposes the embedded controller as app.personalController, Pro-instance bridge calls take the Personal code path; must be disambiguated. mcpserver/mcp_server.py: launch_app :993, open_server_diagram :1206, save_diagram :1221, get_status :1236, wait_until_idle :1249, seed_server_data :1788, personal_state :1826, inject_pdp_data :1840, open_pdp_sheet :1859, plus scene/get_layout_bounds/add_person/click/input/find_element/prop/screenshot/dev_login; mcpserver/ephemeral_server.py:70-105 /test/seed (users with free diagram + licenses, diagrams {user_id,data}; no access_rights or discussions seeding), :165 /test/diagrams/seed_pickle. No concurrent-save journey test exists in pkdiagram/tests/mcpbridge/.",
+  "familydiagram/doc/specs/DATA_SYNC_FLOW.md:424-462 describes a metadata={'personal':True}/personalFields() mechanism that no longer exists in code (stale doc, cited by serverfilemanagermodel.py:512-513)."
+ ],
+ "staged_build_plan": [
+  {
+   "wp": "WP0 \u2014 Ground the label bug and the server contract (read-only)",
+   "goal": "Dump diagram 1924's people chunks (name/lastName/last_name/alias/hideDetails + scene hideNames/showAliases/useRealNames) via the admin API and count blank-label causes; confirm on the sandbox that POST /personal/discussions/ ignores diagram_id and that a chat turn injects ids 1/2 and rewrites the row without a version bump. Produce the owner decisions list (ambiguities 1-4, 11-13) with evidence before any writer changes.",
+   "files": [
+    "btcopilot/btcopilot/schema.py",
+    "btcopilot/btcopilot/personal/routes/discussions.py",
+    "btcopilot/btcopilot/pro/models/diagram.py",
+    "familydiagram/pkdiagram/scene/person.py",
+    "familydiagram/pkdiagram/models/compat.py"
+   ],
+   "gating_test": "A written table of 1924 chunk shapes (count of name=None/last_name-only rows) plus a curl transcript on 8889 showing discussions.diagram_id == free diagram and version unchanged after a statement; no code change.",
+   "risk_retired": "Building the label fix and the embedding against a mechanism the ticket states but master does not exhibit; discovering the free-diagram binding only after the UI is wired."
+  },
+  {
+   "wp": "WP1 \u2014 Label writer fix (last_name \u2192 lastName at commit)",
+   "goal": "Per the owner's field-contract decision, make the committed person chunk carry lastName (rename the schema Person field or map at commit_pdp_items), keep _addCommittedItemsToScene reading the same key, add a name-only / last_name-only / both regression test, and (if the owner chooses migration) a one-off data migration for rows already persisted with last_name-only. Respect the DiagramData field-sync rule: no new DiagramData fields, so scene.diagramData()/applyChange lists are unchanged unless the rename touches them.",
+   "files": [
+    "btcopilot/btcopilot/schema.py",
+    "btcopilot/btcopilot/pdp.py",
+    "familydiagram/pkdiagram/personal/personalappcontroller.py",
+    "familydiagram/pkdiagram/models/compat.py",
+    "familydiagram/pkdiagram/tests/personal/test_pdp_2_scene.py",
+    "btcopilot/btcopilot/tests/personal/test_pdp_commit.py",
+    "familydiagram/pkdiagram/tests/scene/test_person.py"
+   ],
+   "gating_test": "pytest familydiagram/pkdiagram/tests/personal/test_pdp_2_scene.py + btcopilot tests/personal/test_pdp_commit.py: chunks {name:'Connie'}, {name:'Connie',last_name:'Stinson'}, {last_name:'Stinson'} \u2192 labels 'Connie', 'Connie Stinson', non-empty, and the persisted chunk has lastName; MCP accept \u2192 save \u2192 reopen shows identical labels (criterion 10).",
+   "risk_retired": "Extracted last names silently dropped on every current-version row; blank symbols for name=None people; a defensive reader fix masking the writer bug."
+  },
+  {
+   "wp": "WP2 \u2014 Copilot removal",
+   "goal": "Delete CopilotEngine, CopilotView (py + qml), the 'copilot' context property, RightDrawerView.Copilot, actionShow_Copilot wiring in form/controller/view, retarget copilotButton to the new action, fix CaseProperties index-based tab/header mapping so Triangles keeps working, delete/retarget the copilot tests; leave session.py:42 license attr and qmlbtcopilot.py intact.",
+   "files": [
+    "familydiagram/pkdiagram/models/copilotengine.py",
+    "familydiagram/pkdiagram/models/__init__.py",
+    "familydiagram/pkdiagram/views/qml/copilotview.py",
+    "familydiagram/pkdiagram/views/qml/__init__.py",
+    "familydiagram/pkdiagram/resources/qml/CopilotView.qml",
+    "familydiagram/pkdiagram/resources/qml/CaseProperties.qml",
+    "familydiagram/pkdiagram/documentview/qmlengine.py",
+    "familydiagram/pkdiagram/documentview/__init__.py",
+    "familydiagram/pkdiagram/documentview/toolbars.py",
+    "familydiagram/pkdiagram/documentview/documentcontroller.py",
+    "familydiagram/pkdiagram/documentview/documentview.py",
+    "familydiagram/pkdiagram/mainwindow/mainwindow_form.py",
+    "familydiagram/pkdiagram/tests/models/test_copilotengine.py",
+    "familydiagram/pkdiagram/tests/views/test_copilotview.py",
+    "familydiagram/pkdiagram/tests/test_documentview.py",
+    "familydiagram/pkdiagram/tests/views/test_CaseProperties.py"
+   ],
+   "gating_test": "pytest familydiagram/pkdiagram/tests (full 1262 minus deleted) green; dv-fixture CaseProperties load with zero QML warnings and tab labels == Timeline/Settings/Triangles; grep for CopilotEngine/copilotView/Show_Copilot/RightDrawerView.Copilot returns nothing outside license code (criterion 14 first half).",
+   "risk_retired": "Stale action/shortcut/context property leaving silent QML ReferenceErrors and a dead Ctrl+4; index-based tab mapping breaking Triangles when the stack changes."
+  },
+  {
+   "wp": "WP3 \u2014 S1: DiagramSaver as pure wrapper around Pro's save",
+   "goal": "Introduce pkdiagram/personal/diagramsaver.py holding Scene + Diagram + the single applyChange (moved verbatim from ServerFileManagerModel.setData) and owning the merge baseline snapshot (no more ad-hoc diagram._lastSavedSnapshot); ServerFileManagerModel.setData delegates to it; the saver re-resolves/keeps the Diagram across cache-object swaps so the poll cannot drop the baseline; serialize writes (queue while a save is in flight); per owner decision, mainwindow.save() marks the stack clean only when the saver returns True.",
+   "files": [
+    "familydiagram/pkdiagram/personal/diagramsaver.py",
+    "familydiagram/pkdiagram/models/serverfilemanagermodel.py",
+    "familydiagram/pkdiagram/server_types.py",
+    "familydiagram/pkdiagram/mainwindow/mainwindow.py",
+    "familydiagram/pkdiagram/tests/models/test_serverfilemanagermodel.py",
+    "familydiagram/pkdiagram/tests/models/test_diagramsaver.py",
+    "btcopilot/btcopilot/tests/pro/test_mvp_merge_integration.py"
+   ],
+   "gating_test": "Output-vs-output byte-identical test (criterion 8a) on rows (a)(b)(c) against the pinned pre-refactor setData; existing real-model saves in test_serverfilemanagermodel.py :247-425 green; new pytest: save, syncDiagramFromServer (cache swap), second writer adds item, save again \u2192 item survives (criterion 4 pytest venue); save failure leaves stack dirty.",
+   "risk_retired": "Behaviour drift while relocating the save path; snapshot-baseline loss on Diagram-object replacement (spurious deletes); a failed save marking the document clean."
+  },
+  {
+   "wp": "WP4 \u2014 PersonalAppController decomposition (no behaviour change, standalone Personal still green)",
+   "goal": "Split into components under pkdiagram/personal/: discussioncontroller.py (discussions/statements/dirty tracking), pdpcontroller.py (accept/reject/commit/extract/rebuild/import/_addCommittedItemsToScene, with an explicit unbind on scene change that cancels/ignores in-flight callbacks), diagramloader.py (Personal-only list/load/create/refresh on Session.changed), peripherals tts.py/audio.py/shake.py (constructed lazily, shake off on desktop), settings kept Personal-only; PersonalAppController becomes a thin composition root that still owns its Session/AppConfig for the standalone app. Learn models (SARFGraphModel/ClusterModel) unchanged.",
+   "files": [
+    "familydiagram/pkdiagram/personal/personalappcontroller.py",
+    "familydiagram/pkdiagram/personal/discussioncontroller.py",
+    "familydiagram/pkdiagram/personal/pdpcontroller.py",
+    "familydiagram/pkdiagram/personal/diagramloader.py",
+    "familydiagram/pkdiagram/personal/tts.py",
+    "familydiagram/pkdiagram/personal/audio.py",
+    "familydiagram/pkdiagram/personal/shakedetector.py",
+    "familydiagram/pkdiagram/personal/commands.py",
+    "familydiagram/pkdiagram/main.py",
+    "familydiagram/pkdiagram/mcpbridge/inspector.py",
+    "familydiagram/pkdiagram/tests/personal/conftest.py",
+    "familydiagram/pkdiagram/tests/personal/test_personalappcontroller.py"
+   ],
+   "gating_test": "pytest familydiagram/pkdiagram/tests/personal fully green with only fixture/import edits; a new pytest-qt test that captured extractFull/rebuild callbacks fired after setScene(None)/scene switch write nothing and raise nothing (criterion 9b); MCP standalone Personal J-1A journey still passes.",
+   "risk_retired": "A 2140-line class carried into Pro wholesale with its Session, reload-on-session-change, and peripheral construction; late async callbacks redirecting results into the wrong case."
+  },
+  {
+   "wp": "WP5 \u2014 Server contract for Pro cases (btcopilot)",
+   "goal": "Per owner decisions: POST /personal/discussions/ honors diagram_id (owner or, if chosen, read-write collaborator); chat route stops injecting User/Assistant and stops writing the row for non-free diagrams (or bumps version if writes stay); set_diagram_data/import-text bump version; PUT /v1 refuses to lower lastItemId below the stored value (or the client clamps \u2014 owner decision); access rules for shared cases on discussions/extract/commit-pdp aligned with the chosen enablement set.",
+   "files": [
+    "btcopilot/btcopilot/personal/routes/discussions.py",
+    "btcopilot/btcopilot/personal/routes/diagrams.py",
+    "btcopilot/btcopilot/pro/models/diagram.py",
+    "btcopilot/btcopilot/pro/routes.py",
+    "btcopilot/btcopilot/schema.py",
+    "btcopilot/btcopilot/tests/personal/test_discussions.py",
+    "btcopilot/btcopilot/tests/personal/test_diagrams.py",
+    "btcopilot/btcopilot/tests/pro/test_mvp_merge_integration.py"
+   ],
+   "gating_test": "pytest btcopilot/btcopilot/tests/personal + tests/pro: discussion created with diagram_id X binds to X (criterion 1 curl venue); statement on a Pro-style row (ids 10..12, event id 2, no primary) leaves people unchanged or bumps version (criterion 2); J-3 extended with a PUT after reserve asserting lastItemId >= block end (criterion 5); non-owner read-write access matrix per decision (criterion 11 curl venue).",
+   "risk_retired": "Every embedded discussion/extract/commit landing on the free diagram; phantom people and id collisions on clinician cases; silent overwrite of unversioned server writes; id reuse after a Pro save lowers lastItemId."
+  },
+  {
+   "wp": "WP6 \u2014 S2: Personal pipeline on the saver, JSON path retired",
+   "goal": "PDP commit (accept/acceptAll/reject-committed/update/import/clearDiagramData if kept) and saveDiagram delegate to DiagramSaver; drop useJson (all writes via /v1 pickle, canonical data returned); _addCommittedItemsToScene pushes an undoable command on the Scene's own stack (or is declared non-undoable, per decision) and the private QUndoStack/HandlePDPItem is removed; standalone Personal constructs its own DiagramSaver around its loaded Diagram; retire PUT /personal/diagrams/{id} client usage (server route can stay until fdserver confirms no other callers).",
+   "files": [
+    "familydiagram/pkdiagram/personal/diagramsaver.py",
+    "familydiagram/pkdiagram/personal/pdpcontroller.py",
+    "familydiagram/pkdiagram/personal/personalappcontroller.py",
+    "familydiagram/pkdiagram/personal/commands.py",
+    "familydiagram/pkdiagram/personal/clustermodel.py",
+    "familydiagram/pkdiagram/server_types.py",
+    "familydiagram/pkdiagram/tests/personal/test_personalappcontroller.py",
+    "familydiagram/pkdiagram/tests/personal/test_pdp_2_scene.py",
+    "familydiagram/pkdiagram/tests/models/test_serverfilemanagermodel.py"
+   ],
+   "gating_test": "Concurrent-save tests rewritten to drive the REAL saver over real HTTP against the Flask test app, with the apply_local_changes mutation check failing them (criterion 8b); accept \u2192 Cmd+Z consistency test (criterion 6 pytest venue); test_personalappcontroller commit-pdp tests green on /v1; grep shows no useJson=True caller.",
+   "risk_retired": "Two client writers with divergent version counters on one row; Personal's undo split-brain; a concurrent-save gate that passes against a copy of the code."
+  },
+  {
+   "wp": "WP7 \u2014 Embed Discuss/Learn/Plan into Pro's CaseProperties",
+   "goal": "Register personalApp/sarfGraphModel/clusterModel/CUtil on Pro's QmlEngine; host PersonalContainer (hamburger hidden, AccountDrawer/clear-data/new-diagram/logout controls excluded) as the drawer page behind copilotButton with tab/header mapping; bind the embedded components to MainWindow's Scene/serverDiagram on setDocument and unbind on close/local-file; gate enablement on scene.serverDiagram() (+ownership per decision) with a visible disabled affordance; add the save-before-chat prompt using confirmSave semantics so the PUT completes before POST /statements; peripherals lazy and shake off on desktop; expose the embedded controller to the MCP bridge without hijacking Pro's save_diagram/open_server_diagram paths.",
+   "files": [
+    "familydiagram/pkdiagram/resources/qml/CaseProperties.qml",
+    "familydiagram/pkdiagram/resources/qml/Personal/PersonalContainer.qml",
+    "familydiagram/pkdiagram/resources/qml/Personal/DiscussView.qml",
+    "familydiagram/pkdiagram/documentview/qmlengine.py",
+    "familydiagram/pkdiagram/documentview/documentview.py",
+    "familydiagram/pkdiagram/documentview/documentcontroller.py",
+    "familydiagram/pkdiagram/documentview/toolbars.py",
+    "familydiagram/pkdiagram/documentview/__init__.py",
+    "familydiagram/pkdiagram/mainwindow/mainwindow.py",
+    "familydiagram/pkdiagram/mainwindow/mainwindow_form.py",
+    "familydiagram/pkdiagram/models/scenemodel.py",
+    "familydiagram/pkdiagram/personal/discussioncontroller.py",
+    "familydiagram/pkdiagram/personal/pdpcontroller.py",
+    "familydiagram/pkdiagram/mcpbridge/inspector.py",
+    "familydiagram/pkdiagram/mcpbridge/server.py",
+    "familydiagram/pkdiagram/tests/views/test_CaseProperties.py",
+    "familydiagram/pkdiagram/tests/test_documentview.py",
+    "familydiagram/pkdiagram/tests/personal/test_discussview.py"
+   ],
+   "gating_test": "pytest-qt: MainWindow + server diagram + embedded tab: session.changed emits no /personal/diagrams GET and controller.scene is mw.scene; local .fd \u2192 tab disabled; setDocument x20 with zero QML warnings (criterion 9a/c/d); no Personal peripherals/prefs keys before a server case opens (criterion 13). MCP: open_server_diagram \u2192 drawer shows Discuss/Learn/Plan, no hamburger/clear/logout elements, Ctrl+4 dead, prompt ordering Save/Cancel/clean-stack (criterion 12), single session token (criterion 13), shared-case matrix (criterion 11).",
+   "risk_retired": "A second Scene/Session/prefs in-process; tab state bound to a closed case; chat running on stale context without a save; destructive Personal-only controls reachable from a clinician case; bridge tooling dead or misrouted in Pro."
+  },
+  {
+   "wp": "WP8 \u2014 S3: saver writes complete DiagramData, field-exclusion removed",
+   "goal": "DiagramSaver's applyChange assigns every DiagramData field: Scene-owned scalars/collections from the Scene, pdp/clusters/clusterCacheKey from the Diagram's current (server-canonical, 409-refreshed) data, lastItemId clamped to >= server stored value / block end; delete the field-exclusion list and comment; update DATA_SYNC_FLOW.md (remove the stale personalFields mechanism) and the DiagramData field-sync rule anchors.",
+   "files": [
+    "familydiagram/pkdiagram/personal/diagramsaver.py",
+    "familydiagram/pkdiagram/scene/scene.py",
+    "familydiagram/pkdiagram/models/serverfilemanagermodel.py",
+    "familydiagram/pkdiagram/serverblockallocator.py",
+    "familydiagram/pkdiagram/server_types.py",
+    "familydiagram/pkdiagram/tests/models/test_serverfilemanagermodel.py",
+    "familydiagram/pkdiagram/tests/models/test_diagramsaver.py",
+    "familydiagram/doc/specs/DATA_SYNC_FLOW.md"
+   ],
+   "gating_test": "pdp/clusters survival after a Pro save, including Pro opened before the extraction (criterion 3, MCP + seed_pickle); lastItemId >= block end after save and committed ids above the block (criterion 5 MCP venue); real-saver concurrent tests + round-trip equivalence (scene \u2192 save \u2192 reload \u2192 scene.data() equal); zero-409 accept-then-Cmd+S and reverse with version +1 per write (criterion 7).",
+   "risk_retired": "A 'complete' write sourced from the Scene wiping server-side pdp/clusters; lastItemId regression below the reserved block; the last per-app field list diverging from DiagramData."
+  },
+  {
+   "wp": "WP9 \u2014 End-to-end journeys and human sign-off",
+   "goal": "Run the full discussion \u2192 extract \u2192 PDP accept \u2192 committed scene data journey on a Pro server case in the MCP harness (two-instance Pro/Personal variant for cross-app survival), the lifecycle stress loop, and the shared-case/read-only matrix; then the human-track items: disabled-affordance judgment, 31-minute poll survival, and Patrick reopening 1924 on prod counting blank symbols.",
+   "files": [
+    "familydiagram/pkdiagram/tests/mcpbridge/",
+    "familydiagram/doc/plans/2026-05-01--mvp-merge-fix/JOURNEYS.md",
+    "familydiagram/CLAUDE.md"
+   ],
+   "gating_test": "MCP J-1A/J-2A plus new FD-336 journeys (criteria 1, 4, 6, 7, 9d, 10, 12) green with LLM stub or key; human checklist ticked by Patrick (criterion 10 human half, criterion 14 affordance, 30-min poll variant of criterion 4).",
+   "risk_retired": "Green unit suites hiding an end-to-end failure on the real Qt/QML apps against a real server; the 1924 acceptance criterion left unverified."
+  }
+ ]
+}

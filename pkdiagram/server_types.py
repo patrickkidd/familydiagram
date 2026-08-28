@@ -10,7 +10,6 @@ import pickle
 import logging
 import json
 import enum
-import base64
 from datetime import datetime
 import hashlib
 import urllib.parse
@@ -179,6 +178,9 @@ class Diagram:
     alias: str | None = None
     discussions: list[Discussion] = field(default_factory=list)
     pdp: dict | None = None
+    # Highest id reserved for this client by ServerBlockAllocator, so a save
+    # can keep the row's watermark at or above it.
+    blockEnd: int = 0
 
     def __post_init__(self, *args, **kwargs):
         if isinstance(self.user, dict):
@@ -208,7 +210,6 @@ class Diagram:
         applyChange: Callable[[DiagramData], DiagramData],
         stillValidAfterRefresh: Callable[[DiagramData], bool],
         maxRetries: int = 3,
-        useJson: bool = False,
     ) -> bool:
         """Save diagram with optimistic locking (version check). Returns True on success."""
 
@@ -219,34 +220,19 @@ class Diagram:
 
             newData = pickle.dumps(asdict(diagramData))
 
-            if useJson:
-                endpoint = f"/personal/diagrams/{self.id}"
-                data = {
-                    "data": base64.b64encode(newData).decode("utf-8"),
+            bdata = pickle.dumps(
+                {
+                    "data": newData,
+                    "updated_at": datetime.utcnow(),
                     "expected_version": self.version,
                 }
-                bdata = None
-                headers = {"Content-Type": "application/json"}
-
-            else:
-                endpoint = f"/v1/diagrams/{self.id}"
-                bdata = pickle.dumps(
-                    {
-                        "data": newData,
-                        "updated_at": datetime.utcnow(),
-                        "expected_version": self.version,
-                    }
-                )
-                data = None
-                headers = None
+            )
 
             try:
                 response = server.blockingRequest(
                     "PUT",
-                    endpoint,
-                    data=data,
+                    f"/v1/diagrams/{self.id}",
                     bdata=bdata,
-                    headers=headers,
                     statuses=[200, 409],
                     from_root=True,
                 )
@@ -260,10 +246,7 @@ class Diagram:
                 )
                 return False
 
-            if useJson:
-                responseData = json.loads(response.body.decode("utf-8"))
-            else:
-                responseData = pickle.loads(response.body)
+            responseData = pickle.loads(response.body)
 
             if response.status_code == 200:
                 self.version = responseData.get("version", self.version + 1)
@@ -271,18 +254,13 @@ class Diagram:
                 # may contain server-side post-processing) goes into
                 # `self.data` for display/reopen purposes. Falls back to
                 # `newData` if the server doesn't return canonical.
-                # Note: callers must capture their own
-                # `_lastSavedSnapshot` from their local view — we
-                # explicitly do NOT set it here because `newData` is the
-                # post-merge result (may include other-client items the
-                # local Scene never loaded), not the local view's state.
+                # Note: DiagramSaver keeps its own merge baseline from the
+                # local Scene view — we explicitly do NOT set one here
+                # because `newData` is the post-merge result (may include
+                # other-client items the local Scene never loaded).
                 # See doc/plans/2026-05-01--mvp-merge-fix/README.md.
                 if "data" in responseData and responseData["data"]:
-                    canonical = responseData["data"]
-                    if useJson and isinstance(canonical, str):
-                        self.data = base64.b64decode(canonical)
-                    else:
-                        self.data = canonical
+                    self.data = responseData["data"]
                 else:
                     self.data = newData
                 return True
@@ -292,12 +270,7 @@ class Diagram:
                     f"Version conflict when saving diagram {self.id}, attempt {attempt + 1} of {maxRetries}"
                 )
                 self.version = responseData["version"]
-                conflictData = responseData["data"]
-
-                if useJson:
-                    self.data = base64.b64decode(conflictData)
-                else:
-                    self.data = conflictData
+                self.data = responseData["data"]
 
                 refreshedData = self.getDiagramData()
 

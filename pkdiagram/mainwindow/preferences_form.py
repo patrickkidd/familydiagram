@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'pkdiagram/mainwindow/preferences.ui'
+# Form implementation generated from reading ui file 'familydiagram/.claude/worktrees/FD-336/pkdiagram/mainwindow/preferences.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.11
 #
@@ -42,6 +42,19 @@ class Ui_Preferences(object):
         self.autoSaveBox.setObjectName("autoSaveBox")
         self.verticalLayout_2.addWidget(self.autoSaveBox)
         self.verticalLayout_4.addWidget(self.groupBox)
+        self.coachingGroupBox = QtWidgets.QGroupBox(Preferences)
+        self.coachingGroupBox.setObjectName("coachingGroupBox")
+        self.verticalLayout_5 = QtWidgets.QVBoxLayout(self.coachingGroupBox)
+        self.verticalLayout_5.setObjectName("verticalLayout_5")
+        self.coachingStyleBox = QtWidgets.QComboBox(self.coachingGroupBox)
+        self.coachingStyleBox.setObjectName("coachingStyleBox")
+        self.verticalLayout_5.addWidget(self.coachingStyleBox)
+        self.coachingStyleLabel = QtWidgets.QLabel(self.coachingGroupBox)
+        self.coachingStyleLabel.setWordWrap(True)
+        self.coachingStyleLabel.setText("")
+        self.coachingStyleLabel.setObjectName("coachingStyleLabel")
+        self.verticalLayout_5.addWidget(self.coachingStyleLabel)
+        self.verticalLayout_4.addWidget(self.coachingGroupBox)
         self.groupBox_3 = QtWidgets.QGroupBox(Preferences)
         self.groupBox_3.setObjectName("groupBox_3")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.groupBox_3)
@@ -121,8 +134,8 @@ class Ui_Preferences(object):
         self.horizontalLayout.addWidget(self.closeButton)
         self.verticalLayout_4.addLayout(self.horizontalLayout)
         self.verticalLayout_4.setStretch(0, 1)
-        self.verticalLayout_4.setStretch(2, 1)
         self.verticalLayout_4.setStretch(3, 1)
+        self.verticalLayout_4.setStretch(4, 1)
 
         self.retranslateUi(Preferences)
         QtCore.QMetaObject.connectSlotsByName(Preferences)
@@ -137,6 +150,7 @@ class Ui_Preferences(object):
         self.reopenFileBox.setText(_translate("Preferences", "Re-open last opened file on app launch"))
         self.checkForUpdatesBox.setText(_translate("Preferences", "Check for updates automatically"))
         self.autoSaveBox.setText(_translate("Preferences", "Enable auto-save on file open, and then every so often"))
+        self.coachingGroupBox.setTitle(_translate("Preferences", "Coaching Style"))
         self.groupBox_3.setTitle(_translate("Preferences", "Dark / Light Mode"))
         self.darkLightSystemBox.setText(_translate("Preferences", "Honor System Setting"))
         self.darkLightDarkBox.setText(_translate("Preferences", "Force Dark Mode"))

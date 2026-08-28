@@ -23,7 +23,7 @@ from pkdiagram.pyqt import (
     QMessageBox,
     QRect,
 )
-from pkdiagram import util
+from pkdiagram import util, version
 from pkdiagram.scene import (
     Scene,
     Person,
@@ -66,7 +66,9 @@ _log = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def dv(test_session, test_activation, qtbot, scene):
+def dv(request, test_session, test_activation, qtbot, scene, betaBuild):
+    """betaBuild sets the build before anything reads it -- the toolbar and the
+    drawer's tabs both bind to it at construction."""
     # A mainwindow that only has the ui elements and actions required for DocumentView and View.
     mw = QMainWindow()
     mw.ui = Ui_MainWindow()
@@ -1084,10 +1086,13 @@ def test_uploadButton(qtbot, dv: DocumentView):
     assert uploadToServer.callCount == 1
 
 
-def test_show_copilot(qtbot, dv: DocumentView):
-    qtbot.mouseClick(dv.view.rightToolBar.copilotButton, Qt.LeftButton)
-    copilotView = dv.caseProps.rootProp("copilotView")
-    assert copilotView.property("visible") == True
+@pytest.mark.beta
+def test_show_chat(qtbot, dv: DocumentView):
+    """The chat is beta-only, so this runs as a beta build."""
+    qtbot.mouseClick(dv.view.rightToolBar.chatButton, Qt.LeftButton)
+    assert dv.caseProps.currentTab() == RightDrawerView.Chat.value
+    assert dv.caseProps.rootProp("chatView").property("visible") == True
+    assert dv.view.rightToolBar.chatButton.isChecked() == True
 
 
 def test_print(dv: DocumentView):

@@ -14,6 +14,7 @@ from pkdiagram.scene import Scene, Person
 from pkdiagram.documentview import DocumentController
 from pkdiagram.mainwindow import MainWindow, FileManager
 from pkdiagram.app import AppController
+from pkdiagram.serverblockallocator import ServerBlockAllocator
 
 from btcopilot.extensions import db
 from btcopilot.pro.models import Diagram
@@ -209,3 +210,27 @@ def test_server_admin_diagram_access_no_rights(
     assert mw.documentView.sceneModel.readOnly
     assert mw.ui.actionSave_As.isEnabled()
 
+
+# [Oracle: R-0055]
+def test_opening_a_cached_case_by_path_binds_it_as_a_server_case(
+    test_activation, test_user, test_user_diagrams, create_ac_mw
+):
+    """The file manager is not the only route into a cached case: a drop, a
+    recent-files entry and the launch reopen all call open() with the path. Each
+    must arrive as the same server case -- the coach, the server diagram and the
+    id allocator -- or a save writes to disk instead of the server."""
+    for _diagram in test_user_diagrams:
+        db.session.add(_diagram)
+    diagram_id = next(x.id for x in test_user_diagrams if x.user_id == test_user.id)
+    ac, mw = create_ac_mw()
+    assert util.wait(mw.serverFileModel.updateFinished)
+    fpath = mw.serverFileModel.pathForDiagram(mw.serverFileModel.findDiagram(diagram_id))
+
+    mw.open(filePath=fpath)
+    QApplication.instance().processEvents()
+
+    assert mw.scene.serverDiagram().id == diagram_id
+    assert isinstance(mw.scene._idAllocator, ServerBlockAllocator)
+    assert mw._proPersonal is not None, "the coach was never bound"
+    assert mw._proPersonal.diagram().id == diagram_id
+    assert mw._proPersonal.scene is mw.scene

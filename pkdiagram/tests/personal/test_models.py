@@ -10,7 +10,6 @@ from datetime import datetime
 import pytest
 from mock import patch, MagicMock
 
-from pkdiagram.pyqt import QUndoStack
 from pkdiagram.personal import PersonalAppController
 from pkdiagram.server_types import Diagram
 from btcopilot.schema import (
@@ -89,7 +88,7 @@ def session():
 
 
 def _create_save_func(personalApp: PersonalAppController) -> Callable:
-    def save(server, applyChange, stillValidAfterRefresh, useJson=False):
+    def save(server, applyChange, stillValidAfterRefresh, maxRetries=3):
         diagramData = personalApp._diagram.getDiagramData()
         diagramData = applyChange(diagramData)
         personalApp._diagram.setDiagramData(diagramData)
@@ -100,10 +99,9 @@ def _create_save_func(personalApp: PersonalAppController) -> Callable:
 
 @pytest.fixture
 def personalApp(scene, session):
-    undoStack = QUndoStack()
-    personalApp = PersonalAppController(undoStack=undoStack)
+    personalApp = PersonalAppController()
     personalApp.session = session
-    personalApp.scene = scene
+    personalApp.scene = personalApp.pdpController.scene = scene
 
     diagramData = DiagramData(
         pdp=PDP(
@@ -125,7 +123,7 @@ def personalApp(scene, session):
         created_at=datetime.now(),
         data=pickle.dumps(schema_asdict(diagramData)),
     )
-    personalApp._diagram = diagram
+    personalApp.setDiagram(diagram)
 
     yield personalApp
 
@@ -133,9 +131,9 @@ def personalApp(scene, session):
 def test_accept_person(personalApp):
     with (
         patch.object(personalApp._diagram, "save", _create_save_func(personalApp)),
-        patch.object(personalApp, "_addCommittedItemsToScene"),
+        patch.object(personalApp.pdpController, "_addCommittedItemsToScene"),
     ):
-        result = personalApp.acceptPDPItem(-1, undo=False)
+        result = personalApp.pdpController.acceptPDPItem(-1, undo=False)
 
     assert result is True
 
@@ -152,9 +150,9 @@ def test_accept_person(personalApp):
 def test_accept_event(personalApp):
     with (
         patch.object(personalApp._diagram, "save", _create_save_func(personalApp)),
-        patch.object(personalApp, "_addCommittedItemsToScene"),
+        patch.object(personalApp.pdpController, "_addCommittedItemsToScene"),
     ):
-        result = personalApp.acceptPDPItem(-3, undo=False)
+        result = personalApp.pdpController.acceptPDPItem(-3, undo=False)
 
     assert result is True
 
@@ -174,7 +172,7 @@ def test_accept_event(personalApp):
 
 def test_reject_person(personalApp):
     with patch.object(personalApp._diagram, "save", _create_save_func(personalApp)):
-        result = personalApp.rejectPDPItem(-1, undo=False)
+        result = personalApp.pdpController.rejectPDPItem(-1)
 
     assert result is True
 
@@ -190,7 +188,7 @@ def test_reject_person(personalApp):
 
 def test_reject_event(personalApp):
     with patch.object(personalApp._diagram, "save", _create_save_func(personalApp)):
-        result = personalApp.rejectPDPItem(-3, undo=False)
+        result = personalApp.pdpController.rejectPDPItem(-3)
 
     assert result is True
 
@@ -205,7 +203,6 @@ def test_reject_event(personalApp):
 
 
 def test_accept_with_pair_bond(scene, session):
-    undoStack = QUndoStack()
 
     diagramData = DiagramData(
         pdp=PDP(
@@ -228,16 +225,16 @@ def test_accept_with_pair_bond(scene, session):
         created_at=datetime.now(),
         data=pickle.dumps(schema_asdict(diagramData)),
     )
-    personalApp = PersonalAppController(undoStack=undoStack)
+    personalApp = PersonalAppController()
     personalApp.session = session
-    personalApp.scene = scene
-    personalApp._diagram = diagram
+    personalApp.scene = personalApp.pdpController.scene = scene
+    personalApp.setDiagram(diagram)
 
     with (
         patch.object(personalApp._diagram, "save", _create_save_func(personalApp)),
-        patch.object(personalApp, "_addCommittedItemsToScene"),
+        patch.object(personalApp.pdpController, "_addCommittedItemsToScene"),
     ):
-        result = personalApp.acceptPDPItem(-3, undo=False)
+        result = personalApp.pdpController.acceptPDPItem(-3, undo=False)
 
     assert result is True
 
@@ -263,7 +260,6 @@ def test_accept_event_after_person_already_committed(scene, session):
     This tests the scenario where an event references a person via negative ID,
     but that person has already been committed (now has positive ID).
     """
-    undoStack = QUndoStack()
 
     diagramData = DiagramData(
         pdp=PDP(
@@ -291,17 +287,17 @@ def test_accept_event_after_person_already_committed(scene, session):
         created_at=datetime.now(),
         data=pickle.dumps(schema_asdict(diagramData)),
     )
-    personalApp = PersonalAppController(undoStack=undoStack)
+    personalApp = PersonalAppController()
     personalApp.session = session
-    personalApp.scene = scene
-    personalApp._diagram = diagram
+    personalApp.scene = personalApp.pdpController.scene = scene
+    personalApp.setDiagram(diagram)
 
     # First accept Bob (-2)
     with (
         patch.object(personalApp._diagram, "save", _create_save_func(personalApp)),
-        patch.object(personalApp, "_addCommittedItemsToScene"),
+        patch.object(personalApp.pdpController, "_addCommittedItemsToScene"),
     ):
-        result = personalApp.acceptPDPItem(-2, undo=False)
+        result = personalApp.pdpController.acceptPDPItem(-2, undo=False)
     assert result is True
 
     mid_data = personalApp._diagram.getDiagramData()
@@ -316,9 +312,9 @@ def test_accept_event_after_person_already_committed(scene, session):
     # This should work even though Bob is no longer in PDP
     with (
         patch.object(personalApp._diagram, "save", _create_save_func(personalApp)),
-        patch.object(personalApp, "_addCommittedItemsToScene"),
+        patch.object(personalApp.pdpController, "_addCommittedItemsToScene"),
     ):
-        result = personalApp.acceptPDPItem(-3, undo=False)
+        result = personalApp.pdpController.acceptPDPItem(-3, undo=False)
     assert result is True
 
     final_data = personalApp._diagram.getDiagramData()
@@ -341,7 +337,6 @@ def test_accept_event_after_person_already_committed(scene, session):
 
 def test_accept_event_with_spouse_both_in_pdp(scene, session):
     """Accept event where both person and spouse are still in PDP."""
-    undoStack = QUndoStack()
 
     diagramData = DiagramData(
         pdp=PDP(
@@ -369,17 +364,17 @@ def test_accept_event_with_spouse_both_in_pdp(scene, session):
         created_at=datetime.now(),
         data=pickle.dumps(schema_asdict(diagramData)),
     )
-    personalApp = PersonalAppController(undoStack=undoStack)
+    personalApp = PersonalAppController()
     personalApp.session = session
-    personalApp.scene = scene
-    personalApp._diagram = diagram
+    personalApp.scene = personalApp.pdpController.scene = scene
+    personalApp.setDiagram(diagram)
 
     # Accept wedding event - should transitively commit both Alice and Bob
     with (
         patch.object(personalApp._diagram, "save", _create_save_func(personalApp)),
-        patch.object(personalApp, "_addCommittedItemsToScene"),
+        patch.object(personalApp.pdpController, "_addCommittedItemsToScene"),
     ):
-        result = personalApp.acceptPDPItem(-3, undo=False)
+        result = personalApp.pdpController.acceptPDPItem(-3, undo=False)
     assert result is True
 
     final_data = personalApp._diagram.getDiagramData()

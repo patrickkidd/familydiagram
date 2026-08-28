@@ -10,7 +10,6 @@ from pkdiagram.server_types import Diagram as fe_Diagram
 from pkdiagram.scene import Scene
 from pkdiagram.models import AccessRightsModel
 from pkdiagram.views import CaseProperties
-from pkdiagram.views.qml.copilotview import CopilotView
 
 from btcopilot.extensions import db
 from btcopilot.pro.models import User, Diagram
@@ -277,8 +276,43 @@ def test_variablesBox_enabled(test_activation, create_cp, is_read_only, qmlEngin
     assert cp.itemProp("variablesBox", "enabled") == (not is_read_only)
 
 
-# @pytest.fixture
-# def copilotView(test_activation, create_cp):
-#     cp = create_cp(loadFreeDiagram=True)
-#     cp.setCurrentTab(RightDrawerView.Copilot.value)
-#     return CopilotView(cp, cp.rootProp("copilotView"))
+def _tabLabels(cp):
+    tabBar = cp.findItem("tabBar")
+    tabButtons = tabBar.property("contentItem").property("contentItem").childItems()
+    return [x.property("text") for x in tabButtons[: tabBar.property("count")]]
+
+
+# [Oracle: R-0059]
+def test_tabs(create_cp):
+    """A release build does not build the Chat tab at all, so the bar carries
+    one fewer button rather than a hidden one holding its place."""
+    cp = create_cp()
+    # Same order as the toolbar buttons and the Ctrl+2..5 shortcuts.
+    assert _tabLabels(cp) == ["Timeline", "Triangles", "Settings"]
+
+    # Each tab still shows its own page, whatever its position in the bar.
+    cp.setCurrentTab(RightDrawerView.Triangles.value)
+    assert cp.currentTab() == RightDrawerView.Triangles.value
+
+    assert cp.itemProp("stack", "currentIndex") == 3
+
+    cp.setCurrentTab(RightDrawerView.Settings.value)
+    assert cp.currentTab() == RightDrawerView.Settings.value
+
+    assert cp.itemProp("stack", "currentIndex") == 1
+
+    # A tab this build does not offer is simply not selectable.
+    cp.setCurrentTab(RightDrawerView.Chat.value)
+    assert cp.currentTab() == RightDrawerView.Settings.value
+
+
+# [Oracle: R-0048, R-0059]
+@pytest.mark.beta
+def test_tabs_include_chat_in_a_beta_build(create_cp):
+    cp = create_cp()
+    assert _tabLabels(cp) == ["Timeline", "Triangles", "Chat", "Settings"]
+
+    cp.setCurrentTab(RightDrawerView.Chat.value)
+    assert cp.currentTab() == RightDrawerView.Chat.value
+
+    assert cp.itemProp("stack", "currentIndex") == 2

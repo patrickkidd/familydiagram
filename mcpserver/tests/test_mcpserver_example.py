@@ -40,7 +40,7 @@ class TestAppTestController:
     @pytest.fixture
     def controller(self):
         """Create an AppTestController for testing."""
-        from mcpserver import AppTestController
+        from mcpserver.app_controller import AppTestController
 
         controller = AppTestController()
         yield controller
@@ -91,7 +91,8 @@ class TestInputSimulator:
     @pytest.fixture
     def setup(self):
         """Set up controller and input simulator."""
-        from mcpserver import AppTestController, InputSimulator
+        from mcpserver.app_controller import AppTestController
+        from mcpserver.input_simulator import InputSimulator
 
         controller = AppTestController()
         controller.initialize(headless=True)
@@ -133,7 +134,8 @@ class TestSnapshotManager:
     @pytest.fixture
     def setup(self):
         """Set up controller and snapshot manager."""
-        from mcpserver import AppTestController, SnapshotManager
+        from mcpserver.app_controller import AppTestController
+        from mcpserver.snapshot import SnapshotManager
 
         controller = AppTestController()
         controller.initialize(headless=True)
@@ -207,7 +209,8 @@ class TestElementFinder:
     @pytest.fixture
     def setup(self):
         """Set up controller and element finder."""
-        from mcpserver import AppTestController, ElementFinder
+        from mcpserver.app_controller import AppTestController
+        from mcpserver.element_finder import ElementFinder
 
         controller = AppTestController()
         controller.initialize(headless=True)
@@ -252,12 +255,10 @@ def example_in_process_testing():
     - Direct Qt object access
     - Precise QML item manipulation
     """
-    from mcpserver import (
-        AppTestController,
-        InputSimulator,
-        SnapshotManager,
-        ElementFinder,
-    )
+    from mcpserver.app_controller import AppTestController
+    from mcpserver.element_finder import ElementFinder
+    from mcpserver.input_simulator import InputSimulator
+    from mcpserver.snapshot import SnapshotManager
 
     # Initialize
     controller = AppTestController()

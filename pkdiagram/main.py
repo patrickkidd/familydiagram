@@ -253,8 +253,15 @@ def main():
 
     import os
     from datetime import datetime
+    import faulthandler
     import traceback
     import sys
+
+    # A hard crash -- a segfault in Qt, an abort -- unwinds no Python and
+    # writes nothing through logging, which is how a crash during a walkthrough
+    # left no trace at all. faulthandler writes the C and Python stacks
+    # straight to the fd, so it survives what logging does not.
+    faulthandler.enable(file=sys.stderr, all_threads=True)
 
     try:
         _main_impl()

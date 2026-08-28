@@ -22,7 +22,7 @@
   <property name="windowTitle">
    <string>Preferences</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout_4" stretch="1,0,1,1,0">
+  <layout class="QVBoxLayout" name="verticalLayout_4" stretch="1,0,0,1,1,0">
    <item>
     <widget class="QGroupBox" name="groupBox">
      <property name="title">
@@ -68,6 +68,28 @@
        <widget class="QCheckBox" name="autoSaveBox">
         <property name="text">
          <string>Enable auto-save on file open, and then every so often</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="coachingGroupBox">
+     <property name="title">
+      <string>Coaching Style</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_5">
+      <item>
+       <widget class="QComboBox" name="coachingStyleBox"/>
+      </item>
+      <item>
+       <widget class="QLabel" name="coachingStyleLabel">
+        <property name="wordWrap">
+         <bool>true</bool>
+        </property>
+        <property name="text">
+         <string/>
         </property>
        </widget>
       </item>

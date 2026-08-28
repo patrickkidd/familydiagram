@@ -16,16 +16,27 @@ import "." 1.0 as Personal
 Page {
     id: root
 
+    // Overlay.overlay is an ApplicationWindow's overlay. Pro hosts these views
+    // in a QQuickWidget, where it is null -- and Qt 5.15.2 then dereferences it
+    // delivering a wheel event, which segfaults. Resolved once here, on an item
+    // that is not itself a Popup, so the popups bind to it without a loop.
+    property Item overlayParent: Overlay.overlay ? Overlay.overlay : root
+
     property var stack: stack
     property var tabBar: tabBar
     property var discussView: discussView
     property var learnView: learnView
     property var planView: planView
     property var accountDialog: accountDialogLoader.item
-    property var drawer: drawer
+    property var drawer: drawerLoader.item
     property var eventFormDrawer: eventFormDrawer
     property var eventForm: eventForm
     property var pdpSheet: discussView.pdpSheet
+
+    // Hosted inside Pro's case drawer, on Pro's already-open case: everything
+    // that picks or replaces the diagram, or that belongs to the phone user's
+    // own account, is dropped (FD-336).
+    property bool embedded: false
 
     property bool discussionMenuOpen: false
     property bool storyMenuOpen: false
@@ -50,9 +61,9 @@ Page {
 
     // Track PDP count from discussView
     Connections {
-        target: personalApp
+        target: pdpController
         function onPdpChanged() {
-            var pdp = personalApp.pdp
+            var pdp = pdpController.pdp
             if (pdp) {
                 // Every PDP entry is a reviewable pending change; the badge
                 // must match the card count in PDPSheet (people + pair bonds
@@ -61,7 +72,7 @@ Page {
                 var count = 0
                 if (pdp.people) {
                     for (var i = 0; i < pdp.people.length; i++) {
-                        if (!personalApp.isParentsEdit(pdp.people[i]))
+                        if (!pdpController.isParentsEdit(pdp.people[i]))
                             count += 1
                     }
                 }
@@ -83,10 +94,10 @@ Page {
 
     // Get current discussion summary for header title
     function currentDiscussionSummary() {
-        if (personalApp && personalApp.discussions) {
-            for (var i = 0; i < personalApp.discussions.length; i++) {
-                var d = personalApp.discussions[i]
-                if (d.id === personalApp.currentDiscussionId) {
+        if (discussion && discussion.discussions) {
+            for (var i = 0; i < discussion.discussions.length; i++) {
+                var d = discussion.discussions[i]
+                if (d.id === discussion.currentDiscussionId) {
                     return d.summary || "Discussion"
                 }
             }
@@ -121,7 +132,8 @@ Page {
             width: 40
             height: 40
             radius: 8
-            color: drawer.position > 0 ? util.QML_ITEM_ALTERNATE_BG : "transparent"
+            visible: !root.embedded
+            color: root.drawer && root.drawer.position > 0 ? util.QML_ITEM_ALTERNATE_BG : "transparent"
 
             Column {
                 anchors.centerIn: parent
@@ -133,7 +145,7 @@ Page {
             }
             MouseArea {
                 anchors.fill: parent
-                onClicked: drawer.open()
+                onClicked: root.drawer.open()
             }
         }
 
@@ -197,11 +209,13 @@ Page {
                     font.pixelSize: 10
                     color: secondaryText
                     anchors.verticalCenter: parent.verticalCenter
+                    visible: !root.embedded
                 }
             }
 
             MouseArea {
                 anchors.fill: parent
+                enabled: !root.embedded
                 onClicked: storyMenuOpen = !storyMenuOpen
             }
         }
@@ -253,7 +267,7 @@ Page {
             height: 28
             radius: 14
             color: util.IS_UI_DARK_MODE ? "#3A3938" : "#E9E9EB"
-            visible: tabBar.currentIndex === 0 && !!personalApp && personalApp.canRebuild
+            visible: tabBar.currentIndex === 0 && !!pdpController && pdpController.canRebuild
             Canvas {
                 anchors.centerIn: parent
                 width: 16
@@ -292,7 +306,7 @@ Page {
             height: 28
             radius: 14
             color: util.IS_UI_DARK_MODE ? "#4495F7" : "#007AFF"
-            visible: tabBar.currentIndex === 0 && !!personalApp && personalApp.canExtract
+            visible: tabBar.currentIndex === 0 && !!discussion && discussion.canExtract && !pdpController.extracting
 
             Canvas {
                 anchors.centerIn: parent
@@ -325,7 +339,7 @@ Page {
             }
             MouseArea {
                 anchors.fill: parent
-                onClicked: personalApp.extractFull()
+                onClicked: pdpController.extractFull()
             }
         }
 
@@ -506,6 +520,7 @@ Page {
     // Discussion dropdown
     Rectangle {
         id: discussionDropdownRect
+        objectName: "discussionDropdownRect"
         anchors.top: header.bottom
         anchors.topMargin: 8
         anchors.horizontalCenter: parent.horizontalCenter
@@ -562,7 +577,7 @@ Page {
                     anchors.left: parent.left
                     anchors.leftMargin: 8
                     anchors.verticalCenter: parent.verticalCenter
-                    text: personalApp && personalApp.diagram ? (personalApp.diagram.name || "Diagram") : "Diagram"
+                    text: diagramLoader && diagramLoader.diagram ? (diagramLoader.diagram.name || "Diagram") : "Diagram"
                     font.pixelSize: 12
                     font.bold: true
                     color: secondaryText
@@ -570,13 +585,14 @@ Page {
             }
 
             Repeater {
-                model: personalApp ? personalApp.discussions : []
+                model: discussion ? discussion.discussions : []
 
                 Rectangle {
+                    objectName: "discussionItem_" + modelData.id
                     width: discussionDropdown.width - 16
                     height: 44
                     radius: 8
-                    color: personalApp && personalApp.currentDiscussionId === modelData.id ? util.QML_ITEM_ALTERNATE_BG : "transparent"
+                    color: discussion && discussion.currentDiscussionId === modelData.id ? util.QML_ITEM_ALTERNATE_BG : "transparent"
                     x: 8
 
                     Row {
@@ -589,7 +605,7 @@ Page {
                             width: 6
                             height: 6
                             radius: 3
-                            color: personalApp && personalApp.currentDiscussionId === modelData.id ? accentColor : "transparent"
+                            color: discussion && discussion.currentDiscussionId === modelData.id ? accentColor : "transparent"
                         }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
@@ -602,7 +618,7 @@ Page {
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
-                            personalApp.setCurrentDiscussion(modelData.id)
+                            discussion.setCurrentDiscussion(modelData.id)
                             discussionMenuOpen = false
                         }
                     }
@@ -646,7 +662,7 @@ Page {
                     anchors.fill: parent
                     onClicked: {
                         discussionMenuOpen = false
-                        personalApp.createDiscussion()
+                        discussion.createDiscussion()
                     }
                 }
             }
@@ -839,12 +855,12 @@ Page {
         id: importFileDialog
         title: "Import Notes"
         nameFilters: ["Text files (*.txt *.md)", "All files (*)"]
-        onAccepted: personalApp.importFromFile(file)
+        onAccepted: pdpController.importFromFile(file)
     }
 
     // Import signal handlers (triggered from Learn tab; overlay is app-level)
     Connections {
-        target: personalApp
+        target: pdpController
         function onJournalImportStarted() { importOverlay.visible = true }
         function onJournalImportCompleted(summary) {
             importOverlay.visible = false
@@ -860,6 +876,7 @@ Page {
     }
 
     Personal.LoadingOverlay {
+        fallbackParent: root
         id: importOverlay
         objectName: "importOverlay"
         text: "Importing notes..."
@@ -945,7 +962,7 @@ Page {
                     MouseArea {
                         anchors.fill: parent
                         enabled: pasteTextEdit.text.trim().length > 0
-                        onClicked: personalApp.importJournalNotes(pasteTextEdit.text)
+                        onClicked: pdpController.importJournalNotes(pasteTextEdit.text)
                     }
                 }
             }
@@ -992,7 +1009,7 @@ Page {
     // Clear Data confirmation dialog
     Popup {
         id: clearDataDialog
-        parent: Overlay.overlay
+        parent: root.overlayParent
         anchors.centerIn: parent
         width: Math.min(root.width - 40, 320)
         modal: true
@@ -1056,7 +1073,7 @@ Page {
                     anchors.fill: parent
                     onClicked: {
                         clearDataDialog.close()
-                        personalApp.clearDiagramData(false)
+                        pdpController.clearDiagramData(false)
                     }
                 }
             }
@@ -1082,7 +1099,7 @@ Page {
                     anchors.fill: parent
                     onClicked: {
                         clearDataDialog.close()
-                        personalApp.clearDiagramData(true)
+                        pdpController.clearDiagramData(true)
                     }
                 }
             }
@@ -1116,7 +1133,7 @@ Page {
     Popup {
         id: rebuildDialog
         objectName: "rebuildDialog"
-        parent: Overlay.overlay
+        parent: root.overlayParent
         anchors.centerIn: parent
         width: Math.min(root.width - 40, 340)
         modal: true
@@ -1239,7 +1256,7 @@ Page {
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
-                            personalApp.rebuildDiagram(root.maxFidelity ? 8 : 1)
+                            pdpController.rebuildDiagram(root.maxFidelity ? 8 : 1)
                             rebuildDialog.close()
                         }
                     }
@@ -1248,49 +1265,54 @@ Page {
         }
     }
 
-    // Left Drawer
-    Drawer {
-        id: drawer
-        width: parent.width * 0.85
-        height: parent.height
-        edge: Qt.LeftEdge
+    // Left Drawer — the account, the diagram list and logout, none of which
+    // exist when Pro owns the open case.
+    Loader {
+        id: drawerLoader
+        active: !root.embedded
 
-        background: Rectangle { color: drawerBg }
+        sourceComponent: Drawer {
+            width: root.width * 0.85
+            height: root.height
+            edge: Qt.LeftEdge
 
-        contentItem: Personal.AccountDrawer {
-            anchors.fill: parent
-            itemBg: root.itemBg
-            borderColor: root.borderColor
-            textColor: root.textColor
-            secondaryText: root.secondaryText
-            accentColor: root.accentColor
-            safeAreaTop: root.safeAreaTop
+            background: Rectangle { color: drawerBg }
 
-            onLogoutClicked: {
-                drawer.close()
-                session.logout()
-            }
-            onAccountClicked: {
-                drawer.close()
-                profilePopup.open()
-            }
-            onDiagramClicked: function(diagram) {
-                drawer.close()
-                personalApp.loadDiagram(diagram.id)
-            }
-            onNewDiagramClicked: {
-                drawer.close()
-                personalApp.createDiagram()
-            }
-            onSettingsClicked: function(setting) {
-                if (setting === "Coaching Style") {
-                    modelPopup.open()
-                } else if (setting === "Voice") {
-                    voicePopup.open()
-                } else if (setting === "Privacy") {
-                    privacyPopup.open()
-                } else if (setting === "Help & Support") {
-                    helpPopup.open()
+            contentItem: Personal.AccountDrawer {
+                anchors.fill: parent
+                itemBg: root.itemBg
+                borderColor: root.borderColor
+                textColor: root.textColor
+                secondaryText: root.secondaryText
+                accentColor: root.accentColor
+                safeAreaTop: root.safeAreaTop
+
+                onLogoutClicked: {
+                    root.drawer.close()
+                    session.logout()
+                }
+                onAccountClicked: {
+                    root.drawer.close()
+                    profilePopupLoader.item.open()
+                }
+                onDiagramClicked: function(diagram) {
+                    root.drawer.close()
+                    diagramLoader.loadDiagram(diagram.id)
+                }
+                onNewDiagramClicked: {
+                    root.drawer.close()
+                    diagramLoader.createDiagram()
+                }
+                onSettingsClicked: function(setting) {
+                    if (setting === "Coaching Style") {
+                        modelPopup.open()
+                    } else if (setting === "Voice") {
+                        voicePopup.open()
+                    } else if (setting === "Privacy") {
+                        privacyPopup.open()
+                    } else if (setting === "Help & Support") {
+                        helpPopup.open()
+                    }
                 }
             }
         }
@@ -1345,7 +1367,7 @@ Page {
     // Privacy settings popup
     Popup {
         id: privacyPopup
-        parent: Overlay.overlay
+        parent: root.overlayParent
         anchors.centerIn: parent
         width: root.width
         height: root.height
@@ -1371,7 +1393,7 @@ Page {
     // Help & Support settings popup
     Popup {
         id: helpPopup
-        parent: Overlay.overlay
+        parent: root.overlayParent
         anchors.centerIn: parent
         width: root.width
         height: root.height
@@ -1397,7 +1419,7 @@ Page {
     // Model settings popup
     Popup {
         id: modelPopup
-        parent: Overlay.overlay
+        parent: root.overlayParent
         anchors.centerIn: parent
         width: root.width
         height: root.height
@@ -1422,7 +1444,7 @@ Page {
     // Voice settings popup
     Popup {
         id: voicePopup
-        parent: Overlay.overlay
+        parent: root.overlayParent
         anchors.centerIn: parent
         width: root.width
         height: root.height
@@ -1444,28 +1466,33 @@ Page {
         }
     }
 
-    // Profile settings popup (FD-321) — opened from the AccountDrawer ACCOUNT entry
-    Popup {
-        id: profilePopup
-        parent: Overlay.overlay
-        anchors.centerIn: parent
-        width: root.width
-        height: root.height
-        modal: true
-        closePolicy: Popup.NoAutoClose
-        padding: 0
-        background: Rectangle { color: "transparent" }
+    // Profile settings popup (FD-321) — opened from the AccountDrawer ACCOUNT
+    // entry. Reads the account holder's own node, which a Pro case is not.
+    Loader {
+        id: profilePopupLoader
+        active: !root.embedded
 
-        enter: Transition {
-            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 150 }
-        }
-        exit: Transition {
-            NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 150 }
-        }
+        sourceComponent: Popup {
+            parent: root.overlayParent
+            anchors.centerIn: parent
+            width: root.width
+            height: root.height
+            modal: true
+            closePolicy: Popup.NoAutoClose
+            padding: 0
+            background: Rectangle { color: "transparent" }
 
-        Personal.ProfileSettingsPage {
-            anchors.fill: parent
-            onBackClicked: profilePopup.close()
+            enter: Transition {
+                NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 150 }
+            }
+            exit: Transition {
+                NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 150 }
+            }
+
+            Personal.ProfileSettingsPage {
+                anchors.fill: parent
+                onBackClicked: profilePopupLoader.item.close()
+            }
         }
     }
 
@@ -1475,7 +1502,7 @@ Page {
     Loader {
         id: wizardLoader
         anchors.fill: parent
-        active: session && session.loggedIn && personalApp && personalApp.shouldPromptProfile
+        active: !root.embedded && session && session.loggedIn && personalApp && personalApp.shouldPromptProfile
         z: 100
 
         sourceComponent: Personal.UserDetailsWizard {
@@ -1490,7 +1517,7 @@ Page {
     Loader {
         id: accountDialogLoader
         anchors.fill: parent
-        active: session && !session.loggedIn
+        active: !root.embedded && session && !session.loggedIn
         source: "../AccountDialog.qml"
 
         onLoaded: {
@@ -1511,7 +1538,7 @@ Page {
             pasteTextEdit.text = ""
             pasteTextDrawer.close()
         }
-        if (drawer.position > 0)
-            drawer.close()
+        if (root.drawer && root.drawer.position > 0)
+            root.drawer.close()
     }
 }

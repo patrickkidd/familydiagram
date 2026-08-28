@@ -201,16 +201,11 @@ the server's data on 409 and can abort the retry.
 The Pro app uses this to show a conflict dialog ("Overwrite Their Changes" /
 "Reload Their Changes") in `ServerFileManagerModel.handleDiagramConflict()`.
 
-**Known issue**: The Pro app's `applyChange` callback replaces the entire
-`DiagramData` instead of merging, violating FR-2 rule 1. On 409 retry it
-discards the server's latest state. This means "Overwrite" destroys PDP and
-other Personal app changes. Fixing this requires making the Pro app's callback
-a proper merge (copy scene fields into the incoming DiagramData, like the
-Personal app's `saveDiagram()` does).
+Both apps now build that callback in one place, `DiagramSaver`, which merges
+scene fields into the incoming `DiagramData` rather than replacing it (FD-336).
 
-**Deprecation path**: When the Personal app embeds into the Pro app,
-`pushToServer()` becomes the single transport. An optional validation hook
-replaces `stillValidAfterRefresh` for cases where human review is needed (e.g.
+**Deprecation path**: An optional validation hook replaces
+`stillValidAfterRefresh` for cases where human review is needed (e.g.
 multi-user Pro app conflict).
 
 ## Mutation Types
@@ -408,11 +403,12 @@ doesn't include it.
 Fix requires either sequence numbers on mutations or a merge strategy that
 reconciles server-side PDP deltas with client-side accepts.
 
-### Undo Does Not Persist
+### ~~Undo Does Not Persist~~ (Fixed by FD-336)
 
-`HandlePDPItem` restores a previous `DiagramData` snapshot locally via
-`setDiagramData()` but does not push to the server. Undo is lost on app
-restart. The undo command should call `pushToServer()` after restoring state.
+`HandlePDPItem` restored a previous `DiagramData` snapshot locally and never
+pushed it, so undo was lost on restart and the Scene never followed.
+`AcceptPDPItems` (`pkdiagram/personal/commands.py`) sits on the Scene's own undo
+stack and persists both directions through `DiagramSaver`.
 
 ### getDiagramData/setDiagramData Duplication
 
@@ -421,13 +417,20 @@ familydiagram (`server_types.py`). Unifying requires resolving the import
 asymmetry: the server-side model needs `import PyQt5.sip` for unpickling Qt
 objects, while the client has no Flask dependency.
 
-### ~~Pro App applyChange Violates FR-2~~ (Fixed 2026-04-11)
+### ~~Pro App applyChange Violates FR-2~~ (Fixed 2026-04-11, superseded by FD-336)
 
-Fixed. `ServerFileManagerModel.setData()` now merges Pro-owned fields into the
-incoming `diagramData` via `dataclasses.fields()` iteration, skipping fields
-tagged with `metadata={"personal": True}` on `DiagramData`. On 409 retry, the
-server's latest PDP and cluster data are preserved. New Personal-owned fields
-are automatically excluded via `DiagramData.personalFields()`.
+`DiagramSaver` (`pkdiagram/models/diagramsaver.py`) is the one client writer for
+both apps: `save(diagramId, sceneBytes, mutate=None)`. It resolves the Diagram by
+id on every call, owns the merge baseline (the Scene view at the last successful
+save), and queues a save requested inside `Diagram.save`'s nested event loop.
+
+Its `applyChange` assigns every `DiagramData` field: scene collections by
+snapshot-diff merge, scene metadata and UI flags from the scene bytes,
+`lastItemId` clamped to at least the reserved id block. `id`, `pdp`, `clusters`
+and `clusterCacheKey` stay as the server sent them. There is no field-exclusion
+mechanism any more — no `personalFields()`, no `metadata={"personal": True}`; a
+caller changing a row-owned field passes `mutate`, which runs last on the
+canonical (409-refreshed) `DiagramData` inside the retry loop.
 
 ## Historical Context
 
@@ -456,10 +459,9 @@ splitting into `mutate()` + `pushToServer()`.
 
 **Pro App applyChange violated FR-2.** `ServerFileManagerModel.setData()` built
 an `applyChange` that replaced the entire `DiagramData` instead of merging,
-destroying PDP and cluster data from the Personal app on 409 retry. Fixed by
-iterating `dataclasses.fields(DiagramData)` and skipping fields tagged with
-`metadata={"personal": True}`. Ownership is declared on `DiagramData` in
-`schema.py`; new Personal-owned fields are automatically excluded.
+destroying PDP and cluster data from the Personal app on 409 retry. Now both
+apps write through `DiagramSaver`, which merges into the incoming
+`DiagramData` (see above).
 
 **Accept-All scene addition failure.** `_addCommittedItemsToScene` did not set
 `scene.isInitializing = True` during Phase 3. `isPairBond()` events triggered

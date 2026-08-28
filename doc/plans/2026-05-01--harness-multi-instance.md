@@ -1,5 +1,7 @@
 # Harness: Multi-Instance Concurrent Testing
 
+> **Historical.** The harness it describes was replaced in FD-336. The current sandbox — and the only launch recipe — is [doc/SANDBOX.md](../SANDBOX.md).
+
 **Branch**: `harness-multi-instance` (worktree at `familydiagram/.claude/worktrees/harness-multi-instance`)  
 **Goal**: Enable running N concurrent Pro and Personal app instances against a single ephemeral server, with deterministic coordination for save-ordering and observable outcomes.  
 **NOT in scope**: fixing app-level bugs (applyChange merge logic, QMessageBox in headless, assert in personalappcontroller, etc.). Those belong to Patrick's parallel work in the main clone.

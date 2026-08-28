@@ -1,1 +1,0 @@
-from .copilotview import CopilotView

@@ -42,17 +42,65 @@ from pkdiagram.widgets import QmlWidgetHelper
 from pkdiagram.mainwindow import MainWindow
 from pkdiagram.documentview import QmlEngine
 from pkdiagram.app import Application, AppController, Session as fe_Session, QmlUtil
+from pkdiagram.app import appcontroller
 
 from btcopilot.pro.models import User
+import btcopilot.tests.conftest
 from btcopilot.tests.conftest import *
 from btcopilot.tests.pro.conftest import *
 
 from pkdiagram import appdirs
 
 
+# btcopilot's fixtures stamp an activation with one developer machine's id, and
+# the client only counts a licence activated on the machine running it, so on
+# any other machine every licence-gated assertion sees the free tier alone.
+btcopilot.tests.conftest.HARDWARE_UUID = util.HARDWARE_UUID
+
 version.IS_ALPHA = False
 version.IS_BETA = False
 version.IS_ALPHA_BETA = False
+
+
+@pytest.fixture(autouse=True)
+def betaBuild(request):
+    """Whether the app under test is a beta build.
+
+    The suite runs as a release build. Independent of which licence the user
+    holds (`licenseProduct`), so every combination is expressible:
+
+        @pytest.mark.beta                         # beta build + beta licence
+        @pytest.mark.parametrize("betaBuild", [True], indirect=True)
+        @pytest.mark.parametrize(
+            "licenseProduct", [btcopilot.LICENSE_PROFESSIONAL], indirect=True
+        )                                         # beta build, wrong licence
+    """
+    if hasattr(request, "param"):
+        beta = request.param
+    else:
+        beta = request.node.get_closest_marker("beta") is not None
+    if not beta:
+        yield False
+        return
+    with patch.object(version, "IS_BETA", True), patch.object(
+        version, "IS_ALPHA_BETA", True
+    ):
+        yield True
+
+
+@pytest.fixture
+def launchModals(request):
+    """Informational modals raised while the app starts, recorded instead of
+    shown. A licence the build will not honour raises one at launch, and a
+    blocking modal there freezes the test instead of failing it."""
+    raised = []
+
+    def record(parent, title, text, *args, **kwargs):
+        raised.append(title)
+        return QMessageBox.Ok
+
+    with patch.object(appcontroller.QMessageBox, "information", record):
+        yield raised
 util.IS_TEST = True
 util.ENABLE_OPENGL = False
 util.ANIM_DURATION_MS = 0
@@ -1109,10 +1157,14 @@ def scene(qApp):
 
 
 @pytest.fixture
-def create_ac_mw(request, qtbot, tmp_path):
+def create_ac_mw(request, qtbot, tmp_path, betaBuild, launchModals):
     """
     Create an AppController and MainWindow.
     - Can be called as many times as needed to simulate starting the app again with shared prefs file.
+
+    The suite runs as a release build. A test marked `beta` exercises a
+    beta-only feature and gets a beta build, set before anything reads it --
+    the toolbar and the drawer's tabs both bind to it at construction.
     """
 
     created = []

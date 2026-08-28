@@ -1,0 +1,815 @@
+{
+ "ticket": "FD-336",
+ "title": "Replace Pro \"Copilot\" view with embedded Personal app (Discuss/Learn/Plan)",
+ "base_branch": "master",
+ "worktree": "/Users/patrick/theapp/familydiagram/.claude/worktrees/FD-336",
+ "worktree_btcopilot": "/Users/patrick/theapp/btcopilot/.claude/worktrees/FD-336",
+ "branch": "FD-336",
+ "subfolder_namespaced": true,
+ "test_registry_traced": true,
+ "human_track_skip": {
+  "proposed": false,
+  "skip_question": null,
+  "human_answer": null,
+  "answer_bundled_with": null,
+  "confirmed_by_human": false
+ },
+ "state": "gate-validate",
+ "decisions_doc": "doc/workstreams/FD-336/fd-336-decisions.md",
+ "grounding_artifacts": [
+  "doc/workstreams/FD-336/fd-336-code-map.md",
+  "doc/workstreams/FD-336/fd-336-critics.json",
+  "doc/workstreams/FD-336/fd-336-reconciled.json"
+ ],
+ "scope_corrections": [
+  "btcopilot changes ARE required (ticket said none): discussions must honor diagram_id (D1); chat defaults/unversioned row writes must not apply to non-free diagrams (D2); committed person chunk must carry lastName (D10)."
+ ],
+ "oracle": {
+  "path": "doc/workstreams/oracles/FD-336/2026-08-25--1-fd-336.oracle.md",
+  "committed": true,
+  "content_hash": null,
+  "note": "ticket ACs ratified in chat 2026-08-25; file written 2026-08-26 for the record"
+ },
+ "oracle_proposal": {
+  "depth": "team",
+  "note": "single save owner over clinical case persistence + lifecycle seam across two apps: 3 critics (persistence, lifecycle, e2e) + reconciler",
+  "posted_to": null,
+  "proposed_criteria": [],
+  "pending_ratification": false,
+  "ratified_by_human": true,
+  "ratification_note": "Patrick 2026-08-25 (chat, mid-turn): 'the AC's are ratified, so you should be able to just go for it' - the ticket's AC set is the ratified oracle; critic output is test-design input, not new criteria.",
+  "ratified_criteria": [
+   "C1",
+   "C2",
+   "C2h",
+   "C3",
+   "C4",
+   "C5",
+   "C6",
+   "C6h",
+   "C7",
+   "C8",
+   "C8h",
+   "C9",
+   "C10a",
+   "C10b",
+   "C10h"
+  ]
+ },
+ "criteria": [
+  {
+   "id": "C1",
+   "text": "Copilot view removed: Pro has no Copilot tab, no CopilotView/CopilotEngine code; the right-drawer chat button opens the embedded Personal tabs instead",
+   "track": "agent",
+   "harness_drivable": true,
+   "status": "agent-verified",
+   "evidence": "REAL SYSTEM: Copilot engine/view/QML/action removed (commit 19a0163); drawer tab bar is Timeline/Settings/Chat/Triangles (tests/views/test_CaseProperties.py::test_tabs); Ctrl+4/chatButton opens the Chat page (tests/test_documentview.py::test_show_chat); grep residue = licence attr only",
+   "provenance": "ratified-ac",
+   "tests": [
+    "pkdiagram/tests/views/test_CaseProperties.py",
+    "pkdiagram/tests/test_documentview.py"
+   ]
+  },
+  {
+   "id": "C2",
+   "text": "Discuss/Learn/Plan render in the former Copilot slot of the CaseProperties right drawer behind the same chat icon",
+   "track": "agent",
+   "harness_drivable": true,
+   "status": "agent-verified",
+   "evidence": "REAL SYSTEM: J1 \u2014 clicking chatButton on an owned server case shows the embedded Discuss view in the Chat slot; tests/views/test_fd336_chat_tab.py (Discuss/Plan views present, hamburger hidden, zero QML warnings)",
+   "provenance": "ratified-ac",
+   "tests": [
+    "mcpserver/tests/test_fd336_journeys.py",
+    "pkdiagram/tests/views/test_fd336_chat_tab.py"
+   ]
+  },
+  {
+   "id": "C2h",
+   "text": "The embedded Discuss/Learn/Plan beside the canvas look and feel right at desktop size (layout, no clipped controls)",
+   "track": "human",
+   "harness_drivable": false,
+   "status": "pending",
+   "evidence": null,
+   "provenance": "ratified-ac",
+   "tests": []
+  },
+  {
+   "id": "C3",
+   "text": "Feature enabled only for server diagrams: with a local-only .fd file open the chat drawer is disabled/unavailable; with a server diagram it is available",
+   "track": "agent",
+   "harness_drivable": true,
+   "status": "agent-verified",
+   "evidence": "REAL SYSTEM: J2 local .fd \u2192 chat loader inactive, 'Open a server case to chat.'; J3 hostile seed as hostile@test: read-only share \u2192 'This case is read-only.', read-write share \u2192 'Chat is available on server cases you own.', owned \u2192 enabled; tests/mainwindow/test_fd336_embed.py parametrised gate",
+   "provenance": "ratified-ac",
+   "tests": [
+    "mcpserver/tests/test_fd336_journeys.py",
+    "pkdiagram/tests/mainwindow/test_fd336_embed.py"
+   ]
+  },
+  {
+   "id": "C4",
+   "text": "Personal hamburger/slide-out menu (account drawer, diagram list/create) is hidden when embedded in Pro",
+   "track": "agent",
+   "harness_drivable": true,
+   "status": "agent-verified",
+   "evidence": "REAL SYSTEM: tests/views/test_fd336_chat_tab.py \u2014 hamburgerButton hidden, container's account drawer null in embedded mode (mutation-checked: flipping embedded off instantiates the drawer)",
+   "provenance": "ratified-ac",
+   "tests": [
+    "pkdiagram/tests/views/test_fd336_chat_tab.py"
+   ]
+  },
+  {
+   "id": "C5",
+   "text": "Embedded tabs operate on Pro's already-open Scene/Diagram: exactly one Scene per open case, no GET of the diagram by the Personal pipeline on open, PDP-accepted items appear in the same Scene the canvas draws",
+   "track": "agent",
+   "harness_drivable": true,
+   "status": "agent-verified",
+   "evidence": "REAL SYSTEM: tests/mainwindow/test_fd336_embed.py \u2014 pdpController.scene is mw.scene, one Session instance in the ProPersonal graph, discussions GET issued but NO /personal/diagrams/<id> load; J1 shows accepted people in the same Scene the canvas draws",
+   "provenance": "ratified-ac",
+   "tests": [
+    "pkdiagram/tests/mainwindow/test_fd336_embed.py",
+    "mcpserver/tests/test_fd336_journeys.py"
+   ]
+  },
+  {
+   "id": "C6",
+   "text": "discussion -> extract -> PDP accept -> committed scene data works end-to-end on a Pro server case (real Qt app, sandboxed server): accepted people/events land in the open canvas and persist in the server row",
+   "track": "agent",
+   "harness_drivable": true,
+   "status": "agent-verified",
+   "evidence": "REAL SYSTEM (Pro + sandbox backend, LLM stub): J1 \u2014 send statement, extract stages exactly 2 people + 1 event, accept all \u2192 Connie (60,60) and Delphine (120,120) on the canvas, row people 7\u21929, version 1\u21924, title without unsaved marker, both survive close/reopen",
+   "provenance": "ratified-ac",
+   "tests": [
+    "mcpserver/tests/test_fd336_journeys.py"
+   ]
+  },
+  {
+   "id": "C6h",
+   "text": "On a real server case with the real coach/extractor: chat beside the canvas, accept a PDP, see it appear on the diagram and survive reopen",
+   "track": "human",
+   "harness_drivable": false,
+   "status": "pending",
+   "evidence": null,
+   "provenance": "ratified-ac",
+   "tests": []
+  },
+  {
+   "id": "C7",
+   "text": "Exactly one save path: Pro autosave and the Personal PDP commit both persist through the same DiagramSaver; concurrent-save tests (Pro save vs Personal commit interleavings) pass with no data loss; Personal's JSON save path is gone",
+   "track": "agent",
+   "harness_drivable": true,
+   "status": "agent-verified",
+   "evidence": "REAL SYSTEM: J5 Personal accepts a staged person, Pro reopens and sees it, Pro adds + saves with conflicts 0; mcpserver/tests/test_concurrent_save.py 2/2; real-saver concurrent interleavings (8) in tests/models/test_serverfilemanagermodel.py; one Diagram instance per row (tests/models/test_fd336_diagram_identity.py); no useJson anywhere",
+   "provenance": "ratified-ac",
+   "tests": [
+    "mcpserver/tests/test_fd336_journeys.py",
+    "mcpserver/tests/test_concurrent_save.py",
+    "pkdiagram/tests/models/test_serverfilemanagermodel.py",
+    "pkdiagram/tests/models/test_fd336_diagram_identity.py",
+    "pkdiagram/tests/personal/test_fd336_pipeline.py"
+   ]
+  },
+  {
+   "id": "C8",
+   "text": "Save-before-chat prompt: sending a statement with unsaved Pro edits prompts to save first; saving proceeds; declining does not send",
+   "track": "agent",
+   "harness_drivable": true,
+   "status": "agent-verified",
+   "evidence": "REAL SYSTEM: J4 \u2014 dirty title 'Three Generations * (Server)'; Cancel: version 5\u21925, statements 9\u21929, still dirty; Save: dialog 'Save changes before chatting?', version 5\u21926, statements 9\u219211, title clean; clean stack: no dialog; tests/mainwindow/test_fd336_embed.py orders PUT before POST",
+   "provenance": "ratified-ac",
+   "tests": [
+    "mcpserver/tests/test_fd336_journeys.py",
+    "pkdiagram/tests/mainwindow/test_fd336_embed.py"
+   ]
+  },
+  {
+   "id": "C8h",
+   "text": "The save-before-chat prompt reads sensibly and is not annoying in normal flow",
+   "track": "human",
+   "harness_drivable": false,
+   "status": "pending",
+   "evidence": null,
+   "provenance": "ratified-ac",
+   "tests": []
+  },
+  {
+   "id": "C9",
+   "text": "PersonalAppController decomposed into components under pkdiagram/personal/; when embedded in Pro exactly one Session object exists in-process",
+   "track": "agent",
+   "harness_drivable": true,
+   "status": "agent-verified",
+   "evidence": "REAL SYSTEM: root 418 lines + components; tests/personal/test_fd336_lifecycle.py (one Session, lazy TTS/audio, late extract/rebuild callbacks ignored \u2014 mutation-verified); tests/mainwindow/test_fd336_embed.py (no peripherals/prefs with a local .fd; 10 open/close cycles clean)",
+   "provenance": "ratified-ac",
+   "tests": [
+    "pkdiagram/tests/personal/test_fd336_lifecycle.py",
+    "pkdiagram/tests/mainwindow/test_fd336_embed.py"
+   ]
+  },
+  {
+   "id": "C10a",
+   "text": "A Person with only name='Connie' renders label 'Connie' in the scene (unit test, familydiagram)",
+   "track": "agent",
+   "harness_drivable": true,
+   "status": "agent-verified",
+   "evidence": "REAL SYSTEM: tests/scene/test_fd336_labels.py \u2014 name-only 'Connie' renders 'Connie'; J6 labels on the canvas",
+   "provenance": "ratified-ac",
+   "tests": [
+    "pkdiagram/tests/scene/test_fd336_labels.py",
+    "mcpserver/tests/test_fd336_journeys.py"
+   ]
+  },
+  {
+   "id": "C10b",
+   "text": "Committing an extracted person yields the agreed scene field population: name -> name, last_name -> lastName so last names survive commit; a person with only a last name still gets a visible label (unit tests, btcopilot + familydiagram)",
+   "track": "agent",
+   "harness_drivable": true,
+   "status": "agent-verified",
+   "evidence": "REAL SYSTEM: committed chunk carries lastName (btcopilot test_fd336_committed_person.py 11 tests); J6 \u2014 last-name-only staged person renders 'Okonkwo', first+last renders 'Ruth Bader'; compat migration heals old last_name rows (test_fd336_labels.py)",
+   "provenance": "ratified-ac",
+   "tests": [
+    "pkdiagram/tests/scene/test_fd336_labels.py",
+    "mcpserver/tests/test_fd336_journeys.py",
+    "btcopilot/tests/personal/test_fd336_committed_person.py"
+   ]
+  },
+  {
+   "id": "C10h",
+   "text": "Reopen diagram 1924 in the Pro app: every person has a visible label",
+   "track": "human",
+   "harness_drivable": false,
+   "status": "pending",
+   "evidence": null,
+   "provenance": "ratified-ac",
+   "tests": []
+  },
+  {
+   "id": "H1",
+   "text": "One harness: one command + one doc named in the project instructions; no ticket-named sandbox scripts remain; no other launch recipe in the repos",
+   "track": "agent",
+   "harness_drivable": true,
+   "status": "agent-verified",
+   "evidence": "Root CLAUDE.md (theapp 3de7564) names only `bin/sandbox` and familydiagram/doc/SANDBOX.md; familydiagram CLAUDE.md doc index + MCP section point at SANDBOX.md; bin/mcp_launch.py deleted; mcpserver/README.md registration/tree sections replaced by a pointer; adrs/0002 addendum; the two 2026-04/05 harness plans marked historical; no fd3xx_* sandbox scripts on the FD-336 branches (FD-342's remain only on its own unmerged branch). Residual: mcpserver/README.md:484 keeps a bridge-debug snippet (`--test-server-port`) \u2014 a bridge note, not a sandbox recipe",
+   "provenance": "ratified-ac",
+   "tests": [
+    "mcpserver/tests/test_fd336_one_harness.py"
+   ]
+  },
+  {
+   "id": "H2",
+   "text": "One command stands up backend (dynamically allocated free port) + Pro + Personal against one DB, each from the ticket's worktree (origin fallback stated); never 8888 or the dev DB",
+   "track": "agent",
+   "harness_drivable": true,
+   "status": "agent-verified",
+   "evidence": "REAL SYSTEM (re-verified after F-015): `bin/sandbox up FD-336 --seed family+hostile --llm real --pro --personal` \u2192 backend on a free port, Pro + Personal signed in as family@test, both app processes import from the FD-336 worktrees (ps eww PYTHONPATH), fdserver falls back to origin and says so; tests: test_fd336_app_checkout.py, test_fd336_harness.py 1-4,14,16, test_checkouts.py, test_reexec.py",
+   "provenance": "ratified-ac",
+   "tests": [
+    "mcpserver/tests/test_checkouts.py",
+    "mcpserver/tests/test_fd336_app_checkout.py",
+    "mcpserver/tests/test_fd336_harness.py",
+    "mcpserver/tests/test_reexec.py"
+   ]
+  },
+  {
+   "id": "H3",
+   "text": "Per-run data choice: mocked (family + named hostile non-happy-path cases + seeded random) or duplicate-production (dump restored into a throwaway local Postgres)",
+   "track": "agent",
+   "harness_drivable": true,
+   "status": "agent-verified",
+   "evidence": "REAL SYSTEM: 28 named hostile/family cases via /test/seed with a manifest pointing at each row (btcopilot/tests/testing 90/90 incl. test_fd336_harness_hostile.py 21 cases that BITE: 401 foreign case, 409 stale version, 200 null-user chat); prod dump restored into fd_sandbox_fd_336 on the local Docker Postgres (2317 users/1998 diagrams) and dropped on close, dev DB untouched (test 15); /test/import preserves ids 7/1924/55/58",
+   "provenance": "ratified-ac",
+   "tests": [
+    "btcopilot/tests/testing/test_fd336_harness_seed.py",
+    "btcopilot/tests/testing/test_fd336_harness_hostile.py",
+    "mcpserver/tests/test_fd336_harness.py"
+   ]
+  },
+  {
+   "id": "H4",
+   "text": "Robust: up/reseed/down repeatable; two instances at once; cleans up; hung health/bridge/missing dependency fail loudly; never kills other instances",
+   "track": "agent",
+   "harness_drivable": true,
+   "status": "agent-verified",
+   "evidence": "REAL SYSTEM: two sandboxes for different tickets up at once (implHp: FD-336 + FD-999, distinct ports/DBs, `down` on one left the other); dead server_url fails loudly (test 9); abandoned sandbox leaves no temp dir (test 6); bystander `sleep` survives close_all_instances (test 14); Pro launches licensed on this machine in three modes (tests 10-13, F-009 closed); app child processes reaped on `down` (bin/sandbox 3de7564). Known: F-010 two-app 500 no longer reproduces (cause not captured; log now rotated)",
+   "provenance": "ratified-ac",
+   "tests": [
+    "mcpserver/tests/test_fd336_harness.py"
+   ]
+  },
+  {
+   "id": "H5",
+   "text": "It is the validation surface: FD-336's journeys run on it; documented in one SANDBOX.md; tested; seed schema version-locked to the models",
+   "track": "agent",
+   "harness_drivable": true,
+   "status": "agent-verified",
+   "evidence": "REAL SYSTEM: FD-336's own journeys J1-J6 and the human script run on the harness; SANDBOX.md is the one doc; harness tested by mcpserver/tests/test_fd336_harness.py (17), test_sandbox.py (7), test_checkouts.py (11), btcopilot/tests/testing (90); seed columns derived from the models (class_mapper), never hand-typed",
+   "provenance": "ratified-ac",
+   "tests": [
+    "mcpserver/tests/test_fd336_journeys.py",
+    "mcpserver/tests/test_fd336_harness.py",
+    "mcpserver/tests/test_sandbox.py",
+    "btcopilot/tests/testing/test_fd336_harness_seed.py"
+   ]
+  },
+  {
+   "id": "H5h",
+   "text": "Patrick can bring the sandbox up with the one command and run a human journey on it without consulting anything but SANDBOX.md",
+   "track": "human",
+   "harness_drivable": false,
+   "status": "pending",
+   "evidence": null,
+   "provenance": "ratified-ac",
+   "tests": []
+  }
+ ],
+ "harness_oracle": {
+  "path": "doc/workstreams/oracles/FD-336/2026-08-26--1-fd-336-harness.oracle.md",
+  "ratified_by_human": true,
+  "ratification_note": "Patrick 2026-08-26 chat: 'harness oracle: dynamically finds an open port \u2026 mock data must exemplify the non-happy path \u2026 other than that that is correct. do it'",
+  "worktree_theapp": "/Users/patrick/theapp/.claude/worktrees/FD-336"
+ },
+ "suite_tests": [
+  {
+   "path": "pkdiagram/tests/views/test_CaseProperties.py",
+   "cites": "C1"
+  },
+  {
+   "path": "pkdiagram/tests/test_documentview.py",
+   "cites": "C1"
+  },
+  {
+   "path": "mcpserver/tests/test_fd336_journeys.py",
+   "cites": "C2"
+  },
+  {
+   "path": "pkdiagram/tests/views/test_fd336_chat_tab.py",
+   "cites": "C2"
+  },
+  {
+   "path": "mcpserver/tests/test_fd336_journeys.py",
+   "cites": "C3"
+  },
+  {
+   "path": "pkdiagram/tests/mainwindow/test_fd336_embed.py",
+   "cites": "C3"
+  },
+  {
+   "path": "pkdiagram/tests/views/test_fd336_chat_tab.py",
+   "cites": "C4"
+  },
+  {
+   "path": "pkdiagram/tests/mainwindow/test_fd336_embed.py",
+   "cites": "C5"
+  },
+  {
+   "path": "mcpserver/tests/test_fd336_journeys.py",
+   "cites": "C5"
+  },
+  {
+   "path": "mcpserver/tests/test_fd336_journeys.py",
+   "cites": "C6"
+  },
+  {
+   "path": "mcpserver/tests/test_fd336_journeys.py",
+   "cites": "C7"
+  },
+  {
+   "path": "mcpserver/tests/test_concurrent_save.py",
+   "cites": "C7"
+  },
+  {
+   "path": "pkdiagram/tests/models/test_serverfilemanagermodel.py",
+   "cites": "C7"
+  },
+  {
+   "path": "pkdiagram/tests/models/test_fd336_diagram_identity.py",
+   "cites": "C7"
+  },
+  {
+   "path": "pkdiagram/tests/personal/test_fd336_pipeline.py",
+   "cites": "C7"
+  },
+  {
+   "path": "mcpserver/tests/test_fd336_journeys.py",
+   "cites": "C8"
+  },
+  {
+   "path": "pkdiagram/tests/mainwindow/test_fd336_embed.py",
+   "cites": "C8"
+  },
+  {
+   "path": "pkdiagram/tests/personal/test_fd336_lifecycle.py",
+   "cites": "C9"
+  },
+  {
+   "path": "pkdiagram/tests/mainwindow/test_fd336_embed.py",
+   "cites": "C9"
+  },
+  {
+   "path": "pkdiagram/tests/scene/test_fd336_labels.py",
+   "cites": "C10a"
+  },
+  {
+   "path": "mcpserver/tests/test_fd336_journeys.py",
+   "cites": "C10a"
+  },
+  {
+   "path": "pkdiagram/tests/scene/test_fd336_labels.py",
+   "cites": "C10b"
+  },
+  {
+   "path": "mcpserver/tests/test_fd336_journeys.py",
+   "cites": "C10b"
+  },
+  {
+   "path": "btcopilot/tests/personal/test_fd336_committed_person.py",
+   "cites": "C10b"
+  },
+  {
+   "path": "mcpserver/tests/test_fd336_one_harness.py",
+   "cites": "H1"
+  },
+  {
+   "path": "mcpserver/tests/test_checkouts.py",
+   "cites": "H2"
+  },
+  {
+   "path": "mcpserver/tests/test_fd336_app_checkout.py",
+   "cites": "H2"
+  },
+  {
+   "path": "mcpserver/tests/test_fd336_harness.py",
+   "cites": "H2"
+  },
+  {
+   "path": "mcpserver/tests/test_reexec.py",
+   "cites": "H2"
+  },
+  {
+   "path": "btcopilot/tests/testing/test_fd336_harness_seed.py",
+   "cites": "H3"
+  },
+  {
+   "path": "btcopilot/tests/testing/test_fd336_harness_hostile.py",
+   "cites": "H3"
+  },
+  {
+   "path": "mcpserver/tests/test_fd336_harness.py",
+   "cites": "H3"
+  },
+  {
+   "path": "mcpserver/tests/test_fd336_harness.py",
+   "cites": "H4"
+  },
+  {
+   "path": "mcpserver/tests/test_fd336_journeys.py",
+   "cites": "H5"
+  },
+  {
+   "path": "mcpserver/tests/test_fd336_harness.py",
+   "cites": "H5"
+  },
+  {
+   "path": "mcpserver/tests/test_sandbox.py",
+   "cites": "H5"
+  },
+  {
+   "path": "btcopilot/tests/testing/test_fd336_harness_seed.py",
+   "cites": "H5"
+  }
+ ],
+ "gates": {
+  "ground": {
+   "status": "active",
+   "at": "2026-08-25T21:30:00",
+   "artifact": null
+  },
+  "build": {
+   "status": "passed",
+   "at": "2026-08-26T18:35:00",
+   "artifact": "PRs familydiagram #150, btcopilot #132, theapp #104"
+  },
+  "validate": {
+   "agent_track": {
+    "status": "complete",
+    "at": "2026-08-26T20:50:00",
+    "token": null,
+    "note": "no referee implementation in this project (config gap carried from FD-338); closure is evidence-based per criterion",
+    "evidence_summary": "familydiagram full suite 1242 passed / 17 skipped (4 pre-existing hang files excluded: F-003/F-006 + test_AccountDialog); btcopilot full suite 935 passed / 37 skipped; real-app journeys J1-J6 6/6; harness tests 17+8+11+9(+1 xfail pending merge); every agent criterion C1-C10b, H1-H5 carries real-system evidence"
+   },
+   "human_track": {
+    "status": "handed-off",
+    "at": "2026-08-26T20:50:00",
+    "script": "doc/workstreams/FD-336/fd-336-human-script.md",
+    "handoff": "doc/workstreams/FD-336/fd-336-handoff.md",
+    "walk_status": "NOT STARTED as of 2026-08-26 13:20 AKDT: the sandbox was launched twice for Patrick (first launch ran origin code \u2014 F-015, fixed; second launch verified on worktree code); no observations recorded for C2h/C6h/C8h/C10h/H5h; sandbox torn down at hand-off"
+   }
+  },
+  "merge": {
+   "status": "pending",
+   "at": null,
+   "pr_url": "https://github.com/patrickkidd/familydiagram/pull/150",
+   "pr_url_btcopilot": "https://github.com/patrickkidd/btcopilot/pull/132",
+   "pr_url_theapp": "https://github.com/patrickkidd/theapp/pull/104"
+  }
+ },
+ "gate_definitions_path": "doc/workstreams/gates/FD-336/gates.json",
+ "handoff_path": "doc/workstreams/FD-336/fd-336-handoff.md",
+ "act_step_runs": [
+  {
+   "step_id": "up-real",
+   "kind": "command",
+   "command": "~/theapp/.claude/worktrees/FD-336/bin/sandbox up FD-336 --seed family+hostile --llm real --pro",
+   "target": "FD-336 sandbox on this machine (backend 127.0.0.1:52730, Pro pid 48961; torn down before any chat turn)",
+   "exit_code": 0
+  },
+  {
+   "step_id": "up-stub",
+   "kind": "command",
+   "command": "~/theapp/.claude/worktrees/FD-336/bin/sandbox up FD-336 --seed hostile+family --llm stub --pro",
+   "target": "FD-336 sandbox (backend 127.0.0.1:52138, Pro pid 48453, signed in as hostile@test)",
+   "exit_code": 0
+  },
+  {
+   "step_id": "status",
+   "kind": "command",
+   "command": "~/theapp/.claude/worktrees/FD-336/bin/sandbox status FD-336",
+   "target": "FD-336 sandbox",
+   "exit_code": 0
+  },
+  {
+   "step_id": "down",
+   "kind": "command",
+   "command": "~/theapp/.claude/worktrees/FD-336/bin/sandbox down FD-336",
+   "target": "FD-336 sandbox (Pro + backend stopped, throwaway DB dropped)",
+   "exit_code": 0
+  },
+  {
+   "step_id": "up-both-apps",
+   "kind": "command",
+   "command": "~/theapp/.claude/worktrees/FD-336/bin/sandbox up FD-336 --seed family+hostile --llm stub --pro --personal",
+   "target": "FD-336 sandbox, re-run by the coordinator 2026-08-26 after the launcher fixes: backend + Pro + Personal up on one DB, status 0, down 0 (F-010 closed)",
+   "exit_code": 0
+  },
+  {
+   "step_id": "up-prod",
+   "kind": "command",
+   "command": "~/theapp/.claude/worktrees/FD-336/bin/sandbox up FD-336 --seed prod",
+   "target": "FD-336 sandbox, re-run by the coordinator 2026-08-26: production dump restored into the throwaway DB on the local Docker Postgres, down 0 (F-011 closed by activation-on-this-machine); the script's --pro variant is the human's to run",
+   "exit_code": 0
+  }
+ ],
+ "findings": [
+  {
+   "id": "F-016",
+   "summary": "PRE-EXISTING (found by the model-policy change): Premium chat never used the Opus-tuned prompt \u2014 chat.py's prompt selector tested the client alias ('opus-4.6') with a 'claude-' prefix check, so every Premium request took the Gemini prompt branch. Fixed in btcopilot eace19f (alias resolved to the API id before prompt assembly). CONSEQUENCE: coach responses change style; one-line revert if worse.",
+   "severity": "major",
+   "repro": "btcopilot personal/chat.py get_conversation_flow_prompt with model='opus-4.6' (before eace19f)",
+   "validation_status": "agent-verified",
+   "status": "fixed",
+   "found_in_track": "agent",
+   "criterion": null,
+   "regression_test": "btcopilot/tests/personal/test_claude_backend.py",
+   "fix": "btcopilot eace19f"
+  },
+  {
+   "id": "F-017",
+   "summary": "Model policy: backend default alone was inert \u2014 the Personal client hardcodes 'opus-4.6' as menu default and sends it on every statement (discussioncontroller.py:36-48). Client change + one-time stored-setting migration in progress (implM2).",
+   "severity": "major",
+   "repro": "send a statement from the Personal app; backend receives alias opus-4.6",
+   "validation_status": "agent-verified",
+   "status": "fixed",
+   "found_in_track": "agent",
+   "criterion": null,
+   "regression_test": "pkdiagram/tests/personal/test_discussioncontroller.py (6 tests)",
+   "fix": "familydiagram c6fea68: Opus 5 first/default in the Coaching Style menu; stored opus-4.6 migrated once; explicit choice persists"
+  },
+  {
+   "id": "F-015",
+   "summary": "HUMAN-FOUND (Patrick, live): `bin/sandbox up \u2026 --pro --personal` launched both apps with PYTHONPATH pointing at the ORIGIN clones (old Copilot view visible) while the env block claimed Worktree checkouts; backend was on the worktree. Journeys never caught it because they run TestInstance from the worktree's own mcpserver module.",
+   "severity": "major",
+   "repro": "bin/sandbox up FD-336 --seed family+hostile --pro; ps eww <pro pid> | grep PYTHONPATH",
+   "validation_status": "human-verified",
+   "status": "fixed",
+   "found_in_track": "human",
+   "criterion": "H2",
+   "regression_test": "mcpserver/tests/test_fd336_app_checkout.py (real launch via TestInstance and via bin/sandbox: the app's import path is the ticket worktree)",
+   "fix": "familydiagram a891524: app launches always take PYTHONPATH from the resolved Checkouts regardless of which mcpserver copy executes; VERIFIED live by the coordinator \u2014 both relaunched apps (pids 40987/41004) carry PYTHONPATH=<familydiagram FD-336 worktree>:<btcopilot FD-336 worktree>"
+  },
+  {
+   "id": "F-014",
+   "summary": "MERGE-ORDER NOTE (not a defect): .mcp.json registers the ORIGIN clone's mcpserver/mcp_server.py, which re-execs from the FD_TICKET checkout only once FD-336 is on master; until familydiagram #150 merges, an MCP client reaches master's harness for every ticket. mcpserver/tests/test_reexec.py carries a strict xfail that flips to pass after merge (delete the marker then).",
+   "severity": "minor",
+   "repro": "mcpserver/tests/test_reexec.py (1 xfailed pre-merge)",
+   "validation_status": "agent-verified",
+   "status": "open",
+   "found_in_track": "agent",
+   "criterion": "H2",
+   "regression_test": "mcpserver/tests/test_reexec.py",
+   "fix": "merge familydiagram #150, then remove the xfail marker"
+  },
+  {
+   "id": "F-001",
+   "summary": "btcopilot chat route (personal/routes/discussions.py ~:144, WP-A free-diagram gate) dereferences discussion.user, which is None for discussions created without a user in the familydiagram test app; test_discussview.py fails",
+   "severity": "major",
+   "repro": "familydiagram worktree: pytest pkdiagram/tests/personal/test_discussview.py with the btcopilot FD-336 worktree on PYTHONPATH",
+   "validation_status": "agent-verified",
+   "status": "fixed",
+   "found_in_track": "agent",
+   "criterion": "C6",
+   "regression_test": "btcopilot/tests/personal/test_fd336_chat_defaults.py (null-user discussion chat turn)",
+   "fix": "btcopilot 1a787ec: gate keys on auth.current_user().free_diagram_id"
+  },
+  {
+   "id": "F-003",
+   "summary": "PRE-EXISTING on master (reproduced on a pristine git-archive of HEAD): pkdiagram/tests/mainwindow/test_mw_account_init.py::test_dont_show_account_with_session_pro_license[True] hangs forever without pytest-timeout; any full mainwindow run stalls",
+   "severity": "major",
+   "repro": "/Users/patrick/.claude/jobs/3cdbf4db/tmp/implC_headcheck.sh pkdiagram/tests/mainwindow/test_mw_account_init.py",
+   "validation_status": "agent-verified",
+   "status": "open",
+   "found_in_track": "agent",
+   "criterion": null,
+   "regression_test": null,
+   "fix": "not this ticket; FD-336 gates run with --ignore=pkdiagram/tests/mainwindow/test_mw_account_init.py; Patrick's call"
+  },
+  {
+   "id": "F-004",
+   "summary": "PRE-EXISTING on master: pkdiagram/tests/mainwindow/test_appcontroller.py::test_login_loads_last_loaded_diagram fails with IndexError (scene has no people after a second AppController is created)",
+   "severity": "minor",
+   "repro": "same headcheck script against that test",
+   "validation_status": "agent-verified",
+   "status": "open",
+   "found_in_track": "agent",
+   "criterion": null,
+   "regression_test": null,
+   "fix": "not this ticket; tolerated as a known failure in FD-336 gates; Patrick's call"
+  },
+  {
+   "id": "F-005",
+   "summary": "PRE-EXISTING: three QML calls to pdpController.scenePersonName (formerly personalApp.scenePersonName) reference a method that never existed on master; left as-is",
+   "severity": "minor",
+   "repro": "grep -rn scenePersonName pkdiagram/resources/qml",
+   "validation_status": "agent-verified",
+   "status": "open",
+   "found_in_track": "agent",
+   "criterion": null,
+   "regression_test": null,
+   "fix": "not this ticket unless WP-F touches those bindings"
+  },
+  {
+   "id": "F-006",
+   "summary": "PRE-EXISTING on master (pristine HEAD, idle machine, 120s cap): pkdiagram/tests/mainwindow/test_mw_eventform.py::test_close_after_adding_lots and test_mw_licensing.py::test_logout_no_server hang; test_mw_server.py::test_server_admin_diagram_access_no_rights fails",
+   "severity": "major",
+   "repro": "/Users/patrick/.claude/jobs/3cdbf4db/tmp/implC_headcheck.sh <target>",
+   "validation_status": "agent-verified",
+   "status": "open",
+   "found_in_track": "agent",
+   "criterion": null,
+   "regression_test": null,
+   "fix": "not this ticket; FD-336 mainwindow gate ignores test_mw_account_init.py, test_mw_eventform.py, test_mw_licensing.py and tolerates the two known failures; Patrick's call"
+  },
+  {
+   "id": "F-007",
+   "summary": "Embedded Pro: cluster detection results (Learn tab) are not persisted to the row \u2014 ProPersonal never wires clustersDetected -> saver.save(mutate=clusters); Personal-written clusters load fine",
+   "severity": "minor",
+   "repro": "Pro + server case, open Learn tab, let clusters detect, reopen case: clusters recomputed, not read from row",
+   "validation_status": "agent-verified",
+   "status": "fixed",
+   "found_in_track": "agent",
+   "criterion": "C2",
+   "regression_test": "pkdiagram/tests/mainwindow/test_fd336_clusters.py (row clusters equal the model's, version +1)",
+   "fix": "implJ: ProPersonal persists clustersDetected through Pro's saver with a clusters/clusterCacheKey mutate"
+  },
+  {
+   "id": "F-008",
+   "summary": "Spurious 409 on Pro's FIRST save when Personal has the same diagram open (mcpserver/tests/test_concurrent_save.py first assertion): some client or server route writes the row between Pro's open and Pro's save on this branch",
+   "severity": "major",
+   "repro": "bash fdtest.sh mcpserver/tests/test_concurrent_save.py (Pro ephemeral + Personal server_url, both open the diagram, Pro add_person + save_diagram \u2192 conflicts == 1)",
+   "validation_status": "agent-verified",
+   "status": "fixed",
+   "found_in_track": "agent",
+   "criterion": "C7",
+   "regression_test": "pkdiagram/tests/models/test_fd336_diagram_identity.py (5 tests, fail-before/pass-after) + mcpserver/tests/test_concurrent_save.py (2 passed, real apps)",
+   "fix": "FIXED (implX): file model owns one Diagram instance per id, in-place refresh gated on version, syncDiagramFromServer returns the cached instance. DIAGNOSED (server request log): the writer is Pro's own POST /v1/diagrams/<id>/reserve_ids; the file model keeps TWO Diagram instances per row (cache vs the fresh parse handed to the Scene/allocator, because reserve_ids bumps version without updated_at so the mtime-gated cache swap never fires) \u2014 pre-existing on master; makes the D9 blockEnd clamp dead in Pro. Fix (implX): the file model owns one instance per id, in-place refresh gated on version, syncDiagramFromServer returns the cached instance. Tests: tests/models/test_fd336_diagram_identity.py (testX)"
+  },
+  {
+   "id": "F-009",
+   "summary": "Harness: `bin/sandbox FD-336 up --seed family+hostile --pro` launched Pro visibly on Patrick's screen stuck on the 'beta version without a license' modal \u2014 the auto-auth/seeded user had no Pro license (seen live 2026-08-26; instance killed by coordinator)",
+   "severity": "major",
+   "repro": "bin/sandbox FD-336 up --seed family+hostile --pro (before the fix)",
+   "validation_status": "human-verified",
+   "status": "fixed",
+   "found_in_track": "human",
+   "criterion": "H4",
+   "regression_test": "mcpserver/tests/test_fd336_harness.py tests 10-13 (real Pro launch, licence activation names this machine's hardware uuid, Beta code required on a beta build) + btcopilot test_routes.py",
+   "fix": "root cause: licences were seeded against a placeholder machine id and the login account was not the first-seeded one; now the launcher passes util.HARDWARE_UUID, the backend licenses the explicit primary_user on that machine, `licensed` means usable here, and bin/sandbox refuses to spawn an app for an unlicensed account"
+  },
+  {
+   "id": "F-010",
+   "summary": "Harness: `up \u2026 --pro --personal` \u2014 Personal's POST /v1/sessions 500s with sqlite 'attempt to write a readonly database'; partial failure leaves the backend up (no rollback)",
+   "severity": "major",
+   "repro": "bin/sandbox up FD-336 --seed family+hostile --llm stub --pro --personal",
+   "validation_status": "agent-verified",
+   "status": "fixed",
+   "found_in_track": "agent",
+   "criterion": "H2",
+   "regression_test": null,
+   "fix": "implHf: root-cause the readonly DB on the second app's session write; roll back all children on partial failure \u2014 VERIFIED by the coordinator's re-run (exit 0)"
+  },
+  {
+   "id": "F-011",
+   "summary": "Harness prod path: the restored primary user's licences are activated on Patrick's production machine id, so the launch precheck refuses on this machine",
+   "severity": "major",
+   "repro": "bin/sandbox up FD-336 --seed prod --pro --user <patrick>",
+   "validation_status": "agent-verified",
+   "status": "fixed",
+   "found_in_track": "agent",
+   "criterion": "H3",
+   "regression_test": null,
+   "fix": "implHb: /test/seed for an existing user with hardware_uuid adds Machine + Activation for each active licence (activation-if-missing-for-this-machine); implHf's post-restore seed call then passes the precheck \u2014 VERIFIED by the coordinator's re-run (exit 0)"
+  },
+  {
+   "id": "F-012",
+   "summary": "PRE-EXISTING btcopilot suite ordering defect: tests/pro/test_logging.py (init_datadog marker) sets logging.getLogger('btcopilot').propagate=False for the process, so later caplog-based tests in tests/personal fail when pro+personal run in one process (9 failures; each dir alone clean)",
+   "severity": "minor",
+   "repro": "pytest btcopilot/tests/pro/test_logging.py btcopilot/tests/personal/test_pdp.py \u2192 7 failed",
+   "validation_status": "agent-verified",
+   "status": "fixed",
+   "found_in_track": "agent",
+   "criterion": null,
+   "regression_test": "btcopilot/tests/pro/test_logging.py teardown",
+   "fix": "btcopilot 504789f: teardown restores logger propagation; combined pro+personal+testing run 496 passed"
+  },
+  {
+   "id": "F-013",
+   "summary": "Harness residual: under a full 17-test real-launch run the launcher leaves ~1 empty temp directory per ten backends (hypothesis: the 5 s grace before SIGKILL of a backend skips the TemporaryDirectory finaliser under load); start/close cycles alone leak nothing",
+   "severity": "minor",
+   "repro": "bash fdtest.sh mcpserver/tests/test_fd336_harness.py; count sandbox temp dirs after",
+   "validation_status": "agent-verified",
+   "status": "open",
+   "found_in_track": "agent",
+   "criterion": "H4",
+   "regression_test": null,
+   "fix": "not blocking; candidate: longer grace or an explicit rmtree after SIGKILL in the launcher's close()"
+  },
+  {
+   "id": "F-002",
+   "summary": "pytest-timeout is absent from the shared venv while CI and scripts/ci_run_tests_isolated.py pass --timeout; the CI-style per-file runner cannot be used locally without it",
+   "severity": "minor",
+   "repro": "run scripts/ci_run_tests_isolated.py from the worktree",
+   "validation_status": "agent-verified",
+   "status": "open",
+   "found_in_track": "agent",
+   "criterion": null,
+   "regression_test": null,
+   "fix": "Patrick's call: add pytest-timeout to the familydiagram dev deps (shared venv is his)"
+  }
+ ],
+ "deferred_risk": [],
+ "grounded_facts": [
+  "GROUNDED: a scene Person read from a commit-shaped chunk {name:'Connie', last_name:None} renders label 'Connie' on current master (probe 2026-08-25). The ticket's 'single-token name gets no label' premise does NOT reproduce with that shape.",
+  "GROUNDED: commit chunks carry last_name (snake) but the scene reads lastName; the snake->camel rename in compat is gated to data versions <= 2.1.11b1, so at the current version the last name is silently dropped on commit and on load.",
+  "GROUNDED: a person with name=None and last_name only renders an empty label.",
+  "GROUNDED: both writers already send the full pickled DiagramData blob; the Personal path base64-wraps the same pickle onto PUT /personal/diagrams/<id>; Pro PUTs pickle onto /v1/diagrams/<id>. The difference is the applyChange field set (Pro: scene collections + metadata + UI flags; Personal: scene collections + version/name/lastItemId + clusters) and transport.",
+  "GROUNDED: server-side commit-pdp writes pdp/lastItemId/people/events/pair_bonds into the row; Pro's applyChange never touches pdp/clusters so they survive a Pro save.",
+  "GROUNDED: no local copy of diagram 1924 (dev sqlite empty, docker/postgres down, no pg_restore on host) - C10h stays human.",
+  "PRE-EXISTING (not this unit's write): the familydiagram origin clone carries Patrick's own uncommitted edits to CMakeLists.txt and _pkdiagram/pyproject.toml (the M5 build fixes named in the 2026-08-25 brainstorm housekeeping list) before this unit started; the origin-clean guard reports them. Left untouched."
+ ],
+ "history": [
+  {
+   "gate": "ground",
+   "entered": "2026-08-25T21:30:00",
+   "exited": "2026-08-25T23:10:00",
+   "note": "worktrees created in familydiagram+btcopilot; both suites collect from worktree code (1262 / 856); ACs ratified by Patrick in chat; adversarial workflow (map + 3 critics + reconcile) done; decisions D1-D16 recorded"
+  },
+  {
+   "gate": "build",
+   "entered": "2026-08-25T23:10:00",
+   "exited": "2026-08-26T18:35:00",
+   "note": "WP-A btcopilot committed (PR #132, 844 green). WP-B/C/D committed 19a0163 (PR #150). WP-E+G committed 2145b9f (129 targeted tests green). WP-F in progress. Worker model: Opus implementers + independent Opus test authors; Fable review. Full-suite run deferred to the end per Patrick's 2026-08-26 rule."
+  },
+  {
+   "gate": "validate",
+   "entered": "2026-08-26T18:35:00",
+   "exited": null,
+   "note": "agent track: all agent criteria C1-C10b, H1-H5 evidence-backed on the real system (journeys J1-J6, harness tests); human track: script handed off | agent track complete 2026-08-26T20:50; human track handed off"
+  },
+  {
+   "gate": "validate",
+   "entered": "2026-08-26T21:20:00",
+   "exited": null,
+   "note": "session hand-off: agent track complete; human walk not started; handoff doc written outside the worktrees"
+  }
+ ],
+ "worker_model_policy": {
+  "decided_by": "Patrick 2026-08-25 (chat)",
+  "design_planning_review": "fable (coordinator + critics, FMEA, adversarial test design, diff review, verification judgment)",
+  "implementation_and_test_authoring": "opus (model override on every builder/test-author agent, driven by fable-written briefs)"
+ },
+ "parked_on": "HANDED OFF 2026-08-26: human walkthrough not yet performed; see /Users/patrick/.claude/research/2026-08-26--fd-336-handoff.md",
+ "model_policy": {
+  "decided_by": "Patrick 2026-08-26 (chat): premium chat always uses the latest Opus at equal price; otherwise compare pricing and cost projections",
+  "applied": "claude-opus-5 default (btcopilot eace19f); opus-4.6 selectable",
+  "cost_projection": "same per-token price ($5/$25 per Mtok); Opus 5 tokenizer measured 1.36x input tokens on the real coach prompt + 10 statements (3,987 -> 5,411) => ~36% more input spend per coach turn; output/thinking effects unmeasured",
+  "decision_log": "btcopilot decisions/log.md 2026-08-26 'Premium chat model policy'"
+ }
+}

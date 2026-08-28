@@ -2,6 +2,7 @@ from _pkdiagram import CUtil
 from pkdiagram.pyqt import QDialog, QApplication, QFileDialog
 from pkdiagram import version, util
 from pkdiagram.mainwindow.preferences_form import Ui_Preferences
+from pkdiagram.personal.discussioncontroller import DiscussionController
 
 
 class Preferences(QDialog):
@@ -28,9 +29,31 @@ class Preferences(QDialog):
         self.ui.setDocsPathButton.clicked.connect(self.onSetDocsPath)
         self.ui.closeButton.clicked.connect(self.accept)
         self.ui.analyticsBox.toggled[bool].connect(self.onAnalytics)
+        for entry in DiscussionController.AVAILABLE_MODELS:
+            self.ui.coachingStyleBox.addItem(entry["name"], entry["id"])
+        self.ui.coachingStyleBox.currentIndexChanged[int].connect(
+            self.onCoachingStyle
+        )
+        self.ui.coachingGroupBox.setVisible(version.IS_BETA)
         CUtil.instance().iCloudOnChanged[bool].connect(self.oniCloudOnChanged)
 
         self.ui.analyticsGroupBox.hide()
+
+    def _updateCoachingStyleLabel(self):
+        chosen = self.ui.coachingStyleBox.currentData()
+        entry = next(
+            (x for x in DiscussionController.AVAILABLE_MODELS if x["id"] == chosen),
+            None,
+        )
+        self.ui.coachingStyleLabel.setText(entry["description"] if entry else "")
+
+    def onCoachingStyle(self, index: int):
+        self.prefs.setValue(
+            DiscussionController.MODEL_KEY, self.ui.coachingStyleBox.itemData(index)
+        )
+        # A chosen value needs no migration, now or on any later launch.
+        self.prefs.setValue(DiscussionController.MODEL_MIGRATED_KEY, True)
+        self._updateCoachingStyleLabel()
 
     @util.blocked
     def init(self, prefs):
@@ -54,6 +77,18 @@ class Preferences(QDialog):
         )
         self.ui.checkForUpdatesBox.setChecked(checkForUpdatesAutomatically)
         self.ui.checkForUpdatesBox.setEnabled(not version.IS_ALPHA_BETA)
+        #
+        # The same setting the embedded chat reads, so Pro and Personal agree.
+        current = (
+            self.prefs.value(
+                DiscussionController.MODEL_KEY,
+                defaultValue=DiscussionController.DEFAULT_MODEL,
+            )
+            or DiscussionController.DEFAULT_MODEL
+        )
+        index = self.ui.coachingStyleBox.findData(current)
+        self.ui.coachingStyleBox.setCurrentIndex(index if index >= 0 else 0)
+        self._updateCoachingStyleLabel()
         #
         autoSaveEnabled = self.prefs.value(
             "autoSaveEnabled", defaultValue=True, type=bool

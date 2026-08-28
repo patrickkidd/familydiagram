@@ -31,25 +31,25 @@ def _stub_account_sync(monkeypatch):
 def _give_client_diagram(personalApp, test_user):
     """A diagram that is NOT the user's free diagram — e.g. a clinician's client
     file. The account name must never be read from or written to here."""
-    personalApp._diagram = Diagram(
+    personalApp.setDiagram(Diagram(
         id=(test_user.free_diagram_id or 0) + 1000,
         user_id=test_user.id,
         access_rights=[],
         created_at=datetime.utcnow(),
         data=pickle.dumps(asdict(DiagramData(pdp=PDP()))),
-    )
+    ))
 
 
 def _give_diagram(personalApp, test_user):
     """Attach a server Diagram so saveDiagram() has something to write to; its
     save() is patched off in tests so no network happens."""
-    personalApp._diagram = Diagram(
+    personalApp.setDiagram(Diagram(
         id=test_user.free_diagram_id,
         user_id=test_user.id,
         access_rights=[],
         created_at=datetime.utcnow(),
         data=pickle.dumps(asdict(DiagramData(pdp=PDP()))),
-    )
+    ))
 
 
 def test_saveUserProfile_lands_name_and_birth_event_on_primary(
@@ -286,7 +286,7 @@ def test_saveUserProfile_sets_prompted_pref(
 def test_saveUserProfile_no_scene_returns_false(
     test_user, personalApp: PersonalAppController
 ):
-    personalApp.scene = None
+    personalApp.scene = personalApp.pdpController.scene = None
     assert personalApp.saveUserProfile("X", "", 0, 0, 0) is False
 
 

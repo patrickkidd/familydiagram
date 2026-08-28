@@ -20,7 +20,7 @@ from pkdiagram.pyqt import (
     QMenu,
     QWidgetAction,
 )
-from pkdiagram import util
+from pkdiagram import util, version
 from pkdiagram.widgets import (
     PixmapPushButton,
     PixmapToolButton,
@@ -893,9 +893,12 @@ class RightToolBar(ToolBar):
                 action=self.ui.actionShow_Triangles,
             ),
             PushButton(
-                objectName="copilotButton",
+                objectName="chatButton",
                 pixmap="callout.png",
-                action=self.ui.actionShow_Copilot,
+                action=self.ui.actionShow_Chat,
+                # Beta-only. Built either way, because the document view and
+                # controller reference it by name; hidden in a release build.
+                visible=lambda: version.IS_BETA,
             ),
             PushButton(
                 objectName="settingsButton",

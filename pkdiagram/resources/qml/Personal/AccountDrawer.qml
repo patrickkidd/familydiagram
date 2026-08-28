@@ -141,14 +141,14 @@ Flickable {
                 width: parent.width
 
                 Repeater {
-                    model: personalApp ? personalApp.diagrams : []
+                    model: diagramLoader ? diagramLoader.diagrams : []
 
                     Rectangle {
                         width: parent.width
                         height: 50
                         color: "transparent"
 
-                        property bool isCurrent: personalApp && personalApp.diagram && personalApp.diagram.id === modelData.id
+                        property bool isCurrent: diagramLoader && diagramLoader.diagram && diagramLoader.diagram.id === modelData.id
 
                         Row {
                             anchors.fill: parent

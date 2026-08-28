@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "familydiagram-testing": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "run",
+        "--project",
+        "/Users/patrick/theapp",
+        "python",
+        "/Users/patrick/theapp/familydiagram/mcpserver/mcp_server.py"
+      ],
+      "env": {
+        "FD_TICKET": "${FD_TICKET:-}"
+      }
+    }
+  }
+}

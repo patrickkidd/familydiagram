@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'pkdiagram/mainwindow/mainwindow.ui'
+# Form implementation generated from reading ui file 'familydiagram/.claude/worktrees/FD-336/pkdiagram/mainwindow/mainwindow.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.11
 #
@@ -384,9 +384,9 @@ class Ui_MainWindow(object):
         self.actionAdd_Anything.setObjectName("actionAdd_Anything")
         self.actionDiscussion_Forum = QtWidgets.QAction(MainWindow)
         self.actionDiscussion_Forum.setObjectName("actionDiscussion_Forum")
-        self.actionShow_Copilot = QtWidgets.QAction(MainWindow)
-        self.actionShow_Copilot.setCheckable(True)
-        self.actionShow_Copilot.setObjectName("actionShow_Copilot")
+        self.actionShow_Chat = QtWidgets.QAction(MainWindow)
+        self.actionShow_Chat.setCheckable(True)
+        self.actionShow_Chat.setObjectName("actionShow_Chat")
         self.actionShow_Triangles = QtWidgets.QAction(MainWindow)
         self.actionShow_Triangles.setCheckable(True)
         self.actionShow_Triangles.setObjectName("actionShow_Triangles")
@@ -492,9 +492,9 @@ class Ui_MainWindow(object):
         self.menuView.addSeparator()
         self.menuView.addAction(self.actionShow_Diagram)
         self.menuView.addAction(self.actionShow_Timeline)
-        self.menuView.addAction(self.actionShow_Settings)
-        self.menuView.addAction(self.actionShow_Copilot)
         self.menuView.addAction(self.actionShow_Triangles)
+        self.menuView.addAction(self.actionShow_Chat)
+        self.menuView.addAction(self.actionShow_Settings)
         self.menuView.addSeparator()
         self.menuView.addAction(self.actionShow_Items_with_Notes)
         self.menuView.addAction(self.actionShow_Aliases)
@@ -779,20 +779,10 @@ class Ui_MainWindow(object):
         self.actionAdd_Anything.setText(_translate("MainWindow", "Add Data Point"))
         self.actionAdd_Anything.setShortcut(_translate("MainWindow", "Ctrl+Shift+A"))
         self.actionDiscussion_Forum.setText(_translate("MainWindow", "Discussion Forum"))
-        self.actionShow_Copilot.setText(_translate("MainWindow", "Show Copilot"))
-        self.actionShow_Copilot.setShortcut(_translate("MainWindow", "Ctrl+4"))
+        self.actionShow_Chat.setText(_translate("MainWindow", "Show Chat"))
+        self.actionShow_Chat.setShortcut(_translate("MainWindow", "Ctrl+4"))
         self.actionShow_Triangles.setText(_translate("MainWindow", "Show Triangles"))
         self.actionShow_Triangles.setShortcut(_translate("MainWindow", "Ctrl+3"))
         self.actionArrange_Selection.setText(_translate("MainWindow", "Arrange Selection (AI)"))
         self.actionArrange_Selection.setShortcut(_translate("MainWindow", "Ctrl+Shift+E"))
         self.actionHide_SARF_Graphics.setText(_translate("MainWindow", "Hide SARF Graphics"))
-
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    MainWindow = QtWidgets.QMainWindow()
-    ui = Ui_MainWindow()
-    ui.setupUi(MainWindow)
-    MainWindow.show()
-    sys.exit(app.exec_())

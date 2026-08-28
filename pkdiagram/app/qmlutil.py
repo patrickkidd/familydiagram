@@ -31,7 +31,7 @@ from pkdiagram.pyqt import (
     QPalette,
     QNetworkRequest,
 )
-from pkdiagram import util
+from pkdiagram import util, version
 from pkdiagram.models import QObjectHelper
 from pkdiagram.server_types import HTTPError
 
@@ -143,6 +143,7 @@ class QmlUtil(QObject, QObjectHelper):
         "NO_ITEMS_FONT_FAMILY",
         "NO_ITEMS_FONT_PIXEL_SIZE",
         "S_THERAPIST_NO_CHAT_TEXT",
+        "S_NO_SERVER_CASE",
     ]
     QObjectHelper.registerQtProperties(
         [
@@ -160,6 +161,15 @@ class QmlUtil(QObject, QObjectHelper):
         ],
         globalContext=util.__dict__,
     )
+
+    IS_BETAChanged = pyqtSignal()
+
+    @pyqtProperty(bool, notify=IS_BETAChanged)
+    def IS_BETA(self) -> bool:
+        """Read from version itself. A module-level copy would be a snapshot
+        taken at import and would disagree with version the moment anything
+        set it -- which is exactly what a release-build test does."""
+        return version.IS_BETA
 
     def __init__(self, parent: QApplication):
         super().__init__(parent)

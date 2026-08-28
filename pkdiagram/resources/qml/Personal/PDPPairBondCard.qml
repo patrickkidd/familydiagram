@@ -13,9 +13,9 @@ Item {
     signal rejected(int id)
     signal horizontalWheel(real deltaX)
 
-    readonly property string personAName: personalApp && pairBondData ? personalApp.resolvePersonName(pairBondData.person_a) : ""
-    readonly property string personBName: personalApp && pairBondData ? personalApp.resolvePersonName(pairBondData.person_b) : ""
-    readonly property string childNames: personalApp && pairBondData ? personalApp.resolvePairBondChildren(pairBondData.id) : ""
+    readonly property string personAName: pdpController && pairBondData ? pdpController.resolvePersonName(pairBondData.person_a) : ""
+    readonly property string personBName: pdpController && pairBondData ? pdpController.resolvePersonName(pairBondData.person_b) : ""
+    readonly property string childNames: pdpController && pairBondData ? pdpController.resolvePairBondChildren(pairBondData.id) : ""
 
     ColumnLayout {
         anchors.fill: parent

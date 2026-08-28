@@ -18,6 +18,9 @@ that are out of scope for this branch. See doc/plans/2026-05-01--harness-multi-i
 
 Run:
     uv run pytest mcpserver/tests/test_concurrent_save.py -v
+
+Launches two real apps against one sandbox backend; excluded from the default
+run by pytest.ini's testpaths, so it only runs when named. See doc/SANDBOX.md.
 """
 
 import sys
@@ -30,8 +33,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from mcpserver.mcp_server import LoginState, TestInstance
 
-
-pytestmark = pytest.mark.slow
+pytestmark = pytest.mark.sandbox
 
 
 USER_EMAIL = "harness@example.com"
@@ -44,17 +46,20 @@ USER_EMAIL = "harness@example.com"
 
 @pytest.fixture(scope="function")
 def pro_instance():
+    """Pro on its own sandbox backend — the default, no server_url anywhere."""
     instance = TestInstance.create()
     ok, msg = instance.launch(
         headless=True,
         personal=False,
-        ephemeral_server=True,
         auto_auth_user=USER_EMAIL,
         login_state=LoginState.LoggedIn,
         username=USER_EMAIL,
         timeout=45,
     )
     assert ok, f"Pro launch failed: {msg}"
+    assert instance.manifest["checkouts"]["familydiagram"]["path"] == str(
+        instance.project_root
+    )
     yield instance
     instance.close(force=True)
 
@@ -62,9 +67,8 @@ def pro_instance():
 @pytest.fixture(scope="function")
 def shared_diagram_id(pro_instance):
     """Return free_diagram_id for USER_EMAIL, looking it up via the idempotent seed endpoint."""
-    server_url = f"http://127.0.0.1:{pro_instance.server_port}"
     resp = requests.post(
-        f"{server_url}/test/seed",
+        f"{pro_instance.manifest['url']}/test/seed",
         json={"users": [{"username": USER_EMAIL, "status": "confirmed"}]},
         timeout=10,
     )
@@ -78,20 +82,26 @@ def shared_diagram_id(pro_instance):
 
 @pytest.fixture(scope="function")
 def personal_instance(pro_instance):
-    """Personal app pointed at Pro's ephemeral server."""
-    server_url = f"http://127.0.0.1:{pro_instance.server_port}"
+    """Personal sharing Pro's backend — the only way two apps get one database."""
     instance = TestInstance.create()
     ok, msg = instance.launch(
         headless=True,
         personal=True,
         ephemeral_server=False,
-        server_url=server_url,
+        server_url=pro_instance.manifest["url"],
         login_state=LoginState.LoggedIn,
         username=USER_EMAIL,
         timeout=45,
     )
     assert ok, f"Personal launch failed: {msg}"
     yield instance
+    instance.close(force=True)
+
+
+def test_no_backend_is_an_error_not_a_default():
+    instance = TestInstance.create()
+    with pytest.raises(ValueError, match="never targets a server it did not start"):
+        instance.launch(ephemeral_server=False)
     instance.close(force=True)
 
 
@@ -121,7 +131,9 @@ def _save(instance: TestInstance) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def test_concurrent_save_triggers_409(pro_instance, personal_instance, shared_diagram_id):
+def test_concurrent_save_triggers_409(
+    pro_instance, personal_instance, shared_diagram_id
+):
     """
     Harness test: Pro saves first (V→V+1); Personal (stale V) saves second and gets a 409.
 

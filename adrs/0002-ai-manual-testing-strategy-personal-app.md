@@ -63,3 +63,11 @@ New inspector/server methods in `familydiagram/pkdiagram/tests/mcpbridge/`:
 ### Risks
 - QML rendering differences between macOS and iOS (Metal vs. raster, font metrics, safe-area insets) may produce false passes on Layer 1 that fail on device.
 - If `TestBridgeServer` is ever accidentally compiled into a production iOS build, it opens a local TCP listener in the shipped app.
+
+## Addendum (2026-08-26, FD-336)
+
+Three details above are stale: the bridge listens on a **dynamic port per instance**
+(9876 only in iOS simulator builds), the inspector and server live in
+`pkdiagram/mcpbridge/`, not `pkdiagram/tests/mcpbridge/`, and Layer 1 now runs on the
+standard sandbox — one backend, its own database, the ticket's own code — documented
+in [doc/SANDBOX.md](../doc/SANDBOX.md). The layered decision itself is unchanged.

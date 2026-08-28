@@ -35,20 +35,14 @@ _log = logging.getLogger(__name__)
 
 @pytest.fixture
 def personalApp(test_session, flask_app, qmlEngine):
-    from _pkdiagram import CUtil
-
     personalApp = PersonalAppController()
     personalApp.appConfig.set(
         "lastSessionData", test_session.account_editor_dict(), pickled=True
     )
     # Set context properties that DiscussView.qml expects
     # Don't call personalApp.init() as it expects QQmlApplicationEngine with objectCreated signal
-    qmlEngine.rootContext().setContextProperty("CUtil", CUtil.instance())
-    qmlEngine.rootContext().setContextProperty("util", personalApp.util)
-    qmlEngine.rootContext().setContextProperty("session", personalApp.session)
-    qmlEngine.rootContext().setContextProperty("personalApp", personalApp)
-    qmlEngine.rootContext().setContextProperty("sceneModel", personalApp.sceneModel)
-    qmlEngine.rootContext().setContextProperty("peopleModel", personalApp.peopleModel)
+    for name, value in personalApp.contextProperties().items():
+        qmlEngine.rootContext().setContextProperty(name, value)
     yield personalApp
 
 
@@ -140,13 +134,13 @@ def test_refresh_diagram(
         server.return_value.nonBlockingRequest = nonBlockingRequest
         user.free_diagram_id = 123
 
-        personalApp._refreshDiagram()
+        personalApp.diagramLoader.refreshDiagram()
 
-        assert len(personalApp._discussions) == 3
-        assert personalApp._discussions[0].id == 1
-        assert personalApp._discussions[0].summary == "my dog flew away"
-        assert personalApp._discussions[1].id == 2
-        assert personalApp._discussions[1].summary == "clouds ate my cake"
+        assert len(personalApp.discussion._discussions) == 3
+        assert personalApp.discussion._discussions[0].id == 1
+        assert personalApp.discussion._discussions[0].summary == "my dog flew away"
+        assert personalApp.discussion._discussions[1].id == 2
+        assert personalApp.discussion._discussions[1].summary == "clouds ate my cake"
 
 
 # def test_create_discussion(view):
@@ -156,9 +150,16 @@ def test_refresh_diagram(
 
 
 @pytest.fixture
-def statements():
-    expert = Speaker(id=1, person_id=9, name="Expert", type=SpeakerType.Expert)
-    subject = Speaker(id=2, person_id=8, name="Subject", type=SpeakerType.Subject)
+def speakers():
+    return [
+        Speaker(id=1, person_id=9, name="Expert", type=SpeakerType.Expert),
+        Speaker(id=2, person_id=8, name="Subject", type=SpeakerType.Subject),
+    ]
+
+
+@pytest.fixture
+def statements(speakers):
+    expert, subject = speakers
     return [
         Statement(id=1, text="hello 1", speaker=expert),
         Statement(id=2, text="hello 2", speaker=subject),
@@ -168,9 +169,15 @@ def statements():
 
 
 @pytest.fixture
-def discussions(statements):
+def discussions(statements, speakers):
     return [
-        Discussion(id=1, diagram_id=123, summary="my dog flew away", user_id=123),
+        Discussion(
+            id=1,
+            diagram_id=123,
+            summary="my dog flew away",
+            user_id=123,
+            speakers=speakers,
+        ),
         Discussion(
             id=2,
             diagram_id=123,
@@ -227,16 +234,16 @@ def test_create_discussion(
     qml.mouseClick(discussionsButton)
     delegates = waitForListViewDelegates(discussionList, 1)
     assert discussionList.property("count") == 1
-    assert delegates[0].property("dText") == personalApp.discussions[0].summary
+    assert delegates[0].property("dText") == personalApp.discussion.discussions[0].summary
 
 
 def test_show_discussion(view, personalApp: PersonalAppController, discussions):
     with (
-        patch("pkdiagram.personal.PersonalAppController._refreshDiagram"),
-        patch.object(personalApp, "_currentDiscussion", discussions[1]),
+        patch("pkdiagram.personal.DiagramLoader.refreshDiagram"),
+        patch.object(personalApp.discussion, "_currentDiscussion", discussions[1]),
     ):
         statementsList = view.rootObject().property("statementsList")
-        personalApp.statementsChanged.emit()
+        personalApp.discussion.statementsChanged.emit()
         delegates = waitForListViewDelegates(statementsList, 4)
         assert len(delegates) == len(discussions[1].statements())
 
@@ -255,32 +262,44 @@ def test_ask(qtbot, view, personalApp, discussions):
 
     qml = QmlHelper(view)
     with (
-        patch.object(personalApp, "_currentDiscussion", new=discussions[0]),
-        patch.object(personalApp, "_sendStatement", autospec=True) as _sendStatement,
+        patch.object(personalApp.discussion, "_currentDiscussion", new=discussions[0]),
+        patch.object(personalApp.discussion, "_sendStatement", autospec=True) as _sendStatement,
     ):
-        personalApp.statementsChanged.emit()
+        personalApp.discussion.statementsChanged.emit()
         qml.keyClicks(textEdit, MESSAGE, returnToFinish=False)
         qml.mouseClick(submitButton)
-        personalApp.requestSent.emit(MESSAGE)
+        personalApp.discussion.requestSent.emit(MESSAGE)
         delegates = waitForListViewDelegates(statementsList, 1)
         assert _sendStatement.call_count == 1
         assert _sendStatement.call_args[0][0] == MESSAGE
 
-    personalApp.responseReceived.emit(RESPONSE.statement)
-    delegates = waitForListViewDelegates(statementsList, 2)
-    assert textEdit.property("text") == ""
-    assert aiBubbleAdded.wait() == True
-    assert aiBubbleAdded.callArgs[0][0].property("responseText") == RESPONSE.statement
-    assert noChatLabel.property("visible") == False
-    assert delegates[0].property("dSpeakerType") == SpeakerType.Subject.value
-    assert delegates[1].property("dSpeakerType") == SpeakerType.Expert.value
+        # The turn the server stored, which is what the chat is rebuilt from.
+        discussions[0].addStatements(
+            [
+                {"id": 5, "text": MESSAGE, "speaker_id": 2, "order": 1},
+                {"id": 6, "text": RESPONSE.statement, "speaker_id": 1, "order": 2},
+            ]
+        )
+        personalApp.discussion.statementsChanged.emit()
+        personalApp.discussion.responseReceived.emit(RESPONSE.statement)
+        delegates = waitForListViewDelegates(statementsList, 2)
+        assert textEdit.property("text") == ""
+        assert aiBubbleAdded.wait() == True
+        assert aiBubbleAdded.callArgs[0][0].property("responseText") == RESPONSE.statement
+        assert noChatLabel.property("visible") == False
+        assert delegates[0].property("dSpeakerType") == SpeakerType.Subject.value
+        assert delegates[1].property("dSpeakerType") == SpeakerType.Expert.value
 
 
 @pytest.mark.chat_flow
 def test_ask_full_stack(test_user, view, personalApp, chat_flow, flask_app):
 
     from btcopilot.personal.models import Discussion, Speaker, Statement, SpeakerType
-    from pkdiagram.personal.models import Discussion as MobileDiscussion
+    from pkdiagram.personal.models import (
+        Discussion as MobileDiscussion,
+        Speaker as MobileSpeaker,
+        SpeakerType as MobileSpeakerType,
+    )
 
     expert = Speaker(id=1, person_id=9, name="Expert", type=SpeakerType.Expert)
     subject = Speaker(id=2, person_id=8, name="Subject", type=SpeakerType.Subject)
@@ -316,6 +335,14 @@ def test_ask_full_stack(test_user, view, personalApp, chat_flow, flask_app):
     db.session.add_all(discussions)
     db.session.commit()
 
+    # A discussion the server made always knows which speaker is the person
+    # and which is the coach; a statement it stores is attributed to one of
+    # them, and the client resolves the sender by that id.
+    discussions[0].speakers = [expert, subject]
+    discussions[0].chat_user_speaker_id = subject.id
+    discussions[0].chat_ai_speaker_id = expert.id
+    db.session.commit()
+
     MESSAGE = "hello there"
 
     qml = QmlHelper(view)
@@ -324,16 +351,24 @@ def test_ask_full_stack(test_user, view, personalApp, chat_flow, flask_app):
     statementsList = view.rootObject().property("statementsList")
 
     with patch.object(
-        personalApp,
+        personalApp.discussion,
         "_currentDiscussion",
         new=MobileDiscussion(
             id=1,
             diagram_id=test_user.free_diagram_id,
             summary="my dog flew away",
             user_id=123,
+            speakers=[
+                MobileSpeaker(
+                    id=1, person_id=9, name="Expert", type=MobileSpeakerType.Expert
+                ),
+                MobileSpeaker(
+                    id=2, person_id=8, name="Subject", type=MobileSpeakerType.Subject
+                ),
+            ],
         ),
     ):
-        personalApp.statementsChanged.emit()
+        personalApp.discussion.statementsChanged.emit()
         qml.keyClicks(textEdit, MESSAGE, returnToFinish=False)
         qml.mouseClick(submitButton)
         delegates = waitForListViewDelegates(statementsList, 2)
@@ -341,3 +376,39 @@ def test_ask_full_stack(test_user, view, personalApp, chat_flow, flask_app):
     assert delegates[0].property("dSpeakerType") == SpeakerType.Subject.value
     assert delegates[1].property("dText") == chat_flow["response"]
     assert delegates[1].property("dSpeakerType") == SpeakerType.Expert.value
+
+
+
+# [Oracle: R-0044]
+def test_an_extraction_in_progress_is_on_screen(view, personalApp):
+    """Asserting the overlay says visible is not enough: parented to a null
+    ApplicationWindow overlay it says visible and renders nowhere, which is
+    exactly how the progress indicator went missing."""
+    overlay = next(
+        c for c in view.rootObject().findChildren(object)
+        if c.objectName() == "extractOverlay"
+    )
+    assert overlay.property("visible") == False
+
+    personalApp.pdpController.extractStarted.emit()
+    assert overlay.property("visible") == True
+
+    assert overlay.parentItem() is not None, "the overlay is attached to nothing"
+
+    assert overlay.property("width") > 0 and overlay.property("height") > 0
+
+
+# [Oracle: R-0005]
+def test_a_loaded_conversation_has_somewhere_to_render(view, personalApp, discussions):
+    """A full model is not the same as a visible chat: the list and the empty
+    placeholder are siblings that both ask to fill, and the wrong one claiming
+    the height leaves the conversation sized to nothing."""
+    statementsList = view.rootObject().property("statementsList")
+    with patch.object(personalApp.discussion, "_currentDiscussion", discussions[1]):
+        personalApp.discussion.statementsChanged.emit()
+        waitForListViewDelegates(statementsList, len(discussions[1].statements()))
+        assert statementsList.property("count") > 0
+
+        assert statementsList.property("height") > 0, "the chat has no height"
+
+        assert statementsList.property("width") > 0, "the chat has no width"

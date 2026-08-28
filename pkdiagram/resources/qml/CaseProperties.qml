@@ -4,6 +4,7 @@ import QtQuick.Controls 2.5 as QQC
 import QtQuick.Layouts 1.15
 import QtQuick.Window 2.2
 import "./PK" 1.0 as PK
+import "./Personal" 1.0 as Personal
 import PK.Models 1.0
 
 
@@ -34,7 +35,7 @@ PK.Drawer {
     property var variablesList: variablesList
     property var variablesCrudButtons: variablesCrudButtons
     property var timelineView: timelineView
-    property var copilotView: copilotView
+    property var chatView: chatView
 
     onCanRemoveChanged: sceneModel.selectionChanged()
 
@@ -43,25 +44,16 @@ PK.Drawer {
     }
 
     function setCurrentTab(tab) {
-        var index = 0
-        if(tab == 'timeline')
-            index = 0
-        else if(tab == 'settings')
-            index = 1
-        else if(tab == 'copilot')
-            index = 2
-        else if(tab == 'triangles')
-            index = 3
-        tabBar.setCurrentIndex(index)
+        for(var i = 0; i < tabs.length; i++) {
+            if(tabs[i].name == tab) {
+                tabBar.setCurrentIndex(i)
+                return
+            }
+        }
     }
 
     function currentTab() {
-        return {
-            0: 'timeline',
-            1: 'settings',
-            2: 'copilot',
-            3: 'triangles'
-        }[tabBar.currentIndex]
+        return tabs[tabBar.currentIndex].name
     }
     
     function onInspect() {
@@ -99,7 +91,7 @@ PK.Drawer {
                 } else if(tabBar.currentIndex == 1) {
                     return "Settings"
                 } else if(tabBar.currentIndex == 2) {
-                    return "BT Copilot"
+                    return "Chat"
                 } else if(tabBar.currentIndex == 3) {
                     return "Triangles"
                 }
@@ -120,18 +112,34 @@ PK.Drawer {
         }
     }
 
+    // The tabs this build offers, and the stack page each one shows. A tab the
+    // build does not offer is not built at all -- a hidden TabButton still
+    // takes its turn in the bar's layout and its index, which is what left the
+    // release build's tabs misaligned.
+    // Same order as the right toolbar's buttons, the View menu, and the
+    // Ctrl+2..5 shortcuts. `page` is the stack child each one shows, so the
+    // order here is free to change without touching the pages.
+    readonly property var allTabs: [
+        { name: 'timeline', label: "Timeline", page: 0, betaOnly: false },
+        { name: 'triangles', label: "Triangles", page: 3, betaOnly: false },
+        { name: 'chat', label: "Chat", page: 2, betaOnly: true },
+        { name: 'settings', label: "Settings", page: 1, betaOnly: false },
+    ]
+    readonly property var tabs: allTabs.filter(function(tab) {
+        return !tab.betaOnly || util.IS_BETA
+    })
+
     footer: PK.TabBar {
         id: tabBar
         objectName: 'tabBar'
-        currentIndex: stack.currentIndex
         Layout.fillWidth: true
-        PK.TabButton { text: "Timeline" }
-        PK.TabButton { text: "Settings" }
-        PK.TabButton { text: "Copilot" }
-        PK.TabButton { text: "Triangles" }
-        /* onCurrentIndexChanged: { */
-        /*     hackTimer.running = false // cancel hack to avoid canceling out change from QmlDrawer.setCurrentTab() */
-        /* } */
+        Repeater {
+            model: root.tabs
+            PK.TabButton {
+                objectName: modelData.name + "TabButton"
+                text: modelData.label
+            }
+        }
     }
 
     Rectangle {
@@ -143,7 +151,8 @@ PK.Drawer {
         id: stack
         objectName: 'stack'
         anchors.fill: parent
-        currentIndex: tabBar.currentIndex
+        // The bar is the source of truth; the page it shows is looked up.
+        currentIndex: root.tabs[tabBar.currentIndex].page
         // hack to avoid "implicitWidth must be greater than zero" warning when timeline is shown but not yet sized to parent QWidget
         /* Timer { */
         /*     id: hackTimer */
@@ -737,8 +746,35 @@ PK.Drawer {
             }
         }
 
-        CopilotView {
-            id: copilotView
+        Item {
+            id: chatView
+            objectName: 'chatView'
+
+            Loader {
+                id: chatLoader
+                objectName: 'chatLoader'
+                anchors.fill: parent
+                active: proPersonal ? proPersonal.enabled : false
+                sourceComponent: Personal.PersonalContainer {
+                    embedded: true
+                }
+            }
+
+            PK.Text {
+                objectName: 'chatDisabledReason'
+                anchors.centerIn: parent
+                width: parent.width - root.margin * 2
+                visible: !chatLoader.active
+                // Never render an empty tab. A null proPersonal, or a reason
+                // that has not been computed yet, used to leave this blank --
+                // which reads as a broken chat rather than a closed one.
+                text: (proPersonal && proPersonal.disabledReason)
+                    ? proPersonal.disabledReason
+                    : util.S_NO_SERVER_CASE
+                color: util.QML_INACTIVE_TEXT_COLOR
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignHCenter
+            }
         }
 
         PK.TriangleView {

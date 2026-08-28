@@ -59,15 +59,7 @@ class ClusterModel(QObject):
     def scene(self, value: Scene | None):
         if self._scene == value:
             return
-        if self._scene:
-            self._scene.eventAdded.disconnect(self._onSceneChanged)
-            self._scene.eventRemoved.disconnect(self._onSceneChanged)
-            self._scene.eventChanged.disconnect(self._onSceneChanged)
         self._scene = value
-        if self._scene:
-            self._scene.eventAdded.connect(self._onSceneChanged)
-            self._scene.eventRemoved.connect(self._onSceneChanged)
-            self._scene.eventChanged.connect(self._onSceneChanged)
         self._clusters = []
         self._eventToCluster = {}
         self._cacheKey = None
@@ -86,9 +78,6 @@ class ClusterModel(QObject):
 
     def deinit(self):
         self.scene = None
-
-    def _onSceneChanged(self, *args):
-        pass
 
     def _cacheFilePath(self) -> Path | None:
         if not self._cacheDir or not self._diagramId:
