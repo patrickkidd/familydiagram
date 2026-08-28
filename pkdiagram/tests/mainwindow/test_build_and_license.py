@@ -1,6 +1,6 @@
 """Build state and licence are marked independently.
 
-Exempt from the citation rule: this asserts the test harness's own machinery.
+[Oracle: R-0058]
 """
 
 import pytest
