@@ -14,7 +14,7 @@ from btcopilot.schema import (
 )
 from pkdiagram.personal import PersonalAppController
 from pkdiagram.server_types import Diagram
-from pkdiagram.scene import Scene
+from pkdiagram.scene import Marriage, Person as ScenePerson, Scene
 
 
 def _createBlockingRequestMock(diagram):
@@ -538,3 +538,63 @@ def test_accept_all_birth_with_person_only_no_crash(
     assert child.parents() is not None
 
 
+# [Oracle: R-0014]
+def test_a_committed_pair_bond_round_trips_like_an_app_made_one(
+    test_user, personalApp: PersonalAppController
+):
+    """The commit writes what is persisted forever, and it builds a pair bond
+    from an extraction chunk that carries none of the child items an app-made
+    marriage writes. Save, load and save again must be a fixed point, and the
+    committed shape must be the shape the app already stores."""
+    personalApp.setDiagram(
+        Diagram(
+            id=1,
+            user_id=test_user.id,
+            access_rights=[],
+            created_at=datetime.utcnow(),
+            data=pickle.dumps(
+                asdict(
+                    DiagramData(
+                        pdp=PDP(
+                            people=[
+                                Person(id=-1, name="Tom"),
+                                Person(id=-2, name="Susan"),
+                            ],
+                            pair_bonds=[PairBond(id=-10, person_a=-1, person_b=-2)],
+                            events=[
+                                Event(
+                                    id=-20,
+                                    kind=EventKind.Married,
+                                    person=-1,
+                                    spouse=-2,
+                                    description="Wedding",
+                                )
+                            ],
+                        ),
+                        lastItemId=10,
+                    )
+                )
+            ),
+        )
+    )
+    scene = Scene()
+    personalApp.scene = personalApp.pdpController.scene = scene
+    server = MagicMock()
+    server.blockingRequest = _createBlockingRequestMock(personalApp._diagram)
+    with patch.object(personalApp.session, "server", return_value=server):
+        personalApp.pdpController.acceptPDPItem(-20)
+    committed = scene.data()
+
+    reloaded = Scene()
+    reloaded.read(pickle.loads(pickle.dumps(committed)))
+
+    assert len(reloaded.marriages()) == 1
+
+    assert reloaded.data()["pair_bonds"] == committed["pair_bonds"]
+
+    appMade = Scene()
+    tom, susan = ScenePerson(name="Tom"), ScenePerson(name="Susan")
+    appMade.addItems(tom, susan, Marriage(tom, susan))
+    assert set(committed["pair_bonds"][0]) == set(
+        appMade.data()["pair_bonds"][0]
+    ), "the committed pair bond is a shape the app never writes"
