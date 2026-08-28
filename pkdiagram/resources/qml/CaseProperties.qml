@@ -759,7 +759,12 @@ PK.Drawer {
                 anchors.centerIn: parent
                 width: parent.width - root.margin * 2
                 visible: !chatLoader.active
-                text: proPersonal ? proPersonal.disabledReason : ""
+                // Never render an empty tab. A null proPersonal, or a reason
+                // that has not been computed yet, used to leave this blank --
+                // which reads as a broken chat rather than a closed one.
+                text: (proPersonal && proPersonal.disabledReason)
+                    ? proPersonal.disabledReason
+                    : util.S_NO_SERVER_CASE
                 color: util.QML_INACTIVE_TEXT_COLOR
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter

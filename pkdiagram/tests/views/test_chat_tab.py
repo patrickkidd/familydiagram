@@ -136,3 +136,22 @@ def test_the_embedded_chat_actually_renders_its_controls(chatTab):
         assert item is not None, f"{name} is missing from the embedded chat"
 
     assert chatView.findChild(QObject, "chatTextEdit").property("visible") == True
+
+
+# [Oracle: R-0055]
+def test_the_tab_never_renders_blank(chatTab):
+    """Three separate causes have all surfaced as an empty Chat tab. Whatever
+    the state, it either loads the coach or says why -- never nothing."""
+    w, proPersonal = chatTab()
+    reason = w.findItem("chatDisabledReason")
+    loader = w.findItem("chatLoader")
+    assert loader.property("active") == True
+
+    # A document open that is not a server case -- how it looked broken after
+    # every relaunch.
+    proPersonal.setDiagram(None, [])
+    assert loader.property("active") == False
+
+    assert reason.property("visible") == True
+
+    assert reason.property("text") != "", "the tab renders nothing at all"

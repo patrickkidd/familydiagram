@@ -331,7 +331,9 @@ def test_j3_shared_cases_offer_no_chat(journey):
     assert _value(pro, "chatLoader", "active") is False
 
     _cmd(pro, "open_server_diagram", diagramId=cases[Case.EmptyDiagram.value]["diagram_id"])
-    assert _value(pro, "chatDisabledReason", "text") == ""
+    # The reason is not shown when the coach is available. Its text always
+    # says something, so that a tab which cannot load never renders blank.
+    assert _value(pro, "chatDisabledReason", "visible") is False
 
     assert _value(pro, "chatLoader", "active") is True
 

@@ -298,7 +298,8 @@ class LoginState(str, Enum):
 class SandboxManager:
     """Creates and manages isolated test sandboxes for application test sessions."""
 
-    def __init__(self):
+    def __init__(self, ticket: Optional[str] = None):
+        self.ticket = ticket
         self.sandbox_dir: Optional[Path] = None
         self.prefs_dir: Optional[Path] = None
         self.app_data_dir: Optional[Path] = None
@@ -311,7 +312,15 @@ class SandboxManager:
         Returns env vars dict. Caller must add FD_SERVER_URL_ROOT separately
         (depends on whether ephemeral server is used).
         """
-        self.sandbox_dir = Path(tempfile.mkdtemp(prefix="fd_test_"))
+        # A ticket's sandbox keeps one data directory across launches. A fresh
+        # temp dir per launch meant the app faithfully reopened a file from a
+        # dead sandbox -- a case with no server identity, and a chat with
+        # nothing to attach to (R-0055).
+        if self.ticket:
+            self.sandbox_dir = Path(tempfile.gettempdir()) / f"fd_sandbox_{self.ticket}"
+            self.sandbox_dir.mkdir(parents=True, exist_ok=True)
+        else:
+            self.sandbox_dir = Path(tempfile.mkdtemp(prefix="fd_test_"))
         self.prefs_dir = self.sandbox_dir / "prefs"
         self.app_data_dir = self.sandbox_dir / "appdata"
         self.documents_dir = self.sandbox_dir / "Documents"
@@ -493,7 +502,7 @@ class TestInstance:
         self._stderr_lines: List[str] = []
         self._stdout_partial: str = ""
         self._stderr_partial: str = ""
-        self._sandbox = SandboxManager()
+        self._sandbox = SandboxManager(ticket=self.checkouts.ticket)
         self._drain_threads: List[threading.Thread] = []
 
     @classmethod
