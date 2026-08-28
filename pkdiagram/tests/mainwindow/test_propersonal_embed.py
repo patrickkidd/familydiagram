@@ -335,21 +335,46 @@ def test_pro_starts_without_personal_peripherals_or_preferences(
 
 
 
+def _chatEntryPoints(mw):
+    """Every way into the chat: the View menu action (and its Ctrl+4), the
+    right-toolbar button, and the case-drawer tab."""
+    caseProps = mw.documentView.caseProps
+    # The drawer's QML is loaded lazily; a tab that does not exist yet is not
+    # a way in either.
+    tab = (
+        caseProps.findItem("chatTabButton", noerror=True)
+        if caseProps.qml is not None
+        else None
+    )
+    return {
+        "action visible": mw.ui.actionShow_Chat.isVisible(),
+        # A hidden action still fires its shortcut; only a disabled one does not.
+        "action enabled": mw.ui.actionShow_Chat.isEnabled(),
+        "toolbar button": mw.documentView.view.rightToolBar.chatButton.visible(),
+        "drawer tab": tab.property("visible") if tab is not None else False,
+    }
+
+
 # [Oracle: R-0048]
-def test_every_way_into_the_chat_is_beta_only(
+def test_a_release_build_hides_the_chat_entirely(
     test_activation, test_user, test_user_diagrams, create_ac_mw
 ):
-    """Three ways in — the case-drawer tab, the right-toolbar button and the
-    View menu's Ctrl+4 — and a release build must close all of them. Gating the
-    button alone would leave the shortcut firing, which is how this was first
-    left half done."""
+    """Clearing ALPHABETA in version.py removes every way in. The suite runs as
+    a release build, so this is the default state."""
     from pkdiagram import version
 
+    assert version.IS_BETA == False, "the suite runs as a release build"
+
     ac, mw = _mainWindow(create_ac_mw)
-    assert mw.ui.actionShow_Chat.isVisible() == version.IS_BETA
+    assert _chatEntryPoints(mw) == {
+        "action visible": False,
+        "action enabled": False,
+        "toolbar button": False,
+        "drawer tab": False,
+    }
 
-    # A hidden action still fires its shortcut; only a disabled one does not.
-    assert mw.ui.actionShow_Chat.isEnabled() == version.IS_BETA
 
-    button = mw.documentView.view.rightToolBar.chatButton
-    assert button.visible() == version.IS_BETA, "the button is offered only in beta"
+# NB: the mirror of the test above -- a beta build offering all three entry
+# points -- hangs when MainWindow is constructed with IS_BETA True, the same
+# hang as test_show_chat in test_documentview.py. Unresolved; see that test's
+# xfail reason. Left out rather than left hanging in the suite.

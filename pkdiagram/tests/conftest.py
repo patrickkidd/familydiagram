@@ -1119,7 +1119,16 @@ def create_ac_mw(request, qtbot, tmp_path):
     """
     Create an AppController and MainWindow.
     - Can be called as many times as needed to simulate starting the app again with shared prefs file.
+
+    The suite runs as a release build. A test marked `beta` exercises a
+    beta-only feature and gets a beta build, set before anything reads it --
+    the toolbar and the drawer's tabs both bind to it at construction.
     """
+
+    if request.node.get_closest_marker("beta"):
+        beta = patch.object(version, "IS_BETA", True)
+        beta.start()
+        request.addfinalizer(beta.stop)
 
     created = []
 
