@@ -14,7 +14,7 @@ from pkdiagram.pyqt import QMessageBox
 
 from btcopilot.extensions import mail
 from btcopilot.extensions import db
-from btcopilot.pro.models import License, User, Policy
+from btcopilot.pro.models import License, User, Policy, Machine, Activation
 
 # def _logout(dlg, qtbot):
 #     assert dlg.isShown() == True
@@ -389,3 +389,18 @@ def test_freeVersionCTA_visible_with_licenses(create_dlg):
 def test_freeVersionCTA_visible_with_licenses_no_activation(test_license, create_dlg):
     dlg = create_dlg()
     assert dlg.itemProp("freeVersionCTA", "visible") == False
+
+
+def test_activate_already_activated_device(test_license, create_dlg, qtbot):
+    machine = Machine(
+        user=test_license.user, name="Some user's iMac", code=util.HARDWARE_UUID
+    )
+    db.session.add(machine)
+    db.session.add(Activation(license=test_license, machine=machine))
+    db.session.commit()
+
+    dlg = create_dlg()
+    licenses = dlg.rootProp("userLicenses").toVariant()
+    activationFailed = util.Condition(dlg.qml.rootObject().licenseActivationFailed)
+    qtbot.clickOkAfter(lambda: dlg.qml.rootObject().activateLicense(licenses[0]))
+    assert activationFailed.callCount == 0
