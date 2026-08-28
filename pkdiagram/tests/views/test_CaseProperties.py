@@ -286,7 +286,8 @@ def test_tabs(create_cp):
     """A release build does not build the Chat tab at all, so the bar carries
     one fewer button rather than a hidden one holding its place."""
     cp = create_cp()
-    assert _tabLabels(cp) == ["Timeline", "Settings", "Triangles"]
+    # Same order as the toolbar buttons and the Ctrl+2..5 shortcuts.
+    assert _tabLabels(cp) == ["Timeline", "Triangles", "Settings"]
 
     # Each tab still shows its own page, whatever its position in the bar.
     cp.setCurrentTab(RightDrawerView.Triangles.value)
@@ -308,7 +309,7 @@ def test_tabs(create_cp):
 @pytest.mark.beta
 def test_tabs_include_chat_in_a_beta_build(create_cp):
     cp = create_cp()
-    assert _tabLabels(cp) == ["Timeline", "Settings", "Chat", "Triangles"]
+    assert _tabLabels(cp) == ["Timeline", "Triangles", "Chat", "Settings"]
 
     cp.setCurrentTab(RightDrawerView.Chat.value)
     assert cp.currentTab() == RightDrawerView.Chat.value

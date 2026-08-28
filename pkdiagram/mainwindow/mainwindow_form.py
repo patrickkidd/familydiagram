@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'pkdiagram/mainwindow/mainwindow.ui'
+# Form implementation generated from reading ui file 'familydiagram/.claude/worktrees/FD-336/pkdiagram/mainwindow/mainwindow.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.11
 #
@@ -492,9 +492,9 @@ class Ui_MainWindow(object):
         self.menuView.addSeparator()
         self.menuView.addAction(self.actionShow_Diagram)
         self.menuView.addAction(self.actionShow_Timeline)
-        self.menuView.addAction(self.actionShow_Settings)
-        self.menuView.addAction(self.actionShow_Chat)
         self.menuView.addAction(self.actionShow_Triangles)
+        self.menuView.addAction(self.actionShow_Chat)
+        self.menuView.addAction(self.actionShow_Settings)
         self.menuView.addSeparator()
         self.menuView.addAction(self.actionShow_Items_with_Notes)
         self.menuView.addAction(self.actionShow_Aliases)
@@ -786,13 +786,3 @@ class Ui_MainWindow(object):
         self.actionArrange_Selection.setText(_translate("MainWindow", "Arrange Selection (AI)"))
         self.actionArrange_Selection.setShortcut(_translate("MainWindow", "Ctrl+Shift+E"))
         self.actionHide_SARF_Graphics.setText(_translate("MainWindow", "Hide SARF Graphics"))
-
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    MainWindow = QtWidgets.QMainWindow()
-    ui = Ui_MainWindow()
-    ui.setupUi(MainWindow)
-    MainWindow.show()
-    sys.exit(app.exec_())

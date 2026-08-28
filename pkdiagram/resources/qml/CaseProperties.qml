@@ -116,11 +116,14 @@ PK.Drawer {
     // build does not offer is not built at all -- a hidden TabButton still
     // takes its turn in the bar's layout and its index, which is what left the
     // release build's tabs misaligned.
+    // Same order as the right toolbar's buttons, the View menu, and the
+    // Ctrl+2..5 shortcuts. `page` is the stack child each one shows, so the
+    // order here is free to change without touching the pages.
     readonly property var allTabs: [
         { name: 'timeline', label: "Timeline", page: 0, betaOnly: false },
-        { name: 'settings', label: "Settings", page: 1, betaOnly: false },
-        { name: 'chat', label: "Chat", page: 2, betaOnly: true },
         { name: 'triangles', label: "Triangles", page: 3, betaOnly: false },
+        { name: 'chat', label: "Chat", page: 2, betaOnly: true },
+        { name: 'settings', label: "Settings", page: 1, betaOnly: false },
     ]
     readonly property var tabs: allTabs.filter(function(tab) {
         return !tab.betaOnly || util.IS_BETA

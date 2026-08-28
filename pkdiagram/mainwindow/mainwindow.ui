@@ -177,9 +177,9 @@
     <addaction name="separator"/>
     <addaction name="actionShow_Diagram"/>
     <addaction name="actionShow_Timeline"/>
-    <addaction name="actionShow_Settings"/>
-    <addaction name="actionShow_Chat"/>
     <addaction name="actionShow_Triangles"/>
+    <addaction name="actionShow_Chat"/>
+    <addaction name="actionShow_Settings"/>
     <addaction name="separator"/>
     <addaction name="actionShow_Items_with_Notes"/>
     <addaction name="actionShow_Aliases"/>
