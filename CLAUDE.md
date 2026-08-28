@@ -181,9 +181,27 @@ Before modifying CI/CD workflows or sysroot config, check the relevant decision 
 - **Separate feeds**: Beta users see beta appcast with prerelease versions. Release users see release appcast without beta versions
 - **GitHub prerelease flag**: Beta versions must have `"prerelease": true`, release versions have `"prerelease": false`
 
+### Version Numbering — hard constraints
+- Versions are `major.minor.micro` plus an optional `b`/`a` suffix. **There is no patch
+  component and one cannot be added**: `version.split()` raises on a four-part version and
+  `bin/extract_changelog.py` silently misparses `2.1.22.1` as `2.1.22`.
+- A hotfix is therefore a **micro bump**, never a fourth number.
+- Beta must stay at or ahead of release. Shipping a hotfix as `2.1.23` off `release` leaves
+  `master` at `2.1.23bN` *behind* it — master must move to `2.1.24b1`, and any empty
+  `## 2.1.23` section reserved on master's changelog belongs to the version master will
+  now ship as.
+
+### Hotfix on the release branch
+Fixing a shipped bug without merging master's beta work — see
+`doc/RELEASE_PROCESS.md` > "Workflow: Hotfix on the Release Branch". The trap: the new
+release section must carry **explicit bullets**, because an empty one triggers beta
+aggregation, the release branch carries no beta sections, and `extract_changelog.py` then
+exits non-zero and **fails the release workflow**.
+
 ### Changelog Format
 ```markdown
-## 2.1.9           # Empty = auto-aggregate from beta versions
+## 2.1.9           # Empty = auto-aggregate from beta versions (release branch: only
+                   # valid when that branch actually carries the beta sections)
 
 ## 2.1.9b2
 - Fix edge case from b1

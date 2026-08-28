@@ -28,6 +28,11 @@ ALPHABETA_SUFFIX = 1   # Numeric suffix for alpha/beta
 - Alpha: `2.1.9a1`, `2.1.9a2`, etc.
 - Release: `2.1.9`
 
+**There is no patch component, and one cannot be added.** `version.split()` raises on a
+four-part version, and `bin/extract_changelog.py` silently misparses `2.1.9.1` as `2.1.9` —
+which would attach the wrong release notes rather than fail loudly. Every fix, including a
+hotfix to a shipped release, is a **micro bump**.
+
 ## Changelog Format
 
 The changelog is maintained in [CHANGELOG.md](../CHANGELOG.md) at the repository root.
@@ -180,6 +185,39 @@ If you want different notes for the release than the beta aggregation:
 ```
 
 The system will use your custom content instead of aggregating.
+
+## Workflow: Hotfix on the Release Branch
+
+Shipping a fix to the public without pulling in master's unreleased beta work.
+
+1. Branch off `origin/release` and make the fix there.
+
+2. Micro-bump `pkdiagram/version.py`. `ALPHABETA` stays `""`. There is no patch
+   component — see **Version Numbering** above.
+
+3. Add the new section to `CHANGELOG.md` **with explicit bullets**:
+
+   ```markdown
+   ## 2.1.23
+
+   - Fixed <the shipped bug>.
+   ```
+
+   Leaving it empty is the failure mode: an empty release section triggers beta
+   aggregation, the `release` branch does not carry the `2.1.23b*` sections (they live on
+   `master`), `extract_changelog.py` finds nothing, exits non-zero, and the release
+   workflow's changelog step fails. Even if the beta sections were present, aggregating
+   them would advertise features the hotfix build does not contain.
+
+4. Merge to `release` and trigger the workflow. It is branch-agnostic — tag, prerelease
+   flag and release notes all derive from `version.py` and `CHANGELOG.md`.
+
+5. **Afterwards, renumber the beta line on `master`.** A hotfix consumes the micro number
+   the beta line was heading toward, which leaves `master` behind `release` and violates
+   the key rule above. Bump master to the next micro (`2.1.24b1`) and re-home the beta
+   entries sitting under the now-taken release heading.
+
+Beta users are not offered the hotfix build: the two streams read separate appcasts.
 
 ## Workflow: Direct Release (No Betas)
 

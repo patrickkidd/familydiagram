@@ -2,6 +2,10 @@
 
 All notable changes to Family Diagram are documented in this file.
 
+## 2.1.23
+
+- Fixed a misleading "Activation failed" error when activating Pro on a device that was already activated.
+
 ## 2.1.22
 
 ## 2.1.22b1

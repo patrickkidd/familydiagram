@@ -221,7 +221,7 @@ Page {
     function activateLicense(license) {
         for(var i=0; i < license.activations.length; i++) {
             var activation = license.activations[i];
-            if(activation.machine === util.HARDWARE_UUID) {
+            if(activation.machine.code === util.HARDWARE_UUID) {
                 util.informationBox('License already activated',
                                     'This license is already activated for this machine')
                 return
@@ -239,6 +239,14 @@ Page {
             if(response.status_code === 200) {
                 root.licenseActivated(license.code)
                 session.update()
+            } else if(response.status_code === 409) {
+                util.informationBox('License already activated',
+                                    'This license is already activated on this device')
+                root.licenseActivationFailed()
+            } else if(response.status_code === 402) {
+                util.informationBox('Too many devices',
+                                    'Maximum number of devices reached. Deactivate a device first.')
+                root.licenseActivationFailed()
             } else {
                 util.informationBox('Activation failed', 'Failed to activate license on this device')
                 root.licenseActivationFailed()
