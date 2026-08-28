@@ -974,18 +974,59 @@ class MainWindow(QMainWindow):
                     return True
         return False
 
+    # How long a launch waits for the server file index before opening the
+    # last file as a plain local file anyway (offline, slow server).
+    OPEN_LAST_FILE_INDEX_TIMEOUT_MS = 5000
+
     def openLastFile(self):
         lastFileWasOpen = self.prefs.value(
             "lastFileWasOpen", type=bool, defaultValue=False
         )
-        if lastFileWasOpen and not self.session.hasFeature(btcopilot.LICENSE_FREE):
-            lastFileReadPath = self.prefs.value("lastFileReadPath", type=str)
-            if QFileInfo(lastFileReadPath).exists():
-                diagram = self.serverFileModel.serverDiagramForPath(lastFileReadPath)
-                if diagram:
-                    self.onServerFileClicked(lastFileReadPath, diagram)
-                else:
-                    self.open(filePath=lastFileReadPath)
+        if not lastFileWasOpen or self.session.hasFeature(btcopilot.LICENSE_FREE):
+            return
+        lastFileReadPath = self.prefs.value("lastFileReadPath", type=str)
+        if not QFileInfo(lastFileReadPath).exists():
+            return
+
+        # A server case is cached on disk as an ordinary .fd, and only the
+        # file-manager path binds its server identity (the coach, the id
+        # allocator, setServerDiagram). At launch the server index has not
+        # usually arrived yet, so looking the path up now says "local file"
+        # and the case opens with none of that bound. Wait for the index
+        # first; open as local only if it never comes.
+        inServerCache = QFileInfo(lastFileReadPath).absolutePath() == QFileInfo(
+            self.serverFileModel.dataPath
+        ).absoluteFilePath()
+        if inServerCache and self.serverFileModel.isUpdating():
+            self._openLastFileWhenIndexed(lastFileReadPath)
+        else:
+            self._openLastFileNow(lastFileReadPath)
+
+    def _openLastFileWhenIndexed(self, lastFileReadPath: str):
+        """Open once, on whichever comes first: the index, or the timeout."""
+        timer = QTimer(self)
+        timer.setSingleShot(True)
+        opened = False
+
+        def once():
+            nonlocal opened
+            if opened:
+                return
+            opened = True
+            timer.stop()
+            self.serverFileModel.updateFinished.disconnect(once)
+            self._openLastFileNow(lastFileReadPath)
+
+        timer.timeout.connect(once)
+        self.serverFileModel.updateFinished.connect(once)
+        timer.start(self.OPEN_LAST_FILE_INDEX_TIMEOUT_MS)
+
+    def _openLastFileNow(self, lastFileReadPath: str):
+        diagram = self.serverFileModel.serverDiagramForPath(lastFileReadPath)
+        if diagram:
+            self.onServerFileClicked(lastFileReadPath, diagram)
+        else:
+            self.open(filePath=lastFileReadPath)
 
     def onOpenFileError(self, etype, value, tb):
         log.error("Error opening file", exc_info=(etype, value, tb))

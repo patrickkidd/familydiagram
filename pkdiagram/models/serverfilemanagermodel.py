@@ -182,7 +182,7 @@ class ServerFileManagerModel(FileManagerModel):
         # delete disk file entries without cache entry to match
         for diagram_id in diskIds:
             if not diagram_id in cacheIds:
-                self._deleteLocalFileByID(id)
+                self._deleteLocalFileByID(diagram_id)
         # load up resulting data
         # log.info("READ:")
         for diagram in newIndex:

@@ -116,3 +116,35 @@ def test_url_authentication_flow(test_activation, create_ac_mw, qtbot):
 
         MockDialog.assert_called_once_with(authUrl, mw)
         MockDialog.return_value.exec_.assert_called_once()
+
+
+# [Oracle: R-0055]
+def test_reopening_a_cached_case_waits_for_the_server_index(
+    test_activation, test_user, test_user_diagrams, create_ac_mw
+):
+    """A server case is cached on disk as an ordinary .fd, and only the
+    file-manager path binds its server identity -- the coach, setServerDiagram,
+    the id allocator. At launch the index has not usually arrived, so looking
+    the path up then says "local file" and the case opens with none of it
+    bound. openLastFile must defer until the index answers."""
+    ac, mw = create_ac_mw()
+    util.wait(mw.serverFileModel.updateFinished)
+    diagram_id = mw.serverFileModel.diagramCache and list(
+        mw.serverFileModel.diagramCache
+    )[0]
+    cached = mw.serverFileModel.localPathForID(diagram_id)
+    mw.prefs.setValue("lastFileWasOpen", True)
+    mw.prefs.setValue("lastFileReadPath", cached)
+
+    opened = []
+    with patch.object(
+        mw, "onServerFileClicked", side_effect=lambda *a: opened.append(a)
+    ), patch.object(mw, "open", side_effect=lambda **kw: opened.append(kw)):
+        with patch.object(mw.serverFileModel, "isUpdating", return_value=True):
+            mw.openLastFile()
+            assert opened == [], "opened before the index answered"
+
+            mw.serverFileModel.updateFinished.emit()
+        assert len(opened) == 1, "did not open once the index answered"
+
+        assert opened[0][0] == cached, "opened as a plain file, losing the server case"
