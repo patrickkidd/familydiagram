@@ -322,7 +322,10 @@ class SandboxManager:
         logger.info(f"Created test sandbox: {self.sandbox_dir}")
 
         return {
-            "QT_QPA_PLATFORMTHEME": "offscreen",
+            # NB: no QT_QPA_PLATFORMTHEME here. The platform theme is what
+            # gives macOS its native menu bar, native file dialogs and system
+            # palette; forcing "offscreen" on a visible launch takes all three
+            # away. The headless tier sets it alongside QT_QPA_PLATFORM.
             "HOME": str(self.sandbox_dir),
             "XDG_DATA_HOME": str(self.app_data_dir),
             "XDG_CONFIG_HOME": str(self.prefs_dir),
@@ -886,6 +889,7 @@ class TestInstance:
             env.update(sandbox_env)
             if headless:
                 env["QT_QPA_PLATFORM"] = "offscreen"
+                env["QT_QPA_PLATFORMTHEME"] = "offscreen"
                 # The software renderer is for the offscreen tier. Forcing it
                 # on a visible launch degrades what Patrick is looking at --
                 # dark-mode colours among it -- so it stays with headless.
@@ -917,7 +921,11 @@ class TestInstance:
                 env=env,
                 stdout=sink or subprocess.PIPE,
                 stderr=subprocess.STDOUT if sink else subprocess.PIPE,
-                start_new_session=True,
+                # Its own process group, so teardown can signal the group --
+                # but NOT its own session. setsid detaches a GUI app from the
+                # macOS session, which costs it the native menu bar and the
+                # system appearance it reads dark mode from.
+                preexec_fn=os.setpgrp,
             )
             self.start_time = time.time()
             if not sink:
