@@ -13,6 +13,12 @@ import ".." 1.0 as Root
 Page {
 
     id: root
+
+    // Overlay.overlay is an ApplicationWindow's overlay. Pro hosts these views
+    // in a QQuickWidget, where it is null -- and Qt 5.15.2 then dereferences it
+    // delivering a wheel event, which segfaults. Resolved once here, on an item
+    // that is not itself a Popup, so the popups bind to it without a loop.
+    property Item overlayParent: Overlay.overlay ? Overlay.overlay : root
     title: "Discuss"
 
     signal humanBubbleAdded(Item item)
@@ -77,16 +83,28 @@ Page {
 
     // The chat is loaded, not accumulated: a view created after the case was
     // opened has already missed the signal that carried the conversation.
-    Component.onCompleted: root.loadChat()
+    // Populate at construction, but scroll only once the layout has sized the
+    // list: positioning a view that is still 0x0 leaves it collapsed.
+    Component.onCompleted: root.loadChat(false)
 
-    function loadChat() {
+    function loadChat(scroll) {
         chatModel.clear()
+        // The coach is bound after the view is built when Pro hosts it, so at
+        // completion there may be nothing to read yet. Throwing here aborts
+        // the rest of the view's construction and leaves the tab blank.
+        if (!discussion) {
+            return
+        }
         for (var i = 0; i < discussion.statements.length; i++) {
             var statement = discussion.statements[i]
             var speakerType = statement.speaker.type
             chatModel.append({ "text": statement.text, "speakerType": speakerType })
         }
-        statementsList.delayedScrollToBottom()
+        if (scroll === false) {
+            Qt.callLater(statementsList.delayedScrollToBottom)
+        } else {
+            statementsList.delayedScrollToBottom()
+        }
     }
 
     Connections {
@@ -186,9 +204,12 @@ Page {
 
         Rectangle {
             Layout.fillWidth: true
-            Layout.fillHeight: true
+            // Only the shown one may claim height. Two siblings both asking to
+            // fill, flipped by separate bindings, is how the list ended up
+            // sized to nothing with a full model behind it.
+            Layout.fillHeight: visible
             color: "transparent"
-            visible: chatModel.count == 0
+            visible: chatModel.count === 0
 
             PK.NoDataText {
                 id: noChatLabel
@@ -199,9 +220,9 @@ Page {
         ListView {
             id: statementsList
             objectName: "statementsList"
-            visible: model.count > 0
+            visible: chatModel.count > 0
             Layout.fillWidth: true
-            Layout.fillHeight: true
+            Layout.fillHeight: visible
             model: ListModel {
                 id: chatModel
             }
@@ -749,7 +770,7 @@ Page {
     Personal.PDPSheet {
         id: pdpSheet
         objectName: "pdpSheet"
-        parent: Overlay.overlay
+        parent: root.overlayParent
 
         onItemAccepted: function(id) {
             pdpController.acceptPDPItem(id)

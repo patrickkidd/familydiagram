@@ -16,6 +16,12 @@ import "." 1.0 as Personal
 Page {
     id: root
 
+    // Overlay.overlay is an ApplicationWindow's overlay. Pro hosts these views
+    // in a QQuickWidget, where it is null -- and Qt 5.15.2 then dereferences it
+    // delivering a wheel event, which segfaults. Resolved once here, on an item
+    // that is not itself a Popup, so the popups bind to it without a loop.
+    property Item overlayParent: Overlay.overlay ? Overlay.overlay : root
+
     property var stack: stack
     property var tabBar: tabBar
     property var discussView: discussView
@@ -1003,7 +1009,7 @@ Page {
     // Clear Data confirmation dialog
     Popup {
         id: clearDataDialog
-        parent: Overlay.overlay
+        parent: root.overlayParent
         anchors.centerIn: parent
         width: Math.min(root.width - 40, 320)
         modal: true
@@ -1127,7 +1133,7 @@ Page {
     Popup {
         id: rebuildDialog
         objectName: "rebuildDialog"
-        parent: Overlay.overlay
+        parent: root.overlayParent
         anchors.centerIn: parent
         width: Math.min(root.width - 40, 340)
         modal: true
@@ -1361,7 +1367,7 @@ Page {
     // Privacy settings popup
     Popup {
         id: privacyPopup
-        parent: Overlay.overlay
+        parent: root.overlayParent
         anchors.centerIn: parent
         width: root.width
         height: root.height
@@ -1387,7 +1393,7 @@ Page {
     // Help & Support settings popup
     Popup {
         id: helpPopup
-        parent: Overlay.overlay
+        parent: root.overlayParent
         anchors.centerIn: parent
         width: root.width
         height: root.height
@@ -1413,7 +1419,7 @@ Page {
     // Model settings popup
     Popup {
         id: modelPopup
-        parent: Overlay.overlay
+        parent: root.overlayParent
         anchors.centerIn: parent
         width: root.width
         height: root.height
@@ -1438,7 +1444,7 @@ Page {
     // Voice settings popup
     Popup {
         id: voicePopup
-        parent: Overlay.overlay
+        parent: root.overlayParent
         anchors.centerIn: parent
         width: root.width
         height: root.height
@@ -1467,7 +1473,7 @@ Page {
         active: !root.embedded
 
         sourceComponent: Popup {
-            parent: Overlay.overlay
+            parent: root.overlayParent
             anchors.centerIn: parent
             width: root.width
             height: root.height

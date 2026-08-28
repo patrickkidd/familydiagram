@@ -451,6 +451,9 @@ class SandboxManager:
 #: Where a launched app's output is kept, so it outlives the launching process.
 APP_LOG_ENV = "FD_APP_LOG"
 
+#: Run the app under lldb so a native crash prints its backtrace.
+DEBUGGER_ENV = "FD_APP_DEBUGGER"
+
 
 class TestInstance:
     """
@@ -868,6 +871,26 @@ class TestInstance:
                 "-m",
                 "pkdiagram",
             ]
+            # A segfault in Qt unwinds no Python, so faulthandler can only say
+            # "in the event loop". Under lldb the crash prints the C++ frame
+            # that actually failed, into the same log.
+            if os.environ.get(DEBUGGER_ENV):
+                # lldb has to own the python process itself. Wrapping `uv run`
+                # leaves it attached to a launcher that execs away, so the
+                # crash happens somewhere lldb is not looking.
+                interpreter = self.checkouts.root / ".venv" / "bin" / "python"
+                cmd = [
+                    "lldb",
+                    "--batch",
+                    "-o", "run",
+                    "-k", "thread backtrace all",
+                    "-k", "quit 1",
+                    "--",
+                    str(interpreter),
+                    "-u",
+                    "-m",
+                    "pkdiagram",
+                ] + cmd[cmd.index("pkdiagram") + 1 :]
             if personal:
                 cmd.extend(["--personal"])
 

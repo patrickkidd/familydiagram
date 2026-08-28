@@ -281,8 +281,7 @@ def test_tabs(create_cp):
     tabBar = cp.findItem("tabBar")
     tabButtons = tabBar.property("contentItem").property("contentItem").childItems()
     labels = [x.property("text") for x in tabButtons[: tabBar.property("count")]]
-    # Same order as the right toolbar's buttons.
-    assert labels == ["Timeline", "Triangles", "Chat", "Settings"]
+    assert labels == ["Timeline", "Settings", "Chat", "Triangles"]
 
     cp.setCurrentTab(RightDrawerView.Chat.value)
     assert cp.currentTab() == RightDrawerView.Chat.value
@@ -290,4 +289,4 @@ def test_tabs(create_cp):
 
     cp.setCurrentTab(RightDrawerView.Triangles.value)
     assert cp.currentTab() == RightDrawerView.Triangles.value
-    assert cp.itemProp("stack", "currentIndex") == 1
+    assert cp.itemProp("stack", "currentIndex") == 3

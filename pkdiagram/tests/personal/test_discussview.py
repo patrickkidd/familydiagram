@@ -396,3 +396,19 @@ def test_an_extraction_in_progress_is_on_screen(view, personalApp):
     assert overlay.parentItem() is not None, "the overlay is attached to nothing"
 
     assert overlay.property("width") > 0 and overlay.property("height") > 0
+
+
+# [Oracle: R-0005]
+def test_a_loaded_conversation_has_somewhere_to_render(view, personalApp, discussions):
+    """A full model is not the same as a visible chat: the list and the empty
+    placeholder are siblings that both ask to fill, and the wrong one claiming
+    the height leaves the conversation sized to nothing."""
+    statementsList = view.rootObject().property("statementsList")
+    with patch.object(personalApp.discussion, "_currentDiscussion", discussions[1]):
+        personalApp.discussion.statementsChanged.emit()
+        waitForListViewDelegates(statementsList, len(discussions[1].statements()))
+        assert statementsList.property("count") > 0
+
+        assert statementsList.property("height") > 0, "the chat has no height"
+
+        assert statementsList.property("width") > 0, "the chat has no width"

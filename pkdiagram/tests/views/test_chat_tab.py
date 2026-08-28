@@ -123,3 +123,16 @@ def test_a_release_build_offers_no_chat_tab(chatTab):
     assert chat is not None, "no Chat tab to gate"
 
     assert chat.property("visible") == version.IS_BETA
+
+
+# [Oracle: R-0005]
+def test_the_embedded_chat_actually_renders_its_controls(chatTab):
+    """The tab hosting the component is not the same as the chat being usable:
+    a throw during the view's construction leaves the tab present and blank."""
+    w, _ = chatTab()
+    chatView = w.findItem("chatView")
+    for name in ("discussView", "chatTextEdit", "chatSendButton", "statementsList"):
+        item = chatView.findChild(QObject, name)
+        assert item is not None, f"{name} is missing from the embedded chat"
+
+    assert chatView.findChild(QObject, "chatTextEdit").property("visible") == True

@@ -19,6 +19,7 @@ from pkdiagram.pyqt import (
     QApplication,
     QPointF,
     QJSValue,
+    QEvent,
 )
 from pkdiagram import util
 from pkdiagram.models import QObjectHelper
@@ -57,6 +58,65 @@ class QmlWidgetHelper(QObjectHelper):
         # if util.IS_TEST:
         #     self.here(util.qenum(QQuickWidget, self.qml.status()))
 
+    def _scrollableUnder(self, item, x, y):
+        """The innermost QML item under the cursor that can scroll."""
+        found = None
+        while item is not None:
+            if item.property("contentY") is not None:
+                found = item
+            point = item.mapFromScene(QPointF(x, y))
+            item = item.childAt(point.x(), point.y())
+        return found
+
+    def eventFilter(self, obj, event):
+        """Scroll the QML ourselves.
+
+        Qt 5.15.2's QQuickWidget::wheelEvent forwards the wheel to its internal
+        QQuickWindow without a window on the event, and delivery then calls
+        QWindow::mapToGlobal on a null pointer and segfaults. There is no
+        release to upgrade to before the Qt 6 port, so the event never reaches
+        that path.
+        """
+        if obj is not self.qml or event.type() != QEvent.Wheel:
+            return False
+        root = self.qml.rootObject()
+        if root is None:
+            return True
+        position = event.position() if hasattr(event, "position") else event.posF()
+        target = self._scrollableUnder(root, position.x(), position.y())
+        if target is None:
+            return True
+        pixels = event.pixelDelta()
+        if pixels.x() or pixels.y():
+            # A trackpad. macOS keeps sending events through the momentum
+            # phase, so following the deltas IS the native glide -- adding our
+            # own inertia on top would double it.
+            self._scrollBy(target, pixels.x(), pixels.y())
+        else:
+            # A discrete wheel has no momentum phase, so hand it to the
+            # Flickable's own physics for the inertia and rubber-band.
+            degrees = event.angleDelta()
+            QMetaObject.invokeMethod(
+                target,
+                "flick",
+                Qt.DirectConnection,
+                Q_ARG("QVariant", degrees.x() / 120 * util.WHEEL_FLICK_VELOCITY),
+                Q_ARG("QVariant", degrees.y() / 120 * util.WHEEL_FLICK_VELOCITY),
+            )
+        return True
+
+    def _scrollBy(self, target, dx, dy):
+        for axis, delta in (("Y", dy), ("X", dx)):
+            if not delta:
+                continue
+            extent = target.property("height" if axis == "Y" else "width") or 0
+            content = target.property(
+                "contentHeight" if axis == "Y" else "contentWidth"
+            ) or 0
+            position = target.property(f"content{axis}") or 0
+            limit = max(0, content - extent)
+            target.setProperty(f"content{axis}", min(limit, max(0, position - delta)))
+
     def checkInitQml(self):
         """Returns True if initialized on this call."""
         if self.qml:
@@ -65,6 +125,7 @@ class QmlWidgetHelper(QObjectHelper):
         start_time = time.time()
         self.qml = QQuickWidget(self._engine, self)
         self.qml.statusChanged.connect(self.onStatusChanged)
+        self.qml.installEventFilter(self)
         self.qml.setFormat(util.SURFACE_FORMAT)
         self.qml.setResizeMode(QQuickWidget.SizeRootObjectToView)
         if isinstance(self._qmlSource, QUrl):
