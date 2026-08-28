@@ -168,6 +168,9 @@ class ProPersonal(QObject):
                 self._fetchDiscussions(diagram)
         self._onEnablementChanged()
 
+    def diagram(self) -> Diagram | None:
+        return self._diagram
+
     def clear(self):
         self.setScene(None)
         self.setDiagram(None, [])

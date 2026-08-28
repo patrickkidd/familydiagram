@@ -844,6 +844,19 @@ class MainWindow(QMainWindow):
             self.documentView.qmlEngine().setProPersonal(self._proPersonal)
         return self._proPersonal
 
+    def _bindServerIdentity(self, diagram):
+        """Everything that makes an open document a server case rather than a
+        local .fd. Driven from the file path in setDocument() so every open
+        route binds it (R-0055); a route that missed it would silently save the
+        case to disk instead of the server."""
+        if self.session:
+            self.scene.setIdAllocator(
+                ServerBlockAllocator(diagram, self.session.server())
+            )
+        self.documentView.qmlEngine().setServerDiagram(diagram)
+        self.proPersonal().setScene(self.scene)
+        self.proPersonal().setDiagram(diagram)
+
     def onServerFileClicked(self, fpath, diagram):
         log.info(
             f"Opening server diagram from file manager: {diagram.id}, version: {diagram.version}"
@@ -852,18 +865,8 @@ class MainWindow(QMainWindow):
             f"Open server file from file manager: {diagram.id}, version: {diagram.version}"
         )
         self.fileManager.setEnabled(False)
-        self._isOpeningServerDiagram = diagram  # set Scene.readOnly + drive allocator binding in setDocument
         self.open(filePath=fpath)
-        self.documentView.qmlEngine().setServerDiagram(diagram)
-        self.proPersonal().setScene(self.scene)
-        self.proPersonal().setDiagram(diagram)
-        # Document load is now complete for server diagrams.
-        # ServerBlockAllocator was bound inside setDocument() — see the
-        # _isOpeningServerDiagram branch there. (Binding here would race
-        # the async open() and could target the wrong Scene instance.)
-        self._onDocumentLoadComplete()
         self.updateWindowTitle()
-        self._isOpeningServerDiagram = None
         # def doOpen():
         #     self.fileClicked.emit(item.fpath)
         # QTimer.singleShot(10, doOpen) # repaint with disabled state
@@ -1041,11 +1044,18 @@ class MainWindow(QMainWindow):
         """Called from CUtil.openExistingFile() async open."""
         newScene = None
         self._isOpeningDiagram = True
+        self._isOpeningServerDiagram = None
 
         if document:  # see if scene loads successfully first
             if not self.session.hasFeature(btcopilot.LICENSE_FREE):
                 self.prefs.setValue("lastFileReadPath", document.url().toLocalFile())
             filePath = document.url().toLocalFile()
+            # A server case is cached on disk as an ordinary .fd, so its server
+            # identity comes from the path and not from whichever route opened
+            # it.
+            self._isOpeningServerDiagram = self.serverFileModel.serverDiagramForPath(
+                filePath
+            )
 
             bdata = bytes(document.diagramData())
 
@@ -1197,8 +1207,8 @@ class MainWindow(QMainWindow):
         self.scene = newScene
         self.documentView.setScene(None)  # close all drawers/sheets, deinit all models
         if self._proPersonal:
-            # Rebound by onServerFileClicked, which is the only route to a
-            # server case; a local file leaves the chat unbound.
+            # Rebound below by _bindServerIdentity() for a server case; a local
+            # file leaves the chat unbound.
             self._proPersonal.clear()
         if self.document:
             self.scene.stack().cleanChanged[bool].connect(self.onUndoCleanChanged)
@@ -1282,26 +1292,8 @@ class MainWindow(QMainWindow):
                 self.showDiagram()
             if self._isOpeningServerDiagram:
                 self.serverPollTimer.start()
-                # Bind server-side id allocator on the just-created Scene
-                # for server-backed diagrams. Local .fd files don't bind
-                # (no concurrent writer to collide with). Done HERE
-                # rather than in onServerFileClicked because that path
-                # invokes self.open() which is async — self.scene may not
-                # yet point to the new diagram's scene by the time
-                # onServerFileClicked's body finishes. Binding inside
-                # setDocument guarantees the allocator targets the right
-                # Scene instance.
-                # Plan: doc/plans/2026-05-01--mvp-merge-fix/README.md
-                if self.session:
-                    self.scene.setIdAllocator(
-                        ServerBlockAllocator(
-                            self._isOpeningServerDiagram, self.session.server()
-                        )
-                    )
-            # For local files, document load is complete now
-            # For server diagrams, _onDocumentLoadComplete called after setServerDiagram
-            if not self._isOpeningServerDiagram:
-                self._onDocumentLoadComplete()
+                self._bindServerIdentity(self._isOpeningServerDiagram)
+            self._onDocumentLoadComplete()
         else:
             self.ui.actionSave.setEnabled(False)
             self.ui.actionSave_As.setEnabled(False)
@@ -1318,12 +1310,7 @@ class MainWindow(QMainWindow):
         self._isOpeningDiagram = False
 
     def _onDocumentLoadComplete(self):
-        """
-        Called when document loading is fully complete.
-
-        For local files: called at the end of setDocument()
-        For server diagrams: called in onServerFileClicked() after setServerDiagram()
-        """
+        """Called when document loading is fully complete."""
         if self.document and self.scene:
             autoSaveEnabled = self.prefs.value(
                 "autoSaveEnabled", defaultValue=True, type=bool

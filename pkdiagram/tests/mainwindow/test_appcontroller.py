@@ -122,11 +122,10 @@ def test_url_authentication_flow(test_activation, create_ac_mw, qtbot):
 def test_reopening_a_cached_case_waits_for_the_server_index(
     test_activation, test_user, test_user_diagrams, create_ac_mw
 ):
-    """A server case is cached on disk as an ordinary .fd, and only the
-    file-manager path binds its server identity -- the coach, setServerDiagram,
-    the id allocator. At launch the index has not usually arrived, so looking
-    the path up then says "local file" and the case opens with none of it
-    bound. openLastFile must defer until the index answers."""
+    """A server case is cached on disk as an ordinary .fd, and its server
+    identity is resolved from the path. At launch the index has not usually
+    arrived, so looking the path up then says "local file" and the case opens
+    with none of it bound. openLastFile must defer until the index answers."""
     ac, mw = create_ac_mw()
     util.wait(mw.serverFileModel.updateFinished)
     diagram_id = mw.serverFileModel.diagramCache and list(
