@@ -34,7 +34,7 @@ from pkdiagram.app import Session
 from pkdiagram.personal.shakedetector import ShakeDetector
 from pkdiagram.pyqt import QMessageBox
 from pkdiagram.qnam import QNAM
-from pkdiagram.pyqt import QDate, QDateTime
+from pkdiagram.pyqt import QApplication, QDate, QDateTime
 from pkdiagram.scene import Event, Person
 from pkdiagram.tests.personal.test_lifecycle import _findInstances
 
@@ -460,3 +460,38 @@ def test_a_pro_edit_reaches_the_embedded_personal_views(
     assert [x["year"] for x in graph.events] == [1990]
 
     assert graph.events[0]["who"] == "Connie"
+
+
+# [Oracle: R-0061]
+@pytest.mark.beta
+def test_the_embedded_event_form_writes_pros_scene(
+    test_activation, test_user, test_user_diagrams, create_ac_mw
+):
+    """Embedded, there are two event forms bound to the same case: Pro's drawer
+    and the one in the Personal container. The second must be a view onto Pro's
+    Scene, not a surface of its own -- otherwise an edit made there goes
+    somewhere Pro never sees."""
+    diagram_id = _ownedId(test_user, test_user_diagrams)
+    ac, mw = _mainWindow(create_ac_mw)
+    _open(mw, diagram_id)
+    mw.documentView.caseProps.setCurrentTab("chat")
+    container = mw.documentView.caseProps.findItem("chatLoader").property("item")
+    assert container is not None, "the embedded container never loaded"
+    assert util.waitForCondition(lambda: mw.proPersonal().eventForm is not None)
+
+    assert mw.proPersonal().eventForm.scene is mw.scene
+
+    person = mw.scene.addItem(Person(name="John"))
+    container.property("learnView").addEventRequested.emit()
+    QApplication.processEvents()
+    eventForm = container.property("eventForm")
+    eventForm.property("personPicker").setExistingPersonId(person.id)
+    eventForm.setKind(EventKind.Shift.value)
+    eventForm.setProperty("description", "Felt stressed")
+    eventForm.property("startDateButtons").setProperty(
+        "dateTime", util.Date(2001, 1, 1, 6, 7)
+    )
+    mw.proPersonal().eventForm.onDone()
+    QApplication.processEvents()
+
+    assert [x.description() for x in mw.scene.eventsFor(person)] == ["Felt stressed"]
