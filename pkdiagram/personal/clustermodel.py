@@ -5,7 +5,6 @@ from pathlib import Path
 from btcopilot.schema import (
     Event as SchemaEvent,
     Cluster,
-    ClusterPattern,
     asdict,
     from_dict,
     hash_sarf_dicts,
