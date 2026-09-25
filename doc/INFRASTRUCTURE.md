@@ -13,6 +13,7 @@ Sparkle Appcasts
 -----------------------------------------
 - bin/github_releases_2_appcast.py
     - Called from .github/workflows/release.yml
+    - Uploaded to patrick@database.familydiagram.com:/var/www/fdserver/instance/html/
 https://familydiagram.com/appcast_windows.xml
 https://familydiagram.com/appcast_windows_beta.xml
 https://familydiagram.com/appcast_macos.xml

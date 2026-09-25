@@ -102,7 +102,7 @@ On the `master` branch:
    - Creates GitHub release tagged `2.1.9b1` (marked as prerelease)
    - Extracts changelog from `CHANGELOG.md` and includes in GitHub release body
    - Generates appcast XML files with changelog formatted as HTML
-   - Updates `appcast_macos_beta.xml` and `appcast_windows_beta.xml` on familydiagram.com
+   - Updates `appcast_macos_beta.xml` and `appcast_windows_beta.xml` on the legacy server (database.familydiagram.com)
 
 6. Beta users receive Sparkle update notification with changelog
 
@@ -227,7 +227,9 @@ The [bin/github_releases_2_appcast.py](../bin/github_releases_2_appcast.py) scri
 - Filters by prerelease flag (beta vs release)
 - Calls `extract_changelog.py` for each version
 - Generates separate XML files for macOS/Windows and beta/release
-- Uploaded to familydiagram.com via SCP
+- Uploaded via SCP to `patrick@database.familydiagram.com:/var/www/fdserver/instance/html/` (the legacy server holding the feeds)
+- Only the pair matching `version.py` is generated (beta or release)
+- To regenerate and upload the feeds without building or releasing: `gh workflow run release.yml --ref master -f feeds_only=true`
 
 ### Build Configuration
 

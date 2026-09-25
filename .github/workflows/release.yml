@@ -8,6 +8,11 @@ on:
         required: false
         type: boolean
         default: false
+      feeds_only:
+        description: "Only regenerate and upload the update feeds (no build, no release)"
+        required: false
+        type: boolean
+        default: false
 
   # Releases are manual (small usership, careful release decisions). The heavy
   # frozen-app packaging (build-osx/build-windows) no longer runs per-commit;
@@ -38,6 +43,7 @@ jobs:
 
   setup:
     runs-on: ubuntu-24.04
+    if: ${{ !inputs.feeds_only }}
     outputs:
       version: ${{ steps.get-version.outputs.version }}
       is_prerelease: ${{ steps.get-version.outputs.is_prerelease }}
@@ -730,7 +736,7 @@ jobs:
   update-appcast:
     runs-on: ubuntu-24.04
     needs: publish
-    if: ${{ github.event_name == 'workflow_dispatch' && !inputs.skip_release }}
+    if: ${{ inputs.feeds_only || (success() && github.event_name == 'workflow_dispatch' && !inputs.skip_release) }}
       
     steps:
 
@@ -741,13 +747,13 @@ jobs:
         run: |
             python bin/github_releases_2_appcast.py
 
-      - name: Push appcast.xml to familydiagram.com/appcast.xml
+      - name: Upload appcast xml to the legacy server (database.familydiagram.com)
         env:
             FAMILYDIAGRAM_COM_SSH_PRIVATE_KEY: ${{ secrets.FAMILYDIAGRAM_COM_SSH_PRIVATE_KEY }}
         run: |
             echo "${FAMILYDIAGRAM_COM_SSH_PRIVATE_KEY}" > private_key
             chmod 600 private_key
             mkdir -p ~/.ssh
-            ssh-keyscan -H familydiagram.com >> ~/.ssh/known_hosts
-            scp -i private_key *.xml patrick@familydiagram.com:/var/www/fdserver/instance/html/
+            ssh-keyscan -H database.familydiagram.com >> ~/.ssh/known_hosts
+            scp -i private_key *.xml patrick@database.familydiagram.com:/var/www/fdserver/instance/html/
             rm private_key
