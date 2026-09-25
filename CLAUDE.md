@@ -81,6 +81,8 @@ Each app's `applyChange` explicitly sets only the fields it owns. A field missin
 - **Virtual environment**: Managed by uv workspace (run from repository root)
 - **Environment File**: ../.env
 - **Python entry point**: `uv run python main.py` (starts the desktop application)
+- **btcopilot branch**: the apps build against btcopilot `master-legacy` (the Pro backend); CI installs it from the private index, pinned to that line's versions (`>=2026.9.22`). btcopilot `master` is the chat app, not the Pro backend.
+- **Local Pro work**: the uv workspace sibling `../btcopilot` is on `master` and uv ignores the pin for workspace members, so run against a btcopilot worktree on `master-legacy` (`PYTHONPATH=<that worktree> uv run ...`).
 
 ### Testing
 - **Run all tests**: `uv run pytest -vv`
