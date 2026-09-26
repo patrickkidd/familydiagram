@@ -1808,10 +1808,18 @@ def touchFD(filePath, bdata=None):
             f.write(bdata)
 
 
+def testDataDir():
+    return os.getenv("FD_TEST_DATA_DIR") if IS_DEV else None
+
+
+def iniPrefs(dirPath):
+    return QSettings(os.path.join(dirPath, "settings.ini"), QSettings.IniFormat)
+
+
 def appDataDir():
-    if IS_DEV and os.getenv("FD_TEST_DATA_DIR"):
-        return os.getenv("FD_TEST_DATA_DIR")
-    return QStandardPaths.writableLocation(QStandardPaths.AppLocalDataLocation)
+    return testDataDir() or QStandardPaths.writableLocation(
+        QStandardPaths.AppLocalDataLocation
+    )
 
 
 def shouldFullScreen():
