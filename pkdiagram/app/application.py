@@ -178,6 +178,9 @@ class Application(QApplication):
         CUtil.shutdown()
 
     def prefs(self):
+        testDataDir = util.testDataDir()
+        if not self._prefs and testDataDir:
+            self._prefs = util.iniPrefs(testDataDir)
         if not self._prefs:
             if self._prefsName is None:
                 if util.IS_IOS or util.IS_WINDOWS:

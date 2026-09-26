@@ -28,7 +28,6 @@ from pkdiagram.pyqt import (
     QVariant,
     QMessageBox,
     QEventLoop,
-    QSettings,
     QGraphicsView,
     QVBoxLayout,
     QUrl,
@@ -426,16 +425,10 @@ def qApp():
 
     # Just a placeholder to avoid overwriting the user app folder one; each test
     # will be mocked
-    prefs = QSettings(os.path.join(tempfile.mkdtemp(), "settings.ini"), "vedanamedia")
+    prefs = util.iniPrefs(tempfile.mkdtemp())
 
     def _prefs(self):
         return prefs
-
-    with mock.patch.object(Application, "prefs", _prefs):
-        app = Application(sys.argv, Application.Type.Test)
-        CUtil.instance().forceDocsPath(
-            os.path.join(tempfile.mkdtemp(), "documents")
-        )  # to kill the file list query
 
     _orig_Server_deinit = Server.deinit
 
@@ -470,6 +463,11 @@ def qApp():
             ), f"Did not complete QmlUtil requests: {_summarize(self._httpRequests)}"
 
     with contextlib.ExitStack() as stack:
+        stack.enter_context(mock.patch.object(Application, "prefs", _prefs))
+        app = Application(sys.argv, Application.Type.Test)
+        CUtil.instance().forceDocsPath(
+            os.path.join(tempfile.mkdtemp(), "documents")
+        )  # to kill the file list query
         stack.enter_context(mock.patch.object(Server, "deinit", _Server_deinit))
         stack.enter_context(
             mock.patch.object(
@@ -483,13 +481,14 @@ def qApp():
         stack.enter_context(mock.patch("pkdiagram.app.Analytics.killTimer"))
         # stack.enter_context(mock.patch("btcopilot.extensions.init_excepthook"))
         yield app
+        app.deinit()
 
-    app.deinit()
+    assert app._prefs is None, "Tests reached the app's real preferences domain"
 
 
 @pytest.fixture(autouse=True)
 def prefs(request, tmp_path):
-    prefs = QSettings(os.path.join(tempfile.mkdtemp(), "settings.ini"), "vedanamedia")
+    prefs = util.iniPrefs(tmp_path)
     with contextlib.ExitStack() as stack:
         stack.enter_context(
             mock.patch("pkdiagram.app.Application.prefs", return_value=prefs)
